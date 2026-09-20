@@ -11,7 +11,8 @@ context and is superseded where it conflicts with this section.
 | Confirmed gap on starting main | T17B correction | Independent proof |
 | --- | --- | --- |
 | Screens 04–06 shared one component-internal step instead of URL ownership | URL-derived steps at `/onboarding/household`, `/onboarding/preferences`, `/onboarding/goals`; root redirect | unit route contract plus six-width direct-load/refresh/Back/Forward browser case |
-| Screen 06 asked for unsupported `primaryGoal` and completion could imply `/week/setup` | review of household size, cuisines, spicy level, restrictions; server-confirmed completion routes to `/` | unit API-body/authority cases, browser review-value and no-`primary-goal` assertions |
+| Screen 06 goal buttons lacked native single-select semantics and `primaryGoal` was sent in the completion body | native `primary-goal` radio group with the existing `today`/`week`/`both` values; goal kept client-only and excluded from `/preferences`; server-confirmed completion then routes `week` → `/week/setup`, otherwise `/` | unit API-body (no `primaryGoal` key), routing, and navigation-survival cases; browser three-radio and Back/Forward assertions |
+| Onboarding presentation clamped stored household size to 5 | stored `6..20` displayed as "5+" but sent back unchanged unless the user explicitly picks a size; explicit "5+" writes canonical `5` | unit round-trip of `householdSize = 7` through all steps and explicit-choice case |
 | Registry could certify route existence with broad or partial markers | concrete weak contracts replaced; all declared contract fields asserted | 27 result records per viewport, **18/18** registry matrix |
 | Verify context accepted insufficiently bounded lifecycle/expiry state | strict shape, identity binding, safe dates, cleanup on route/identity/cancel/success | verify-route and client-session tests for corrupt/owner mismatch/history/stale requests |
 | Resend could imply a fabricated new OTP lifetime | resend expiry becomes explicitly unknown without server metadata | unit assertion plus honest UI copy |
@@ -26,9 +27,10 @@ context and is superseded where it conflicts with this section.
 - The server remains the only OTP/session authority. Browser context is
   presentation metadata, tab-scoped, owner-bound, and credential-free.
 - `primaryGoal` has no worker, migration, domain, query, or persisted
-  `user_preferences` authority. Supported onboarding fields are household
-  size, spicy level, favorite cuisines, dietary restrictions, and the
-  server-confirmed completion flag.
+  `user_preferences` authority; it is a client-only draft/auth-state value that
+  selects the post-onboarding route and is never sent to the server. Supported
+  server onboarding fields are household size, spicy level, favorite cuisines,
+  dietary restrictions, and the server-confirmed completion flag.
 - For authenticated sessions, onboarding preference state is a draft until the
   server confirms completion. The preserved offline-guest path intentionally
   skips the server write and completes locally. The visible choice set does not

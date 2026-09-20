@@ -14,8 +14,12 @@
   published the evidence; corrective documentation checkpoint `f901b02` fixed
   authority wording and blockers. This publication receipt follows and cannot
   record its own hash.
-- **Outcome:** URL-owned onboarding 04–06, real preference review instead of
-  `primaryGoal`, server-confirmed completion for authenticated sessions, the
+- **Outcome:** URL-owned onboarding 04–06, screen 06 as a native single-select
+  planning goal (`today`/`week`/`both`, client-only, never sent to the server,
+  `week` → `/week/setup` after confirmation) with a review of the server-stored
+  fields, unclamped household size (stored `6..20` shown as "5+" and
+  round-tripped unchanged), server-confirmed completion for authenticated
+  sessions, the
   preserved local-only offline-guest exception, owner-bound and
   delivery/expiry-honest `/auth/verify`, stale-request/route cleanup, supported
   spicy-value preservation, verification-exit loading reset, and concrete proof

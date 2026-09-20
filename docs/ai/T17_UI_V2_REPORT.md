@@ -74,14 +74,25 @@ production.
   `other`. These visible choices do not narrow server truth: stored values
   outside the chips, including `italian` and `vegetarian`, survive navigation,
   appear in review, and are sent unchanged on completion.
-- Screen 06 reviews the authoritative fields plus the independently persisted
-  spicy level; it neither infers spicy level from the `spicy` restriction nor
-  invents `primaryGoal` or forces a valid stored preference back to `medium`.
+- Screen 06 is the planning-goal screen ("Bạn muốn Takosan giúp việc gì
+  trước?"): a native single-select `primary-goal` radio group with exactly the
+  pre-existing client values `today`, `week`, and `both` (default `both`),
+  followed by a review of the fields the server actually stores. `primaryGoal`
+  is client-only: it is kept in the onboarding draft and auth state, steers the
+  post-completion route, and is never included in the `/preferences` body. The
+  copy states that the goal only decides the starting screen on this device.
+  Screen 06 neither infers spicy level from the `spicy` restriction nor forces a
+  valid stored preference back to `medium`.
+- Household size keeps server truth (1..20). The five visible choices bucket
+  stored values `>= 5` as "5+" without rewriting them; an untouched stored `7`
+  is sent back as `7`. Only an explicit tap on the "5+" choice writes the
+  canonical value `5`, matching the existing `/me/preferences` editor.
 - For authenticated sessions, completion updates local auth state only after
   `/preferences` confirms `onboardingComplete: true`; failures and
   non-confirming responses remain on screen 06 without claiming success. The
   preserved offline-guest path intentionally skips the server write and updates
-  local state. Both completion paths navigate to `/`.
+  local state. After confirmed completion, `week` navigates to `/week/setup`
+  and `today`/`both` navigate to `/`, as on the PR base.
 
 ### Screen 03 lifecycle is tab-scoped and server-authoritative
 
@@ -118,8 +129,9 @@ production.
   seeded server truth, and horizontal layout at each viewport.
 - The clean registry-only matrix passed **18/18** across 360, 390, 430, 768,
   1024, and 1440. Its route-ownership case covers direct load, refresh,
-  history, native radio/checkbox state, persisted review values, and absence
-  of `primary-goal` at every width.
+  history, native radio/checkbox state, persisted review values, and the
+  three-value `primary-goal` radio group (selection surviving Back/Forward) at
+  every width.
 
 ## Changed-file and architecture inventory
 

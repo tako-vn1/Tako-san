@@ -8,8 +8,14 @@ Branch `feat/t17b-contract-reconciliation` was created from exact `main`
 `0f358f2f8c9da35c2167489ad6fd63eae8ea8c47`; certification checkpoint is
 `00594eba755c6895f9edb9d3076282cf42919c44`. Documentation follows.
 
-- Screens 04–06 are route-driven and history/refresh safe. Screen 06 reviews
-  authoritative preference fields; unsupported `primaryGoal` was removed.
+- Screens 04–06 are route-driven and history/refresh safe. Screen 06 is the
+  planning-goal screen: a native `primary-goal` radio group with the existing
+  client values `today`/`week`/`both` plus a review of the server-stored
+  fields. `primaryGoal` is client-only (draft + auth state, never sent to
+  `/preferences`); after confirmed completion `week` routes to `/week/setup`,
+  otherwise `/`. Household size is not clamped: stored `6..20` shows as "5+"
+  and round-trips unchanged unless the user explicitly picks a size (explicit
+  "5+" writes canonical `5`).
   Screen 05 has exactly seven visible cuisine choices and nine visible
   restriction choices, both including canonical `other`. Stored values outside
   those visible chips, including `italian` and `vegetarian`, survive review and

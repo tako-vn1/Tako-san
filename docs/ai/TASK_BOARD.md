@@ -6,7 +6,10 @@
   `feat/t17b-contract-reconciliation`; application HEAD `0f358f2`, certification
   checkpoint `00594eb`; did not modify PR #44 or the old branch.
 - [done] Route-owned onboarding screens 04–06 with direct load, refresh,
-  Back/Forward, native input semantics, real preference review, and
+  Back/Forward, native input semantics, a client-only `today`/`week`/`both`
+  planning goal on screen 06 (never sent to `/preferences`; `week` →
+  `/week/setup`), unclamped household size (stored `7` round-trips as `7`,
+  shown as "5+"), a review of server-stored preferences, and
   server-confirmed completion for authenticated sessions. The existing
   offline-guest path intentionally completes locally. Exactly seven cuisine and
   nine restriction chips are visible, both with `other`; stored values outside
