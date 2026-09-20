@@ -18,9 +18,10 @@ const CUISINE_TAGS = [
   { id: 'vietnamese', label: 'Việt Nam' },
   { id: 'korean', label: 'Hàn Quốc' },
   { id: 'japanese', label: 'Nhật Bản' },
+  { id: 'western', label: 'Âu - Mỹ' },
   { id: 'chinese', label: 'Trung Hoa' },
   { id: 'thai', label: 'Thái Lan' },
-  { id: 'italian', label: 'Ý' },
+  { id: 'other', label: 'Khác' },
 ] as const;
 
 const RESTRICTION_TAGS = [
@@ -68,14 +69,12 @@ export const OnboardingPage: React.FC = () => {
     Math.min(5, Math.max(1, auth.householdSize || 2)),
   );
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>(() => {
-    const current = auth.favoriteCuisines.filter((value) => supportedCuisines.has(value));
-    return current.length > 0 ? current : ['vietnamese'];
+    return auth.favoriteCuisines.filter((value) => supportedCuisines.has(value));
   });
   const [restrictions, setRestrictions] = useState<string[]>(() =>
     auth.dietaryRestrictions.filter((value) => supportedRestrictions.has(value)),
   );
-  const persistedSpicyLevel = supportedSpicyLevel(auth.spicyLevel);
-  const spicyLevel = restrictions.includes('spicy') ? 'none' : persistedSpicyLevel;
+  const spicyLevel = supportedSpicyLevel(auth.spicyLevel);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

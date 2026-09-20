@@ -113,12 +113,13 @@ describe('screens 04-06 — onboarding contract', () => {
       'vietnamese',
       'korean',
       'japanese',
+      'western',
       'chinese',
       'thai',
-      'italian',
+      'other',
     ]);
     expect(restrictions.length).toBeGreaterThan(0);
-    expect(cuisines[0].checked).toBe(true);
+    expect(cuisines.every((item) => !item.checked)).toBe(true);
     await act(async () => cuisines[1].click());
     await act(async () => restrictions[0].click());
     expect(cuisines[1].checked).toBe(true);
@@ -142,6 +143,7 @@ describe('screens 04-06 — onboarding contract', () => {
   });
 
   it('screen 06 reviews only persisted preference fields and keeps completion server-authoritative', async () => {
+    useAuthStore.setState({ favoriteCuisines: ['vietnamese'] });
     await mount('/onboarding/goals');
 
     expect(host.querySelector('[data-testid="onboarding-preference-review"]')).toBeTruthy();
@@ -183,16 +185,48 @@ describe('screens 04-06 — onboarding contract', () => {
     expect(host.querySelector('[role="alert"]')?.textContent).toContain('Chưa thể lưu sở thích');
   });
 
-  it('preserves an existing supported spicy level in review and completion', async () => {
-    useAuthStore.setState({ spicyLevel: 'hot' });
+  it('preserves western and other cuisine preferences in review and completion', async () => {
+    useAuthStore.setState({ favoriteCuisines: ['western', 'other'] });
     await mount('/onboarding/goals');
 
-    expect(host.textContent).toContain('Cay nhiều');
+    expect(host.textContent).toContain('Âu - Mỹ');
+    expect(host.textContent).toContain('Khác');
     await click(button('Bắt đầu với Takosan'));
     expect(mocks.completeOnboarding).toHaveBeenCalledWith(
-      expect.objectContaining({ spicyLevel: 'hot' }),
+      expect.objectContaining({ favoriteCuisines: ['western', 'other'] }),
     );
   });
+
+  it('keeps an empty cuisine selection empty instead of inventing a default', async () => {
+    await mount('/onboarding/goals');
+
+    expect(host.querySelector('[data-testid="onboarding-preference-review"]')?.textContent).toContain(
+      'Ẩm thực yêu thíchKhông có lựa chọn',
+    );
+    await click(button('Bắt đầu với Takosan'));
+    expect(mocks.completeOnboarding).toHaveBeenCalledWith(
+      expect.objectContaining({ favoriteCuisines: [] }),
+    );
+  });
+
+  it.each([
+    ['mild', 'Ít cay'],
+    ['medium', 'Cay vừa'],
+    ['hot', 'Cay nhiều'],
+  ] as const)(
+    'preserves stored %s spicy preference independently of the spicy restriction',
+    async (spicyLevel, label) => {
+      useAuthStore.setState({ spicyLevel, dietaryRestrictions: ['spicy'] });
+      await mount('/onboarding/goals');
+
+      expect(host.textContent).toContain(label);
+      expect(host.textContent).toContain('Đồ cay');
+      await click(button('Bắt đầu với Takosan'));
+      expect(mocks.completeOnboarding).toHaveBeenCalledWith(
+        expect.objectContaining({ spicyLevel, dietaryRestrictions: ['spicy'] }),
+      );
+    },
+  );
 
   it('canonicalizes the legacy onboarding entry to screen 04', async () => {
     await mount('/onboarding');
