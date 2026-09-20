@@ -11,8 +11,9 @@
   truth, `9a94afb` pending-auth/restriction truth, application HEAD `0f358f2`
   verification-exit/stored-value truth, and certification checkpoint `00594eb`
   settled layout measurement. Initial documentation checkpoint `dd108a2`
-  published the evidence; this corrective documentation checkpoint follows it
-  and cannot record its own hash.
+  published the evidence; corrective documentation checkpoint `f901b02` fixed
+  authority wording and blockers. This publication receipt follows and cannot
+  record its own hash.
 - **Outcome:** URL-owned onboarding 04–06, real preference review instead of
   `primaryGoal`, server-confirmed completion for authenticated sessions, the
   preserved local-only offline-guest exception, owner-bound and
@@ -50,16 +51,26 @@
   validator looked for `command` instead of the declared `generatingCommand`
   key; the corrected validator passed. Application gates were not rerun because
   this follow-up changes only the six documentation files.
+- **Managed Preview:** an initial inferred `pnpm dev` run path lacked the
+  isolated API and guest creation returned 500. Restoring the effective
+  `node scripts/security-preview.mjs` path recovered a ready Preview; the
+  tracked `.hoplite/settings.json` was restored unchanged. At exact remote
+  checkpoint `f901b02`, supported synthetic reset/login verified screens 04–06
+  at 390x844, including five household radios, 7 cuisine and 9 restriction
+  checkboxes, independent review values, and Back/Forward preservation. No page
+  error was reported in the successful flow. The separate real-guest fixture
+  endpoint still returned 500 and was not broadened by T17B.
 - **Receipt separation:** PR #44/main CI/staging receipts are historical T17;
-  T17B itself has not merged or deployed.
+  T17B replacement PR #45 opened against exact main `858759f` from remote
+  checkpoint `f901b02`. Its auto-fix CI/review loop is enabled. T17B itself has
+  not merged or deployed.
 - **Status/blockers:** `T17B_COMPLETE`; no in-scope implementation blocker.
   Manual — original boards/ZIP unavailable, final direct board comparison
   pending external reviewer, and `HUMAN_SCREEN_READER = NOT_EXECUTED`.
   Pre-existing protected auth/payment blockers are recorded above, not fixed;
   merge/deploy remain operator decisions.
-- **Next exact action:** publish this docs checkpoint, verify the managed
-  Preview at the exact remote head, then open/review the new PR and hosted
-  checks. A board holder must still compare the package and run NVDA/VoiceOver.
+- **Next exact action:** inspect PR #45 hosted checks, reviews, and unresolved
+  threads. A board holder must still compare the package and run NVDA/VoiceOver.
   Do not merge or deploy outside the operator path.
 
 ## Previous handoff — T17 continuation 6: contract gaps closed, `T17_PARTIAL` (2026-09-19)

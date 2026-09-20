@@ -24,9 +24,15 @@
   protected-boundary zero diffs, ZIP integrity, and all 180 JSON/TSV screenshot
   records and hashes. The first ad hoc validator expected the wrong command
   field; the corrected `generatingCommand` check found no artifact defect.
-- No T17B merge or staging/production deploy occurred. After this checkpoint is
-  pushed, verify managed Preview, then open/review the new PR. External board
-  comparison remains pending; `HUMAN_SCREEN_READER = NOT_EXECUTED`.
+- Managed Preview was recovered from an inferred `pnpm dev` path that lacked the
+  isolated API to `node scripts/security-preview.mjs`; tracked settings were
+  restored unchanged. Exact remote checkpoint `f901b02` passed supported
+  synthetic reset/login and screens 04–06 at 390x844 with no page errors.
+- Replacement PR #45 opened against exact main `858759f` from `f901b02`; its
+  auto-fix CI/review loop is enabled and PR #44 remains untouched. No T17B merge
+  or staging/production deploy occurred. Next inspect hosted checks/reviews.
+  External board comparison remains pending;
+  `HUMAN_SCREEN_READER = NOT_EXECUTED`.
 - `PRE-EXISTING PROTECTED AUTH-CONTRACT BLOCKER`: registration reports a
   10-minute lifetime, but resend returns no fresh expiry metadata. A server/API
   owner must resolve that separately; the client honestly records unknown.

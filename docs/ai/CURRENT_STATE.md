@@ -42,6 +42,13 @@ Branch `feat/t17b-contract-reconciliation` was created from exact `main`
   protected zero-diff boundaries, ZIP integrity, and all 180 JSON/TSV manifest
   records and hashes. An initial ad hoc validator used the wrong command-field
   name; the corrected `generatingCommand` check found no artifact defect.
+- Managed Preview initially inherited an inferred `pnpm dev` run path and could
+  not provide the isolated API; guest creation returned 500. The effective run
+  path was restored to `node scripts/security-preview.mjs`, the tracked Preview
+  settings were restored unchanged, and the final exact-head Preview was ready.
+  Supported synthetic reset/login then verified screens 04–06 at 390x844: five
+  household radios, 7 cuisine and 9 restriction checkboxes, independent review
+  values, and Back/Forward preservation, with no page errors.
 - Worker/payment/migration/production behavior is unchanged.
   `PRE-EXISTING PROTECTED AUTH-CONTRACT BLOCKER`: registration reports a
   10-minute OTP lifetime while resend supplies no fresh expiry.
@@ -54,11 +61,13 @@ Branch `feat/t17b-contract-reconciliation` was created from exact `main`
   because direct board comparison and a human screen-reader walkthrough are
   external and unexecuted.
 
-**Publication/next action:** commit and push the documentation checkpoint,
-verify the final managed Preview, then open/review the new PR and its hosted
-checks. Separately, an external board holder compares the packaged visuals to
-the actual boards and performs NVDA/VoiceOver. Merge/deploy only through the
-authorized operator path; production remains untouched.
+**Publication/next action:** replacement PR #45 was opened against exact base
+`858759f771baccb85f5ed6fd8e06df2fc0bbb112` from corrective documentation
+checkpoint `f901b028af655b419cd96c3a8e29c358de34e636`; this publication receipt
+follows without changing application code. Inspect its hosted checks, reviews,
+and unresolved threads. Separately, an external board holder compares the
+packaged visuals to the actual boards and performs NVDA/VoiceOver. Merge/deploy
+only through the authorized operator path; production remains untouched.
 
 ## Previous T17 — continuation 6: contract gaps closed and certified, status `T17_PARTIAL` (2026-09-19)
 
