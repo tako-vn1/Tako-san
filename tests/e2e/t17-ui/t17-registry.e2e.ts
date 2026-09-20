@@ -31,7 +31,8 @@ async function generatePlan(page: import('@playwright/test').Page): Promise<stri
 async function settle(page: import('@playwright/test').Page) {
   await page.evaluate(() =>
     document.fonts.ready.then(
-      () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 150))),
+      // Measure after the finite 200–250 ms entry transitions complete.
+      () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 300))),
     ),
   );
 }
