@@ -162,18 +162,9 @@ export const App: React.FC = () => {
                 <Route path="/auth/verify" element={userId && householdId && !isGuest
                   ? <Navigate to={isOnboarded ? '/' : '/onboarding'} replace />
                   : <AuthPage />} />
-                <Route path="/onboarding" element={userId && householdId
+                {/* Screens 04-06 share one draft while the URL owns the visible step. */}
+                <Route path="/onboarding/*" element={userId && householdId
                   ? isOnboarded ? <Navigate to="/" replace /> : <OnboardingPage />
-                  : <Navigate to="/landing" replace />} />
-                {/* Kit step routes (screens 04-06); same server-authoritative flow. */}
-                <Route path="/onboarding/household" element={userId && householdId
-                  ? isOnboarded ? <Navigate to="/" replace /> : <OnboardingPage initialStep={1} />
-                  : <Navigate to="/landing" replace />} />
-                <Route path="/onboarding/preferences" element={userId && householdId
-                  ? isOnboarded ? <Navigate to="/" replace /> : <OnboardingPage initialStep={2} />
-                  : <Navigate to="/landing" replace />} />
-                <Route path="/onboarding/goals" element={userId && householdId
-                  ? isOnboarded ? <Navigate to="/" replace /> : <OnboardingPage initialStep={3} />
                   : <Navigate to="/landing" replace />} />
 
                 {/* Core App Shell */}
