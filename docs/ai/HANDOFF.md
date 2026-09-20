@@ -10,10 +10,12 @@
   measurement, `53e950c` delivery/spicy truth, `8b0f050` onboarding preference
   truth, `9a94afb` pending-auth/restriction truth, application HEAD `0f358f2`
   verification-exit/stored-value truth, and certification checkpoint `00594eb`
-  settled layout measurement. The docs checkpoint is the next commit in
-  `git log` because it cannot record its own hash.
+  settled layout measurement. Initial documentation checkpoint `dd108a2`
+  published the evidence; this corrective documentation checkpoint follows it
+  and cannot record its own hash.
 - **Outcome:** URL-owned onboarding 04–06, real preference review instead of
-  `primaryGoal`, server-confirmed onboarding completion, owner-bound and
+  `primaryGoal`, server-confirmed completion for authenticated sessions, the
+  preserved local-only offline-guest exception, owner-bound and
   delivery/expiry-honest `/auth/verify`, stale-request/route cleanup, supported
   spicy-value preservation, verification-exit loading reset, and concrete proof
   for all 27 reviewer-verified registry entries. Screen 05 has exactly seven
@@ -21,9 +23,10 @@
   dropping stored `italian`, `vegetarian`, or other authoritative values.
 - **Final local evidence:** focused auth 102/102; final verify/onboarding 39/39;
   full Vitest 180 files/4087; registry 18/18; T13 60/60; clean full T17
-  216 pass/6 intentional skips; residual 43/43 payment-allowlisted/0
-  unjustified; contrast 33/33; lint, typecheck, migration smoke, build, focused
-  ESLint, and `git diff --check` PASS. Exact commands are in the report.
+  216 pass/6 intentional skips; automated accessibility 12/12 across six
+  viewports; residual 43/43 payment-allowlisted/0 unjustified; contrast 33/33;
+  lint, typecheck, migration smoke, build, focused ESLint, and
+  `git diff --check` PASS. Exact commands are in the report.
 - **Visual artifact:** clean source
   `.hoplite/artifacts/t17-playwright/final-00594eb-clean/`, validation source
   `.hoplite/artifacts/t17b-validation-00594eb/`, inspected contact sheet
@@ -31,21 +34,35 @@
   180-PNG package `.hoplite/artifacts/t17b-final-visuals-00594eb.zip`, SHA-256
   `d6f6d4f032c0ac637ce5d1523ecc95b1411bc567538bca8d235a7131e6ad9d70`.
 - **Boundaries:** `src/worker` and protected payment behavior have zero T17B
-  diff; migrations also have zero diff. Protected prices remain frontend
-  `599000`/`79000` and billing authority `499000`/`49000`. No staging,
+  diff; migrations also have zero diff.
+  `PRE-EXISTING PROTECTED AUTH-CONTRACT BLOCKER`: registration reports
+  `expiresInMinutes: 10`, while resend supplies no fresh expiry metadata; a
+  server/API owner must resolve it separately.
+  `PRE-EXISTING PROTECTED PAYMENT-AUTHORITY BLOCKER`: frontend and VietQR-prop
+  prices remain `599000`/`79000`, while payment-intent authority is
+  `499000`/`49000`; the QR does not source its amount from that intent. Aligning
+  these requires separate owner-authorized payment work. No staging,
   production, or deployment action.
+- **Corrective documentation verification:** `git diff --check`, required-marker
+  assertions, and fresh Worker/migration/payment zero-diff checks pass. The ZIP
+  revalidated at 232 entries/180 PNGs with 180 JSON + 180 TSV records, no missing
+  fields/files or hash mismatches, and the recorded SHA-256. An initial ad hoc
+  validator looked for `command` instead of the declared `generatingCommand`
+  key; the corrected validator passed. Application gates were not rerun because
+  this follow-up changes only the six documentation files.
 - **Receipt separation:** PR #44/main CI/staging receipts are historical T17;
   T17B itself has not merged or deployed.
-- **Blockers:** implementation none; manual — original boards/ZIP unavailable,
-  final direct board comparison pending external reviewer, and
-  `HUMAN_SCREEN_READER = NOT_EXECUTED`; protected external — merge/deploy are
-  operator decisions.
+- **Status/blockers:** `T17B_COMPLETE`; no in-scope implementation blocker.
+  Manual — original boards/ZIP unavailable, final direct board comparison
+  pending external reviewer, and `HUMAN_SCREEN_READER = NOT_EXECUTED`.
+  Pre-existing protected auth/payment blockers are recorded above, not fixed;
+  merge/deploy remain operator decisions.
 - **Next exact action:** publish this docs checkpoint, verify the managed
   Preview at the exact remote head, then open/review the new PR and hosted
   checks. A board holder must still compare the package and run NVDA/VoiceOver.
   Do not merge or deploy outside the operator path.
 
-## Current handoff — T17 continuation 6: contract gaps closed, `T17_PARTIAL` (2026-09-19)
+## Previous handoff — T17 continuation 6: contract gaps closed, `T17_PARTIAL` (2026-09-19)
 
 - **Branch/PR:** `feat/t17-takosan-ui-v2`, PR #44, repository id `1368281478`
   (`tako-san1/Frigo-dev`). Implementation commits `dfdd0ab`, `227e36b`,

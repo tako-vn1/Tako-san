@@ -1,6 +1,6 @@
 # Frigo / Takosan current authority — 2026-09-20
 
-## Current T17B — contract reconciliation implementation complete; release pending (2026-09-20)
+## Current T17B — contract reconciliation `T17B_COMPLETE`; release pending (2026-09-20)
 
 Branch `feat/t17b-contract-reconciliation` was created from exact `main`
 `858759f771baccb85f5ed6fd8e06df2fc0bbb112` in repository id `1368281478`,
@@ -13,8 +13,9 @@ Branch `feat/t17b-contract-reconciliation` was created from exact `main`
   Screen 05 has exactly seven visible cuisine choices and nine visible
   restriction choices, both including canonical `other`. Stored values outside
   those visible chips, including `italian` and `vegetarian`, survive review and
-  completion; spicy level remains independent. Onboarding completes locally
-  only after server confirmation.
+  completion; spicy level remains independent. Authenticated onboarding updates
+  local auth state only after server confirmation. The preserved offline-guest
+  session path intentionally skips the server write and completes locally.
 - `/auth/verify` context is credential-free, tab-scoped, identity-bound,
   strict-shape/expiry validated, and cleared on route, identity, cancel, and
   success transitions. Delivery is nullable, resend expiry is unknown when the
@@ -27,8 +28,9 @@ Branch `feat/t17b-contract-reconciliation` was created from exact `main`
   `primary-goal`. Older reconstructed-kit language is historical only.
 - Final validation: focused auth 102/102, final verify/onboarding 39/39, full
   Vitest 180 files/4087 tests, T13 60/60, clean six-width T17 216 pass/6
-  intentional skips, style residual 43/43 allowlisted/0 unjustified, and
-  contrast 33/33. Lint, typecheck, migration smoke, and build passed.
+  intentional skips, automated accessibility 12/12 across six viewports, style
+  residual 43/43 allowlisted/0 unjustified, and contrast 33/33. Lint,
+  typecheck, migration smoke, and build passed.
 - Clean evidence is under
   `.hoplite/artifacts/t17-playwright/final-00594eb-clean/`; validation is under
   `.hoplite/artifacts/t17b-validation-00594eb/`. The tested package
@@ -36,9 +38,19 @@ Branch `feat/t17b-contract-reconciliation` was created from exact `main`
   180 PNGs, with a complete per-screenshot manifest; SHA-256 is
   `d6f6d4f032c0ac637ce5d1523ecc95b1411bc567538bca8d235a7131e6ad9d70`.
   The 390px OTP and all onboarding captures were visually inspected.
-- Worker/payment/migration/production behavior is unchanged. No deployment
-  occurred. Full evidence: `docs/ai/T17_UI_V2_REPORT.md`.
-- Status is `T17B_IMPLEMENTATION_COMPLETE`; T17 remains `T17_PARTIAL` only
+- Corrective documentation checks passed for whitespace, required markers,
+  protected zero-diff boundaries, ZIP integrity, and all 180 JSON/TSV manifest
+  records and hashes. An initial ad hoc validator used the wrong command-field
+  name; the corrected `generatingCommand` check found no artifact defect.
+- Worker/payment/migration/production behavior is unchanged.
+  `PRE-EXISTING PROTECTED AUTH-CONTRACT BLOCKER`: registration reports a
+  10-minute OTP lifetime while resend supplies no fresh expiry.
+  `PRE-EXISTING PROTECTED PAYMENT-AUTHORITY BLOCKER`: frontend/VietQR prices
+  `599000`/`79000` differ from server payment-intent authority
+  `499000`/`49000`. Their server/API and payment owners must resolve them in
+  separately authorized work. No deployment occurred. Full evidence:
+  `docs/ai/T17_UI_V2_REPORT.md`.
+- Status is `T17B_COMPLETE`; T17 remains `T17_PARTIAL` only
   because direct board comparison and a human screen-reader walkthrough are
   external and unexecuted.
 
@@ -48,7 +60,7 @@ checks. Separately, an external board holder compares the packaged visuals to
 the actual boards and performs NVDA/VoiceOver. Merge/deploy only through the
 authorized operator path; production remains untouched.
 
-## Current T17 — continuation 6: contract gaps closed and certified, status `T17_PARTIAL` (2026-09-19)
+## Previous T17 — continuation 6: contract gaps closed and certified, status `T17_PARTIAL` (2026-09-19)
 
 Branch `feat/t17-takosan-ui-v2`, PR #44 (repository id `1368281478`, now
 `tako-san1/Frigo-dev`). Final-HEAD evidence lives in
