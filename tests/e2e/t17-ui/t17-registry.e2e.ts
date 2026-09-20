@@ -213,7 +213,13 @@ test.describe('screen registry certification', () => {
     await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '3');
     await expect(page.getByTestId('onboarding-preference-review')).toContainText('Hàn Quốc');
     await expect(page.getByTestId('onboarding-preference-review')).toContainText('Thịt bò');
-    await expect(page.locator('[name="primary-goal"]')).toHaveCount(0);
+    const goals = page.locator('input[type="radio"][name="primary-goal"]');
+    await expect(goals).toHaveCount(3);
+    expect(await goals.evaluateAll((items) => items.map((item) => (item as HTMLInputElement).value)))
+      .toEqual(['today', 'week', 'both']);
+    await expect(page.locator('input[name="primary-goal"][value="both"]')).toBeChecked();
+    await page.locator('label:has(input[name="primary-goal"][value="today"])').click();
+    await expect(page.locator('input[name="primary-goal"][value="today"]')).toBeChecked();
 
     await page.goBack();
     await expect(page).toHaveURL(/\/onboarding\/preferences$/);
@@ -221,11 +227,13 @@ test.describe('screen registry certification', () => {
     await page.goForward();
     await expect(page).toHaveURL(/\/onboarding\/goals$/);
     await expect(page.getByTestId('onboarding-preference-review')).toBeVisible();
+    await expect(page.locator('input[name="primary-goal"][value="today"]')).toBeChecked();
     await page.reload();
     await expect(page).toHaveURL(/\/onboarding\/goals$/);
     await expect(
-      page.getByRole('heading', { name: /Xem lại sở thích của nhà mình/ }),
+      page.getByRole('heading', { name: /Bạn muốn Takosan giúp việc gì trước/ }),
     ).toBeVisible();
+    await expect(page.getByTestId('onboarding-goal-group')).toBeVisible();
   });
 
   test('legacy and redirect routes land on registered screens', async ({ page }) => {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, Check, Flame, Sparkles, Users } from 'lucide-react';
+import { ArrowRight, Calendar, Check, Flame, Sparkles, Users, Utensils } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/common/Button';
 import { TAKOSAN_BRAND } from '../lib/takosan-brand';
@@ -43,13 +43,49 @@ const SPICY_LABELS = {
   hot: 'Cay nhiều',
 } as const;
 
+// Client-only planning goal: it steers post-onboarding navigation and is never
+// sent to `/preferences`, which does not persist it.
+const GOAL_OPTIONS = [
+  {
+    id: 'today',
+    title: 'Hôm nay ăn gì?',
+    description: 'Gợi ý món ngay từ nguyên liệu đang có.',
+    icon: Utensils,
+  },
+  {
+    id: 'week',
+    title: 'Lên thực đơn tuần',
+    description: 'Chuẩn bị bữa ăn và danh sách đi chợ.',
+    icon: Calendar,
+  },
+  {
+    id: 'both',
+    title: 'Kết hợp cả hai',
+    description: 'Linh hoạt hôm nay, chủ động cả tuần.',
+    icon: Sparkles,
+  },
+] as const;
+
+// Visible household choices; 5 doubles as the "5+" bucket. Server truth is 1..20.
+const HOUSEHOLD_CHOICES = [1, 2, 3, 4, 5] as const;
+const HOUSEHOLD_PLUS_CHOICE = 5;
+
 type OnboardingStep = keyof typeof ONBOARDING_PATHS;
 type SpicyLevel = keyof typeof SPICY_LABELS;
+type PrimaryGoal = (typeof GOAL_OPTIONS)[number]['id'];
 
 function supportedSpicyLevel(value: string): SpicyLevel {
   return Object.prototype.hasOwnProperty.call(SPICY_LABELS, value)
     ? (value as SpicyLevel)
     : 'medium';
+}
+
+function supportedPrimaryGoal(value: string | undefined): PrimaryGoal {
+  return GOAL_OPTIONS.some((goal) => goal.id === value) ? (value as PrimaryGoal) : 'both';
+}
+
+function householdSizeLabel(size: number): string {
+  return size >= HOUSEHOLD_PLUS_CHOICE ? '5 người trở lên' : `${size} người`;
 }
 
 function stepFromPath(pathname: string): OnboardingStep | null {
@@ -64,9 +100,12 @@ export const OnboardingPage: React.FC = () => {
   const { pathname } = useLocation();
   const auth = useAuthStore();
   const step = stepFromPath(pathname);
-  const [householdSize, setHouseholdSize] = useState(() =>
-    Math.min(5, Math.max(1, auth.householdSize || 2)),
-  );
+  // Stored values above the visible buckets (6..20) are kept verbatim until the
+  // user explicitly picks a size; only the presentation buckets them as "5+".
+  const [householdSize, setHouseholdSize] = useState(() => {
+    const stored = auth.householdSize;
+    return Number.isInteger(stored) && stored >= 1 ? stored : 2;
+  });
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>(() => [
     ...auth.favoriteCuisines,
   ]);
@@ -74,6 +113,9 @@ export const OnboardingPage: React.FC = () => {
     ...auth.dietaryRestrictions,
   ]);
   const spicyLevel = supportedSpicyLevel(auth.spicyLevel);
+  const [primaryGoal, setPrimaryGoal] = useState<PrimaryGoal>(() =>
+    supportedPrimaryGoal(auth.primaryGoal),
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,6 +128,7 @@ export const OnboardingPage: React.FC = () => {
   const finish = async () => {
     setError(null);
     setIsSaving(true);
+    // Only server-supported preference fields; primaryGoal stays client-side.
     const preferences = {
       householdSize,
       spicyLevel,
@@ -99,8 +142,8 @@ export const OnboardingPage: React.FC = () => {
           throw new Error('Onboarding completion was not confirmed');
         }
       }
-      auth.setOnboardingData(preferences);
-      navigate('/', { replace: true });
+      auth.setOnboardingData({ ...preferences, primaryGoal });
+      navigate(primaryGoal === 'week' ? '/week/setup' : '/', { replace: true });
     } catch {
       setError('Chưa thể lưu sở thích. Vui lòng kiểm tra kết nối và thử lại.');
     } finally {
@@ -164,9 +207,12 @@ export const OnboardingPage: React.FC = () => {
                 Số người thường ăn
               </legend>
               <div className="mt-3 flex gap-2">
-                {[1, 2, 3, 4, 5].map((number) => {
-                  const selected = householdSize === number;
-                  const label = number === 5 ? '5 người trở lên' : `${number} người`;
+                {HOUSEHOLD_CHOICES.map((number) => {
+                  const selected =
+                    number === HOUSEHOLD_PLUS_CHOICE
+                      ? householdSize >= HOUSEHOLD_PLUS_CHOICE
+                      : householdSize === number;
+                  const label = householdSizeLabel(number);
                   return (
                     <label key={number} className="min-w-0 flex-1 cursor-pointer">
                       <input
@@ -190,7 +236,9 @@ export const OnboardingPage: React.FC = () => {
                         ) : (
                           <Users className="h-4 w-4" aria-hidden="true" />
                         )}
-                        <span aria-label={label}>{number === 5 ? '5+' : number}</span>
+                        <span aria-label={label}>
+                          {number === HOUSEHOLD_PLUS_CHOICE ? '5+' : number}
+                        </span>
                       </span>
                     </label>
                   );
@@ -333,19 +381,75 @@ export const OnboardingPage: React.FC = () => {
                 ← Quay lại
               </button>
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-takosan-green">
-                Xem lại lựa chọn
+                Mục tiêu lên kế hoạch
               </p>
               <h1
                 id="onboarding-goals-title"
                 className="font-heading text-3xl font-extrabold leading-tight"
               >
-                Xem lại sở thích của nhà mình
+                Bạn muốn Takosan giúp việc gì trước?
               </h1>
               <p className="mt-2 text-sm text-semantic-text-secondary">
-                Takosan chỉ lưu các tùy chọn bên dưới sau khi máy chủ xác nhận hoàn tất.
+                Lựa chọn này chỉ quyết định màn hình bắt đầu trên thiết bị này; các sở thích
+                bên dưới được lưu sau khi máy chủ xác nhận hoàn tất.
               </p>
             </div>
 
+            <fieldset className="mb-7" data-testid="onboarding-goal-group">
+              <legend className="mb-3 text-xs font-bold uppercase tracking-wider text-semantic-text-secondary">
+                Ưu tiên trước
+              </legend>
+              <div className="space-y-3">
+                {GOAL_OPTIONS.map((goal) => {
+                  const Icon = goal.icon;
+                  const selected = primaryGoal === goal.id;
+                  return (
+                    <label key={goal.id} className="block cursor-pointer">
+                      <input
+                        className="peer sr-only"
+                        type="radio"
+                        name="primary-goal"
+                        value={goal.id}
+                        checked={selected}
+                        onChange={() => setPrimaryGoal(goal.id)}
+                      />
+                      <span
+                        className={clsx(
+                          'flex w-full items-center gap-4 rounded-3xl border bg-white p-4 text-left shadow-sm transition-tap peer-focus-visible:ring-2 peer-focus-visible:ring-takosan-green peer-focus-visible:ring-offset-2',
+                          selected
+                            ? 'border-takosan-green ring-2 ring-takosan-green/20'
+                            : 'border-semantic-border',
+                        )}
+                      >
+                        <span
+                          className={clsx(
+                            'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl',
+                            selected
+                              ? 'bg-takosan-mint text-takosan-green'
+                              : 'bg-semantic-border/60 text-semantic-text-muted',
+                          )}
+                        >
+                          <Icon className="h-5 w-5" aria-hidden="true" />
+                        </span>
+                        <span className="flex-1">
+                          <strong className="block font-heading text-base">{goal.title}</strong>
+                          <span className="mt-1 block text-xs text-semantic-text-muted">
+                            {goal.description}
+                          </span>
+                        </span>
+                        {selected && (
+                          <Check className="h-5 w-5 text-takosan-green" aria-hidden="true" />
+                        )}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-semantic-text-secondary">
+              Sở thích sẽ được lưu
+            </h2>
             <div className="space-y-3" data-testid="onboarding-preference-review">
               <div className="flex items-center gap-4 rounded-3xl border border-semantic-border bg-white p-4 shadow-sm">
                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-takosan-mint text-takosan-green">
@@ -354,7 +458,7 @@ export const OnboardingPage: React.FC = () => {
                 <span>
                   <strong className="block font-heading text-base">Quy mô bữa ăn</strong>
                   <span className="mt-1 block text-xs text-semantic-text-muted">
-                    {householdSize === 5 ? '5 người trở lên' : `${householdSize} người`}
+                    {householdSizeLabel(householdSize)}
                   </span>
                 </span>
               </div>

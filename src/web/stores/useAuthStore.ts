@@ -35,6 +35,8 @@ interface AuthState {
   spicyLevel: string;
   favoriteCuisines: string[];
   dietaryRestrictions: string[];
+  /** Client-only planning goal from onboarding; not persisted by the server. */
+  primaryGoal?: string;
   isPlus: boolean;
   setPlusFromServer: (isPlus: boolean) => void;
   syncPlusFromServer: () => Promise<void>;
@@ -51,6 +53,7 @@ interface AuthState {
     spicyLevel: string;
     favoriteCuisines: string[];
     dietaryRestrictions: string[];
+    primaryGoal?: string;
   }) => void;
   logoutStatus: 'idle' | 'pending' | 'error';
   logoutError: string | null;
@@ -70,6 +73,7 @@ const anonymousState = {
   spicyLevel: 'medium',
   favoriteCuisines: [] as string[],
   dietaryRestrictions: [],
+  primaryGoal: undefined as string | undefined,
 };
 let logoutRequest: Promise<boolean> | null = null;
 let guestSessionRequest: Promise<void> | null = null;

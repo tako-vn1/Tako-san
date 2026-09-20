@@ -78,8 +78,8 @@ export const SCREEN_REGISTRY: RegisteredScreen[] = [
     path: '/onboarding/goals',
     auth: 'session',
     contract: {
-      heading: /Xem lại sở thích của nhà mình/,
-      testId: 'onboarding-preference-review',
+      heading: /Bạn muốn Takosan giúp việc gì trước/,
+      testId: 'onboarding-goal-group',
     },
     nav: 'hidden',
     source: 'reviewer-verified-kit',

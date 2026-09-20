@@ -61,6 +61,7 @@ describe('screens 04-06 — onboarding contract', () => {
       spicyLevel: 'medium',
       favoriteCuisines: [],
       dietaryRestrictions: [],
+      primaryGoal: undefined,
     });
     mocks.completeOnboarding.mockReset();
     mocks.completeOnboarding.mockResolvedValue({ success: true, onboardingCompleted: true });
@@ -145,19 +146,34 @@ describe('screens 04-06 — onboarding contract', () => {
 
     await click(button('Tiếp tục'));
     expect(location()).toBe('/onboarding/goals');
-    expect(host.textContent).toContain('Xem lại sở thích của nhà mình');
+    expect(host.textContent).toContain('Bạn muốn Takosan giúp việc gì trước?');
 
     await click(button('Quay lại'));
     expect(location()).toBe('/onboarding/preferences');
     expect(host.textContent).toContain('Nền ẩm thực yêu thích');
   });
 
-  it('screen 06 reviews only persisted preference fields and keeps completion server-authoritative', async () => {
+  it('screen 06 owns a native single-select planning goal with exactly the supported values', async () => {
+    await mount('/onboarding/goals');
+
+    expect(host.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('3');
+    const goals = Array.from(
+      host.querySelectorAll<HTMLInputElement>('input[type="radio"][name="primary-goal"]'),
+    );
+    expect(goals.map((goal) => goal.value)).toEqual(['today', 'week', 'both']);
+    expect(goals.filter((goal) => goal.checked).map((goal) => goal.value)).toEqual(['both']);
+    expect(host.textContent).not.toContain('Xem lại sở thích của nhà mình');
+
+    await act(async () => goals[1].click());
+    expect(goals.filter((goal) => goal.checked).map((goal) => goal.value)).toEqual(['week']);
+  });
+
+  it('screen 06 reviews persisted preference fields alongside the goal and keeps completion server-authoritative', async () => {
     useAuthStore.setState({ favoriteCuisines: ['vietnamese'] });
     await mount('/onboarding/goals');
 
     expect(host.querySelector('[data-testid="onboarding-preference-review"]')).toBeTruthy();
-    expect(host.querySelector('[name="primary-goal"]')).toBeNull();
+    expect(host.querySelector('[data-testid="onboarding-goal-group"]')).toBeTruthy();
     expect(host.textContent).toContain('Quy mô bữa ăn');
     expect(host.textContent).toContain('2 người');
     expect(host.textContent).toContain('Việt Nam');
@@ -173,13 +189,109 @@ describe('screens 04-06 — onboarding contract', () => {
       favoriteCuisines: ['vietnamese'],
       dietaryRestrictions: [],
     });
+    expect(mocks.completeOnboarding.mock.calls[0][0]).not.toHaveProperty('primaryGoal');
     expect(location()).toBe('/');
     expect(useAuthStore.getState()).toMatchObject({
       isOnboarded: true,
       householdSize: 2,
       favoriteCuisines: ['vietnamese'],
       dietaryRestrictions: [],
+      primaryGoal: 'both',
     });
+  });
+
+  it('goal selection survives route navigation and week routes to /week/setup without being sent to the server', async () => {
+    await mount('/onboarding/goals');
+
+    const week = host.querySelector<HTMLInputElement>('input[name="primary-goal"][value="week"]');
+    await act(async () => week?.click());
+    await click(button('Quay lại'));
+    expect(location()).toBe('/onboarding/preferences');
+    await click(button('Tiếp tục'));
+    expect(location()).toBe('/onboarding/goals');
+    expect(
+      host.querySelector<HTMLInputElement>('input[name="primary-goal"][value="week"]')?.checked,
+    ).toBe(true);
+
+    await click(button('Bắt đầu với Takosan'));
+
+    expect(mocks.completeOnboarding).toHaveBeenCalledTimes(1);
+    expect(Object.keys(mocks.completeOnboarding.mock.calls[0][0]).sort()).toEqual([
+      'dietaryRestrictions',
+      'favoriteCuisines',
+      'householdSize',
+      'spicyLevel',
+    ]);
+    expect(location()).toBe('/week/setup');
+    expect(useAuthStore.getState().primaryGoal).toBe('week');
+  });
+
+  it.each(['today', 'both'] as const)('%s goal routes to / after confirmed completion', async (goal) => {
+    await mount('/onboarding/goals');
+    const option = host.querySelector<HTMLInputElement>(`input[name="primary-goal"][value="${goal}"]`);
+    await act(async () => option?.click());
+    await click(button('Bắt đầu với Takosan'));
+
+    expect(location()).toBe('/');
+    expect(mocks.completeOnboarding.mock.calls[0][0]).not.toHaveProperty('primaryGoal');
+    expect(useAuthStore.getState().primaryGoal).toBe(goal);
+  });
+
+  it('does not navigate on goal when completion is not confirmed', async () => {
+    mocks.completeOnboarding.mockResolvedValueOnce({ success: true, onboardingCompleted: false });
+    await mount('/onboarding/goals');
+    const week = host.querySelector<HTMLInputElement>('input[name="primary-goal"][value="week"]');
+    await act(async () => week?.click());
+    await click(button('Bắt đầu với Takosan'));
+
+    expect(location()).toBe('/onboarding/goals');
+    expect(useAuthStore.getState().primaryGoal).toBeUndefined();
+  });
+
+  it('round-trips an authoritative household size above the visible buckets when untouched', async () => {
+    useAuthStore.setState({ householdSize: 7 });
+    await mount('/onboarding/household');
+
+    const radios = Array.from(
+      host.querySelectorAll<HTMLInputElement>('input[type="radio"][name="household-size"]'),
+    );
+    expect(radios).toHaveLength(5);
+    expect(radios.filter((radio) => radio.checked).map((radio) => radio.value)).toEqual(['5']);
+    expect(radios[4].closest('label')?.textContent).toContain('5+');
+
+    await click(button('Tiếp tục'));
+    expect(location()).toBe('/onboarding/preferences');
+    await click(button('Tiếp tục'));
+    expect(location()).toBe('/onboarding/goals');
+    expect(host.querySelector('[data-testid="onboarding-preference-review"]')?.textContent).toContain(
+      '5 người trở lên',
+    );
+
+    await click(button('Bắt đầu với Takosan'));
+    expect(mocks.completeOnboarding).toHaveBeenCalledWith(
+      expect.objectContaining({ householdSize: 7 }),
+    );
+    expect(useAuthStore.getState().householdSize).toBe(7);
+  });
+
+  it('uses the canonical 5 only when the user explicitly picks the 5+ choice', async () => {
+    useAuthStore.setState({ householdSize: 7 });
+    await mount('/onboarding/household');
+
+    const radios = Array.from(
+      host.querySelectorAll<HTMLInputElement>('input[type="radio"][name="household-size"]'),
+    );
+    await act(async () => radios[2].click());
+    expect(radios[2].checked).toBe(true);
+    await act(async () => radios[4].click());
+    expect(radios[4].checked).toBe(true);
+
+    await click(button('Tiếp tục'));
+    await click(button('Tiếp tục'));
+    await click(button('Bắt đầu với Takosan'));
+    expect(mocks.completeOnboarding).toHaveBeenCalledWith(
+      expect.objectContaining({ householdSize: 5 }),
+    );
   });
 
   it('does not complete locally when the server response does not confirm completion', async () => {
