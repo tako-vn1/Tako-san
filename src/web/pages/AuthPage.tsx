@@ -154,7 +154,7 @@ export const AuthPage: React.FC = () => {
     }
     setEmail(context.email);
     setResendCountdown(resendSecondsRemaining(context));
-    if (!context.delivered && resendSecondsRemaining(context) === 0) {
+    if (context.delivered === false && resendSecondsRemaining(context) === 0) {
       setErrorMessage((current) => current ?? 'Email OTP chưa gửi được. Hãy bấm gửi lại mã.');
     }
   }, [identity, isVerifyRoute]);
@@ -274,12 +274,12 @@ export const AuthPage: React.FC = () => {
     }
   }, [resendCountdown]);
 
-  /** Enter screen 03 for `email` (registration purpose). `delivered` mirrors
-   *  the server's statement about the OTP email; it drives the cooldown and
-   *  is persisted so a refresh cannot upgrade "not sent" into "sent". */
-  const enterVerification = (delivered: boolean, expiresInMinutes?: unknown) => {
+  /** Enter screen 03 for `email` (registration purpose). Delivery stays
+   *  unknown unless the response can prove whether email was sent. */
+  const enterVerification = (delivered: boolean | null, expiresInMinutes?: unknown) => {
     const now = Date.now();
-    const cooldown = delivered ? 60 : 0;
+    const codeAvailable = delivered !== false;
+    const cooldown = codeAvailable ? 60 : 0;
     const duration =
       typeof expiresInMinutes === 'number' &&
       Number.isFinite(expiresInMinutes) &&
@@ -288,7 +288,9 @@ export const AuthPage: React.FC = () => {
         ? expiresInMinutes * 60_000
         : null;
     const expiresAt =
-      delivered && duration !== null && Number.isFinite(now + duration) ? now + duration : null;
+      codeAvailable && duration !== null && Number.isFinite(now + duration)
+        ? now + duration
+        : null;
     const context = writeVerifyContext({
       email,
       resendAvailableAt: cooldown ? now + cooldown * 1000 : 0,
@@ -371,7 +373,7 @@ export const AuthPage: React.FC = () => {
       const res = await api.register(name, email, password, turnstileToken);
       if (res.success) {
         if (res.devOtp) setDevOtp(res.devOtp);
-        enterVerification(true, res.expiresInMinutes);
+        enterVerification(res.devOtp ? null : true, res.expiresInMinutes);
         setSuccessMessage(res.message);
       }
     } catch (err: any) {
@@ -536,7 +538,7 @@ export const AuthPage: React.FC = () => {
             email,
             resendAvailableAt: Date.now() + 60_000,
             expiresAt: null,
-            delivered: true,
+            delivered: res.devOtp ? null : true,
           });
           setVerifyContext(context);
         }
@@ -544,6 +546,18 @@ export const AuthPage: React.FC = () => {
       }
     } catch (err: any) {
       if (canApply()) {
+        if (otpPurpose === 'register' && (isOffline(err) || err?.status >= 500)) {
+          const context = writeVerifyContext({
+            email,
+            resendAvailableAt: 0,
+            expiresAt: null,
+            delivered: err?.code === 'OTP_DELIVERY_UNAVAILABLE' ? false : null,
+          });
+          setVerifyContext(context);
+          setResendCountdown(0);
+          setDevOtp(null);
+          setOtpDigits(EMPTY_OTP);
+        }
         setErrorMessage(
           isOffline(err)
             ? 'Không thể kết nối máy chủ. Chưa gửi lại mã OTP; hãy kiểm tra kết nối và thử lại.'

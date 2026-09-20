@@ -15,8 +15,8 @@ export interface VerifyContext {
   resendAvailableAt: number;
   /** Epoch ms derived from server registration metadata; null when the API did not provide it. */
   expiresAt: number | null;
-  /** Whether the server reported that the OTP email was actually delivered. */
-  delivered: boolean;
+  /** Server-confirmed delivery; null when the response cannot prove email delivery. */
+  delivered: boolean | null;
   /** Identity/guest scope that initiated this verification attempt. */
   owner: VerifyContextOwner;
 }
@@ -80,7 +80,7 @@ export function readVerifyContext(): VerifyContext | null {
       typeof parsed.resendAvailableAt !== 'number' ||
       !Number.isFinite(parsed.resendAvailableAt) ||
       parsed.resendAvailableAt < 0 ||
-      typeof parsed.delivered !== 'boolean'
+      (parsed.delivered !== null && typeof parsed.delivered !== 'boolean')
     ) {
       throw new Error('invalid verification context');
     }
@@ -155,7 +155,7 @@ export function writeVerifyContext(context: VerifyContextInput): VerifyContext |
     email,
     resendAvailableAt: context.resendAvailableAt,
     expiresAt,
-    delivered: context.delivered === true,
+    delivered: context.delivered === null ? null : context.delivered === true,
     owner: currentVerifyContextOwner(),
   };
   try {

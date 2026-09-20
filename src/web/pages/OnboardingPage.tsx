@@ -34,7 +34,21 @@ const RESTRICTION_TAGS = [
   { id: 'gluten', label: 'Gluten' },
 ] as const;
 
+const SPICY_LABELS = {
+  none: 'Không ăn cay',
+  mild: 'Ít cay',
+  medium: 'Cay vừa',
+  hot: 'Cay nhiều',
+} as const;
+
 type OnboardingStep = keyof typeof ONBOARDING_PATHS;
+type SpicyLevel = keyof typeof SPICY_LABELS;
+
+function supportedSpicyLevel(value: string): SpicyLevel {
+  return Object.prototype.hasOwnProperty.call(SPICY_LABELS, value)
+    ? (value as SpicyLevel)
+    : 'medium';
+}
 
 function stepFromPath(pathname: string): OnboardingStep | null {
   const match = (Object.entries(ONBOARDING_PATHS) as Array<[`${OnboardingStep}`, string]>).find(
@@ -60,6 +74,8 @@ export const OnboardingPage: React.FC = () => {
   const [restrictions, setRestrictions] = useState<string[]>(() =>
     auth.dietaryRestrictions.filter((value) => supportedRestrictions.has(value)),
   );
+  const persistedSpicyLevel = supportedSpicyLevel(auth.spicyLevel);
+  const spicyLevel = restrictions.includes('spicy') ? 'none' : persistedSpicyLevel;
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,7 +90,7 @@ export const OnboardingPage: React.FC = () => {
     setIsSaving(true);
     const preferences = {
       householdSize,
-      spicyLevel: restrictions.includes('spicy') ? ('none' as const) : ('medium' as const),
+      spicyLevel,
       favoriteCuisines: selectedCuisines,
       dietaryRestrictions: restrictions,
     };
@@ -367,7 +383,7 @@ export const OnboardingPage: React.FC = () => {
                 <span>
                   <strong className="block font-heading text-base">Mức độ cay</strong>
                   <span className="mt-1 block text-xs text-semantic-text-muted">
-                    {restrictions.includes('spicy') ? 'Không ăn cay' : 'Cay vừa'}
+                    {SPICY_LABELS[spicyLevel]}
                   </span>
                 </span>
               </div>

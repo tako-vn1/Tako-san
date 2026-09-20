@@ -266,10 +266,10 @@ describe('screen 03 — /auth/verify route', () => {
     };
     const startedAt = Date.now();
     await registerAndReachVerify();
-    expect(container.textContent).toContain(`Nhập 6 số mã OTP đã gửi tới ${EMAIL}`);
+    expect(container.textContent).toContain(`Nhập 6 số mã OTP để xác thực ${EMAIL}`);
     expect(container.textContent).toMatch(/Gửi lại sau \(\d+s\)/);
     const context = readVerifyContext();
-    expect(context).toMatchObject({ email: EMAIL, delivered: true });
+    expect(context).toMatchObject({ email: EMAIL, delivered: null });
     expect(context?.expiresAt).toBeGreaterThanOrEqual(startedAt + 10 * 60_000);
     expect(context?.expiresAt).toBeLessThanOrEqual(Date.now() + 10 * 60_000);
     expect(resendSecondsRemaining(context)).toBeGreaterThan(55);
@@ -498,6 +498,31 @@ describe('screen 03 — /auth/verify route', () => {
     expect(button(/Gửi lại mã OTP/).disabled).toBe(false);
   });
 
+  it('invalidates stale delivery and expiry claims when the server cannot deliver a replacement', async () => {
+    writeVerifyContext({
+      email: EMAIL,
+      resendAvailableAt: 0,
+      expiresAt: Date.now() + 10 * 60_000,
+      delivered: true,
+    });
+    resendResponse = {
+      status: 503,
+      body: { error: 'Email OTP chưa gửi được.', code: 'OTP_DELIVERY_UNAVAILABLE' },
+    };
+    await mount('/auth/verify');
+    await click(/Gửi lại mã OTP/);
+    await until(() =>
+      expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+        'Email OTP chưa gửi được.',
+      ),
+    );
+    expect(readVerifyContext()).toMatchObject({
+      delivered: false,
+      expiresAt: null,
+      resendAvailableAt: 0,
+    });
+  });
+
   it('reports an offline resend without fabricating delivery or expiry metadata', async () => {
     registerResponse = {
       status: 503,
@@ -515,7 +540,7 @@ describe('screen 03 — /auth/verify route', () => {
         'Không thể kết nối máy chủ. Chưa gửi lại mã OTP',
       ),
     );
-    expect(readVerifyContext()).toMatchObject({ delivered: false, expiresAt: null });
+    expect(readVerifyContext()).toMatchObject({ delivered: null, expiresAt: null });
     expect(button(/Gửi lại mã OTP/).disabled).toBe(false);
   });
 

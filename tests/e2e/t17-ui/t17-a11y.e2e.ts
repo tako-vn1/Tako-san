@@ -59,11 +59,7 @@ async function auditSurface(page: Page, name: string, path: string): Promise<Sur
       });
       if (hitAreas.length === 0 || hitAreas.some(({ width, height }) => width >= 44 && height >= 44)) continue;
       const effective = hitAreas.reduce((largest, area) => area.width * area.height > largest.width * largest.height ? area : largest);
-      if (effective.width < 44 || effective.height < 44) {
-        // `tap-target` enforces min 44×44 via CSS; measured boxes below that are real.
-        if (el.classList.contains('tap-target') && effective.width >= 44 && effective.height >= 44) continue;
-        small.push(`${el.tagName.toLowerCase()}[${el.getAttribute('aria-label') || el.textContent?.trim().slice(0, 24) || el.className.toString().slice(0, 24)}] ${Math.round(effective.width)}x${Math.round(effective.height)}`);
-      }
+      small.push(`${el.tagName.toLowerCase()}[${el.getAttribute('aria-label') || el.textContent?.trim().slice(0, 24) || el.className.toString().slice(0, 24)}] ${Math.round(effective.width)}x${Math.round(effective.height)}`);
     }
     return { h1Count: document.querySelectorAll('h1').length, headingLevels: headings, imagesWithoutAlt, smallTargets: small };
   });

@@ -8,7 +8,7 @@ interface AuthShellProps {
   email: string;
   errorMessage: string | null;
   successMessage: string | null;
-  otpDelivered?: boolean;
+  otpDelivered?: boolean | null;
   devOtp: string | null;
   onFillDevOtp: () => void;
   onBack: () => void;
@@ -67,7 +67,9 @@ export const AuthShell: React.FC<AuthShellProps> = ({
             (email
               ? otpDelivered === false
                 ? `Địa chỉ cần xác thực: ${email}. Email OTP chưa gửi được.`
-                : `Nhập 6 số mã OTP đã gửi tới ${email}`
+                : otpDelivered === true
+                  ? `Nhập 6 số mã OTP đã gửi tới ${email}`
+                  : `Nhập 6 số mã OTP để xác thực ${email}`
               : 'Xác thực tài khoản bằng mã OTP gửi qua email')}
           {mode === 'forgot_password' && 'Nhập email để nhận mã OTP khôi phục mật khẩu'}
         </p>

@@ -58,6 +58,7 @@ describe('screens 04-06 — onboarding contract', () => {
       isGuest: false,
       isOnboarded: false,
       householdSize: 2,
+      spicyLevel: 'medium',
       favoriteCuisines: [],
       dietaryRestrictions: [],
     });
@@ -180,6 +181,17 @@ describe('screens 04-06 — onboarding contract', () => {
     expect(location()).toBe('/onboarding/goals');
     expect(useAuthStore.getState().isOnboarded).toBe(false);
     expect(host.querySelector('[role="alert"]')?.textContent).toContain('Chưa thể lưu sở thích');
+  });
+
+  it('preserves an existing supported spicy level in review and completion', async () => {
+    useAuthStore.setState({ spicyLevel: 'hot' });
+    await mount('/onboarding/goals');
+
+    expect(host.textContent).toContain('Cay nhiều');
+    await click(button('Bắt đầu với Takosan'));
+    expect(mocks.completeOnboarding).toHaveBeenCalledWith(
+      expect.objectContaining({ spicyLevel: 'hot' }),
+    );
   });
 
   it('canonicalizes the legacy onboarding entry to screen 04', async () => {

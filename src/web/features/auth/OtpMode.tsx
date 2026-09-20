@@ -21,7 +21,7 @@ interface OtpModeProps {
   resendCountdown: number;
   onResend: () => void;
   turnstileToken: string | null;
-  delivered: boolean;
+  delivered: boolean | null;
   expiresAt: number | null;
   errorMessage: string | null;
   successMessage: string | null;
@@ -113,16 +113,22 @@ export const OtpMode: React.FC<OtpModeProps> = ({
           data-testid="otp-expiry"
           role="status"
         >
-          {!delivered ? (
+          {delivered === false ? (
             'Chưa có mã đang hoạt động vì email OTP chưa gửi được.'
-          ) : expiresAt === null ? (
-            'Máy chủ chưa cung cấp thời hạn cho mã này.'
-          ) : expired ? (
-            'Mã đã hết hạn theo thời hạn máy chủ trả về. Máy chủ vẫn xác nhận kết quả cuối cùng.'
           ) : (
             <>
-              Mã hết hạn lúc <time dateTime={new Date(expiresAt).toISOString()}>{expiryTime}</time>.
-              Máy chủ xác nhận hiệu lực cuối cùng.
+              {delivered === null && 'Máy chủ chưa xác nhận trạng thái gửi email. '}
+              {expiresAt === null ? (
+                'Máy chủ chưa cung cấp thời hạn cho mã này.'
+              ) : expired ? (
+                'Mã đã hết hạn theo thời hạn máy chủ trả về. Máy chủ vẫn xác nhận kết quả cuối cùng.'
+              ) : (
+                <>
+                  Mã hết hạn lúc{' '}
+                  <time dateTime={new Date(expiresAt).toISOString()}>{expiryTime}</time>. Máy chủ xác
+                  nhận hiệu lực cuối cùng.
+                </>
+              )}
             </>
           )}
         </p>
