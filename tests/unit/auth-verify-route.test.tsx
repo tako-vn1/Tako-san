@@ -44,6 +44,8 @@ let verifyOffline: boolean;
 let resendOffline: boolean;
 let navigateForTest: NavigateFunction;
 let verifyGate: Promise<Response> | null;
+let registerGate: Promise<Response> | null;
+let loginGate: Promise<Response> | null;
 
 function response(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -186,6 +188,8 @@ beforeEach(() => {
   verifyOffline = false;
   resendOffline = false;
   verifyGate = null;
+  registerGate = null;
+  loginGate = null;
   registerResponse = {
     status: 200,
     body: {
@@ -202,8 +206,14 @@ beforeEach(() => {
     if (path.endsWith('/config')) return response({ turnstileSiteKey: null, googleClientId: null });
     const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {};
     calls.push({ path, body });
-    if (path.endsWith('/auth/register'))
+    if (path.endsWith('/auth/register')) {
+      if (registerGate) return registerGate;
       return response(registerResponse.body, registerResponse.status);
+    }
+    if (path.endsWith('/auth/login')) {
+      if (loginGate) return loginGate;
+      throw new Error('unexpected login request');
+    }
     if (path.endsWith('/auth/verify-otp')) {
       if (verifyOffline) throw new TypeError('network unavailable');
       if (verifyGate) return verifyGate;
@@ -288,6 +298,85 @@ describe('screen 03 — /auth/verify route', () => {
       'resendAvailableAt',
     ]);
     expect(localStorage.getItem(VERIFY_CONTEXT_KEY)).toBeNull();
+  });
+
+  it('does not let a delayed registration response revive verification after the user switches modes', async () => {
+    let release!: (value: Response) => void;
+    registerGate = new Promise<Response>((resolve) => {
+      release = resolve;
+    });
+    await mount('/auth?mode=register');
+    await fillRegisterForm();
+    await act(async () => button('Tạo tài khoản & Nhận mã OTP').click());
+    await until(() => expect(calls.some(({ path }) => path.endsWith('/auth/register'))).toBe(true));
+    await click('Đăng nhập');
+
+    release(response(registerResponse.body, registerResponse.status));
+    await flush();
+    expect(location()).toBe('/auth');
+    expect(container.textContent).toContain('Đăng nhập vào Takosan');
+    expect(readVerifyContext()).toBeNull();
+  });
+
+  it('does not let a delayed unverified-login response attach to a replacement session', async () => {
+    let release!: (value: Response) => void;
+    loginGate = new Promise<Response>((resolve) => {
+      release = resolve;
+    });
+    await mount('/auth');
+    const inputs = [...container.querySelectorAll<HTMLInputElement>('form input')];
+    await act(async () => {
+      setNative(inputs.find((input) => input.placeholder === 'ban@example.com')!, EMAIL);
+      setNative(inputs.find((input) => input.placeholder === '••••••••')!, 'strong-password-1');
+      container.querySelector<HTMLButtonElement>('form button[type="submit"]')!.click();
+    });
+    await until(() => expect(calls.some(({ path }) => path.endsWith('/auth/login'))).toBe(true));
+    await act(async () => useAuthStore.getState().setAuthSession(ACCOUNT));
+
+    release(
+      response(
+        {
+          error: 'Account verification required',
+          requireOtp: true,
+          otpDelivered: true,
+        },
+        401,
+      ),
+    );
+    await flush();
+    expect(location()).toBe('/auth');
+    expect(readVerifyContext()).toBeNull();
+    expect(localStorage.getItem('frigo_user_id')).toBe(ACCOUNT.id);
+  });
+
+  it('does not let a delayed login response navigate after the auth route is abandoned', async () => {
+    let release!: (value: Response) => void;
+    loginGate = new Promise<Response>((resolve) => {
+      release = resolve;
+    });
+    await mount('/auth');
+    const inputs = [...container.querySelectorAll<HTMLInputElement>('form input')];
+    await act(async () => {
+      setNative(inputs.find((input) => input.placeholder === 'ban@example.com')!, EMAIL);
+      setNative(inputs.find((input) => input.placeholder === '••••••••')!, 'strong-password-1');
+      container.querySelector<HTMLButtonElement>('form button[type="submit"]')!.click();
+    });
+    await until(() => expect(calls.some(({ path }) => path.endsWith('/auth/login'))).toBe(true));
+    await act(async () => navigateForTest('/landing'));
+
+    release(
+      response(
+        {
+          error: 'Account verification required',
+          requireOtp: true,
+          otpDelivered: true,
+        },
+        401,
+      ),
+    );
+    await flush();
+    expect(location()).toBe('/landing');
+    expect(readVerifyContext()).toBeNull();
   });
 
   it('refresh of /auth/verify restores the verification (email, cooldown) from the tab-scoped context and completes with the server', async () => {

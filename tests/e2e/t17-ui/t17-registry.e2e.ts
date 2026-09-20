@@ -200,7 +200,7 @@ test.describe('screen registry certification', () => {
     await expect(cuisines).toHaveCount(7);
     expect(await cuisines.evaluateAll((items) => items.map((item) => (item as HTMLInputElement).value)))
       .toEqual(['vietnamese', 'korean', 'japanese', 'western', 'chinese', 'thai', 'other']);
-    await expect(restrictions).toHaveCount(8);
+    await expect(restrictions).toHaveCount(9);
     await expect(page.locator('input[name="favorite-cuisines"][value="vietnamese"]')).toBeChecked();
     await page.getByText('Hàn Quốc', { exact: true }).click();
     await page.getByText('Thịt bò', { exact: true }).click();

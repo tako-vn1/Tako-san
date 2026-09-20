@@ -87,6 +87,8 @@ export const AuthPage: React.FC = () => {
   const verifyRouteActiveRef = useRef(isVerifyRoute);
   const verificationCompletedRef = useRef(false);
   const routeGenerationRef = useRef(0);
+  const authPageActiveRef = useRef(true);
+  const authRequestGenerationRef = useRef(0);
   const routeScopeRef = useRef(`${identity}:${pathname}`);
   if (routeScopeRef.current !== `${identity}:${pathname}`) {
     routeScopeRef.current = `${identity}:${pathname}`;
@@ -100,6 +102,14 @@ export const AuthPage: React.FC = () => {
       verifyRouteActiveRef.current = false;
     };
   }, [isVerifyRoute]);
+
+  useEffect(() => {
+    authPageActiveRef.current = true;
+    return () => {
+      authPageActiveRef.current = false;
+      authRequestGenerationRef.current += 1;
+    };
+  }, []);
 
   // SEC-6: Turnstile bot protection (inactive when server has no site key)
   const [turnstileSiteKey, setTurnstileSiteKey] = useState<string | null>(null);
@@ -276,7 +286,11 @@ export const AuthPage: React.FC = () => {
 
   /** Enter screen 03 for `email` (registration purpose). Delivery stays
    *  unknown unless the response can prove whether email was sent. */
-  const enterVerification = (delivered: boolean | null, expiresInMinutes?: unknown) => {
+  const enterVerification = (
+    verificationEmail: string,
+    delivered: boolean | null,
+    expiresInMinutes?: unknown,
+  ) => {
     const now = Date.now();
     const codeAvailable = delivered !== false;
     const cooldown = codeAvailable ? 60 : 0;
@@ -292,7 +306,7 @@ export const AuthPage: React.FC = () => {
         ? now + duration
         : null;
     const context = writeVerifyContext({
-      email,
+      email: verificationEmail,
       resendAvailableAt: cooldown ? now + cooldown * 1000 : 0,
       expiresAt,
       delivered,
@@ -304,22 +318,47 @@ export const AuthPage: React.FC = () => {
     if (!isVerifyRoute) navigate(AUTH_VERIFY_PATH);
   };
 
+  const beginAuthRequest = () => {
+    const isCurrentSession = capturePrivateSession();
+    const requestGeneration = ++authRequestGenerationRef.current;
+    const routeGeneration = routeGenerationRef.current;
+    const isLatest = () =>
+      authPageActiveRef.current && authRequestGenerationRef.current === requestGeneration;
+    return {
+      isLatest,
+      canApply: () =>
+        isLatest() &&
+        isCurrentSession() &&
+        routeGenerationRef.current === routeGeneration,
+    };
+  };
+
+  const invalidateAuthRequests = () => {
+    authRequestGenerationRef.current += 1;
+    setIsLoading(false);
+    setTurnstileToken(null);
+    setTurnstileGeneration((value) => value + 1);
+  };
+
   // Handle Login
   const handleLogin = async (e: React.FormEvent) => {
-    const isCurrent = capturePrivateSession();
     e.preventDefault();
     if (!email || !password) {
       setErrorMessage('Vui lòng nhập đầy đủ email và mật khẩu');
       return;
     }
+    const submittedEmail = email;
+    const submittedPassword = password;
+    const submittedTurnstileToken = turnstileToken;
+    const request = beginAuthRequest();
     setIsLoading(true);
     setErrorMessage(null);
     setDevOtp(null);
     setOtpDigits(EMPTY_OTP);
 
     try {
-      const res = await api.login(email, password, turnstileToken);
-      if (!isCurrent()) return;
+      const res = await api.login(submittedEmail, submittedPassword, submittedTurnstileToken);
+      if (!request.canApply()) return;
       if (res.success && res.user) {
         setAuthSession({
           id: res.user.id,
@@ -331,10 +370,11 @@ export const AuthPage: React.FC = () => {
         navigate(res.user.onboardingCompleted ? returnTo : '/onboarding', { replace: true });
       }
     } catch (err: any) {
+      if (!request.canApply()) return;
       if (err?.payload?.requireOtp === true) {
         if (typeof err.payload.devOtp === 'string') setDevOtp(err.payload.devOtp);
         const delivered = err.payload.otpDelivered === true;
-        enterVerification(delivered);
+        enterVerification(submittedEmail, delivered);
         if (delivered) {
           setSuccessMessage('Mã OTP mới đã được gửi đến email của bạn.');
         } else {
@@ -346,9 +386,11 @@ export const AuthPage: React.FC = () => {
         setErrorMessage(apiErrorMessage(err, 'Email hoặc mật khẩu không chính xác'));
       }
     } finally {
-      setTurnstileToken(null);
-      setTurnstileGeneration((value) => value + 1);
-      setIsLoading(false);
+      if (request.isLatest()) {
+        setTurnstileToken(null);
+        setTurnstileGeneration((value) => value + 1);
+        setIsLoading(false);
+      }
     }
   };
 
@@ -363,6 +405,11 @@ export const AuthPage: React.FC = () => {
       setErrorMessage('Mật khẩu phải có tối thiểu 6 ký tự');
       return;
     }
+    const submittedName = name;
+    const submittedEmail = email;
+    const submittedPassword = password;
+    const submittedTurnstileToken = turnstileToken;
+    const request = beginAuthRequest();
 
     setIsLoading(true);
     setErrorMessage(null);
@@ -370,24 +417,33 @@ export const AuthPage: React.FC = () => {
     setOtpDigits(EMPTY_OTP);
 
     try {
-      const res = await api.register(name, email, password, turnstileToken);
+      const res = await api.register(
+        submittedName,
+        submittedEmail,
+        submittedPassword,
+        submittedTurnstileToken,
+      );
+      if (!request.canApply()) return;
       if (res.success) {
         if (res.devOtp) setDevOtp(res.devOtp);
-        enterVerification(res.devOtp ? null : true, res.expiresInMinutes);
+        enterVerification(submittedEmail, res.devOtp ? null : true, res.expiresInMinutes);
         setSuccessMessage(res.message);
       }
     } catch (err: any) {
+      if (!request.canApply()) return;
       if (err?.code === 'OTP_DELIVERY_UNAVAILABLE') {
-        enterVerification(false, err?.payload?.expiresInMinutes);
+        enterVerification(submittedEmail, false, err?.payload?.expiresInMinutes);
         setSuccessMessage(null);
         setErrorMessage('Tài khoản đã được lưu nhưng email OTP chưa gửi được. Hãy bấm gửi lại mã.');
       } else {
         setErrorMessage(apiErrorMessage(err, 'Đăng ký thất bại. Email có thể đã tồn tại.'));
       }
     } finally {
-      setTurnstileToken(null);
-      setTurnstileGeneration((value) => value + 1);
-      setIsLoading(false);
+      if (request.isLatest()) {
+        setTurnstileToken(null);
+        setTurnstileGeneration((value) => value + 1);
+        setIsLoading(false);
+      }
     }
   };
 
@@ -661,6 +717,7 @@ export const AuthPage: React.FC = () => {
   };
 
   const switchMode = (next: 'login' | 'register') => {
+    invalidateAuthRequests();
     setBaseMode(next);
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -694,6 +751,7 @@ export const AuthPage: React.FC = () => {
   };
 
   const startForgotPassword = () => {
+    invalidateAuthRequests();
     setBaseMode('forgot_password');
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -703,6 +761,7 @@ export const AuthPage: React.FC = () => {
   };
 
   const backToLogin = () => {
+    invalidateAuthRequests();
     setBaseMode('login');
     setErrorMessage(null);
     setSuccessMessage(null);

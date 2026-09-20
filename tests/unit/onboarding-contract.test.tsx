@@ -118,7 +118,17 @@ describe('screens 04-06 — onboarding contract', () => {
       'thai',
       'other',
     ]);
-    expect(restrictions.length).toBeGreaterThan(0);
+    expect(restrictions.map((item) => item.value)).toEqual([
+      'beef',
+      'seafood',
+      'peanuts',
+      'spicy',
+      'mushroom',
+      'onion_garlic',
+      'milk',
+      'gluten',
+      'other',
+    ]);
     expect(cuisines.every((item) => !item.checked)).toBe(true);
     await act(async () => cuisines[1].click());
     await act(async () => restrictions[0].click());
@@ -206,6 +216,19 @@ describe('screens 04-06 — onboarding contract', () => {
     await click(button('Bắt đầu với Takosan'));
     expect(mocks.completeOnboarding).toHaveBeenCalledWith(
       expect.objectContaining({ favoriteCuisines: [] }),
+    );
+  });
+
+  it('preserves the canonical other dietary restriction in review and completion', async () => {
+    useAuthStore.setState({ dietaryRestrictions: ['other'] });
+    await mount('/onboarding/goals');
+
+    expect(host.querySelector('[data-testid="onboarding-preference-review"]')?.textContent).toContain(
+      'Món cần tránhKhác',
+    );
+    await click(button('Bắt đầu với Takosan'));
+    expect(mocks.completeOnboarding).toHaveBeenCalledWith(
+      expect.objectContaining({ dietaryRestrictions: ['other'] }),
     );
   });
 

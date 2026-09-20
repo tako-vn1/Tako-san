@@ -33,6 +33,7 @@ const RESTRICTION_TAGS = [
   { id: 'onion_garlic', label: 'Hành tỏi' },
   { id: 'milk', label: 'Sữa' },
   { id: 'gluten', label: 'Gluten' },
+  { id: 'other', label: 'Khác' },
 ] as const;
 
 const SPICY_LABELS = {
