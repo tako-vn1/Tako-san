@@ -146,6 +146,7 @@ export const AuthPage: React.FC = () => {
     if (!isVerifyRoute) {
       verificationCompletedRef.current = false;
       setVerifyContext(null);
+      setIsLoading(false);
       setIsResending(false);
       return;
     }

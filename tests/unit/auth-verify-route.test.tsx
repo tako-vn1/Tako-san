@@ -668,9 +668,15 @@ describe('screen 03 — /auth/verify route', () => {
     await act(async () => button('Xác thực & Hoàn tất').click());
     await act(async () => navigateForTest('/auth'));
     await until(() => expect(location()).toBe('/auth'));
+    expect(container.querySelector<HTMLButtonElement>('form button[type="submit"]')?.disabled).toBe(
+      false,
+    );
     release(response({ success: true, user: ACCOUNT }));
     await flush();
     expect(location()).toBe('/auth');
+    expect(container.querySelector<HTMLButtonElement>('form button[type="submit"]')?.disabled).toBe(
+      false,
+    );
     expect(localStorage.getItem('frigo_user_id')).toBeNull();
     expect(readVerifyContext()).toBeNull();
   });

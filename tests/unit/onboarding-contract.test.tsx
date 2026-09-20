@@ -232,6 +232,25 @@ describe('screens 04-06 — onboarding contract', () => {
     );
   });
 
+  it('round-trips persisted preferences outside the selectable chip vocabulary', async () => {
+    useAuthStore.setState({
+      favoriteCuisines: ['italian'],
+      dietaryRestrictions: ['vegetarian'],
+    });
+    await mount('/onboarding/goals');
+
+    const review = host.querySelector('[data-testid="onboarding-preference-review"]')?.textContent;
+    expect(review).toContain('Ẩm thực yêu thíchitalian');
+    expect(review).toContain('Món cần tránhvegetarian');
+    await click(button('Bắt đầu với Takosan'));
+    expect(mocks.completeOnboarding).toHaveBeenCalledWith(
+      expect.objectContaining({
+        favoriteCuisines: ['italian'],
+        dietaryRestrictions: ['vegetarian'],
+      }),
+    );
+  });
+
   it.each([
     ['mild', 'Ít cay'],
     ['medium', 'Cay vừa'],

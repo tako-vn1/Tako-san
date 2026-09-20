@@ -64,17 +64,15 @@ export const OnboardingPage: React.FC = () => {
   const { pathname } = useLocation();
   const auth = useAuthStore();
   const step = stepFromPath(pathname);
-  const supportedCuisines = new Set<string>(CUISINE_TAGS.map(({ id }) => id));
-  const supportedRestrictions = new Set<string>(RESTRICTION_TAGS.map(({ id }) => id));
   const [householdSize, setHouseholdSize] = useState(() =>
     Math.min(5, Math.max(1, auth.householdSize || 2)),
   );
-  const [selectedCuisines, setSelectedCuisines] = useState<string[]>(() => {
-    return auth.favoriteCuisines.filter((value) => supportedCuisines.has(value));
-  });
-  const [restrictions, setRestrictions] = useState<string[]>(() =>
-    auth.dietaryRestrictions.filter((value) => supportedRestrictions.has(value)),
-  );
+  const [selectedCuisines, setSelectedCuisines] = useState<string[]>(() => [
+    ...auth.favoriteCuisines,
+  ]);
+  const [restrictions, setRestrictions] = useState<string[]>(() => [
+    ...auth.dietaryRestrictions,
+  ]);
   const spicyLevel = supportedSpicyLevel(auth.spicyLevel);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -370,8 +368,10 @@ export const OnboardingPage: React.FC = () => {
                     {selectedCuisines.length === 0
                       ? 'Không có lựa chọn'
                       : selectedCuisines
-                          .map((value) => CUISINE_TAGS.find(({ id }) => id === value)?.label)
-                          .filter(Boolean)
+                          .map(
+                            (value) =>
+                              CUISINE_TAGS.find(({ id }) => id === value)?.label ?? value,
+                          )
                           .join(', ')}
                   </span>
                 </span>
@@ -397,8 +397,10 @@ export const OnboardingPage: React.FC = () => {
                     {restrictions.length === 0
                       ? 'Không có lựa chọn'
                       : restrictions
-                          .map((value) => RESTRICTION_TAGS.find(({ id }) => id === value)?.label)
-                          .filter(Boolean)
+                          .map(
+                            (value) =>
+                              RESTRICTION_TAGS.find(({ id }) => id === value)?.label ?? value,
+                          )
                           .join(', ')}
                   </span>
                 </span>
