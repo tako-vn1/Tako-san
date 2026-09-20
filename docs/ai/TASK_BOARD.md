@@ -25,8 +25,10 @@
   lint/typecheck/migrations/build/whitespace PASS.
 - [done] Added settled OTP and onboarding evidence; clean source and validated
   232-entry/180-PNG ZIP paths and hash are in `docs/ai/T17_UI_V2_REPORT.md`.
-- [done] Preserved boundaries: zero `src/worker`, payment, migration,
-  staging, or production behavior change.
+- [done] Preserved boundaries: zero `src/worker`, protected payment, migration,
+  production-infrastructure, staging-deployment, or deployed-production-state
+  change. The intended frontend auth/onboarding behavior changes are documented
+  above.
 - [done] Corrective documentation review and checks passed: whitespace,
   required markers, protected zero-diff boundaries, and full ZIP/manifest/hash
   revalidation. The first ad hoc manifest check used the wrong command-field
@@ -40,6 +42,12 @@
 - [done] Opened replacement PR #45 against exact main `858759f` from remote
   checkpoint `f901b02`; the auto-fix CI/review loop is enabled. PR #44 remains
   untouched. This publication receipt changes documentation only.
+- [done] Final merge-readiness receipt: publication head `1cacd0b` is
+  `MERGEABLE / CLEAN`; hosted validate run `35532565549` passed; reviews, review
+  comments, conversation comments, and unresolved human feedback are empty.
+  The local pass reran focused auth/onboarding/session tests **74/74**,
+  changed-file ESLint, typecheck, ZIP integrity/hash, protected-boundary checks,
+  and `git diff --check` successfully.
 - [limit] `PRE-EXISTING PROTECTED AUTH-CONTRACT BLOCKER`: registration returns
   `expiresInMinutes: 10`; resend returns no fresh expiry. The client records
   unknown, and a server/API owner must resolve the contract separately.
@@ -47,9 +55,11 @@
   prices are `599000`/`79000`, server payment-intent authority is
   `499000`/`49000`, and the QR amount is frontend-prop-owned. A separately
   authorized payment owner should align all three; T17B made no payment change.
-- [next] Inspect PR #45 hosted checks, reviews, and unresolved threads; external
-  reviewer performs direct board comparison and human screen-reader walkthrough.
-  No merge or deployment is authorized by T17B.
+- [next] PR #45 is ready for the authorized user's merge decision when the
+  documentation-only readiness checkpoint retains green/CLEAN exact-head
+  provider status. Direct board comparison and the NVDA/VoiceOver walkthrough
+  remain pending; neither has a named assignee or tracking issue in this
+  repository. No deployment is authorized by T17B.
 
 ## Previous T17 — Takosan UI V2 redesign — `T17_PARTIAL` (2026-09-19)
 

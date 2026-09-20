@@ -51,6 +51,11 @@
   validator looked for `command` instead of the declared `generatingCommand`
   key; the corrected validator passed. Application gates were not rerun because
   this follow-up changes only the six documentation files.
+- **Final merge-readiness verification:** focused auth/onboarding/session suites
+  reran at 74/74; changed-file ESLint, full typecheck, and `git diff --check`
+  passed; protected release/configuration surfaces remained unchanged; and the
+  ZIP again passed integrity with recorded SHA-256
+  `d6f6d4f032c0ac637ce5d1523ecc95b1411bc567538bca8d235a7131e6ad9d70`.
 - **Managed Preview:** an initial inferred `pnpm dev` run path lacked the
   isolated API and guest creation returned 500. Restoring the effective
   `node scripts/security-preview.mjs` path recovered a ready Preview; the
@@ -62,16 +67,20 @@
   endpoint still returned 500 and was not broadened by T17B.
 - **Receipt separation:** PR #44/main CI/staging receipts are historical T17;
   T17B replacement PR #45 opened against exact main `858759f` from remote
-  checkpoint `f901b02`. Its auto-fix CI/review loop is enabled. T17B itself has
-  not merged or deployed.
+  checkpoint `f901b02`. At publication head `1cacd0b`, hosted validate run
+  `35532565549` passed, GitHub reported `MERGEABLE / CLEAN`, and reviews, review
+  comments, conversation comments, and unresolved human feedback were empty.
+  Its auto-fix CI/review loop is enabled. T17B itself has not merged or deployed.
 - **Status/blockers:** `T17B_COMPLETE`; no in-scope implementation blocker.
   Manual — original boards/ZIP unavailable, final direct board comparison
   pending external reviewer, and `HUMAN_SCREEN_READER = NOT_EXECUTED`.
   Pre-existing protected auth/payment blockers are recorded above, not fixed;
   merge/deploy remain operator decisions.
-- **Next exact action:** inspect PR #45 hosted checks, reviews, and unresolved
-  threads. A board holder must still compare the package and run NVDA/VoiceOver.
-  Do not merge or deploy outside the operator path.
+- **Next exact action:** PR #45 is ready for the authorized user's merge decision
+  when the documentation-only readiness checkpoint retains green/CLEAN
+  exact-head provider status. Direct package/board comparison and NVDA/VoiceOver
+  remain pending; neither has a named assignee or tracking issue in this
+  repository. Do not deploy outside the operator path.
 
 ## Previous handoff — T17 continuation 6: contract gaps closed, `T17_PARTIAL` (2026-09-19)
 

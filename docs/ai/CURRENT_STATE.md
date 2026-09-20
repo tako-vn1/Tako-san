@@ -49,7 +49,9 @@ Branch `feat/t17b-contract-reconciliation` was created from exact `main`
   Supported synthetic reset/login then verified screens 04–06 at 390x844: five
   household radios, 7 cuisine and 9 restriction checkboxes, independent review
   values, and Back/Forward preservation, with no page errors.
-- Worker/payment/migration/production behavior is unchanged.
+- Worker, protected payment, migration, production-infrastructure, and deployed
+  production state are unchanged; T17B intentionally changes the documented
+  frontend auth/onboarding behavior.
   `PRE-EXISTING PROTECTED AUTH-CONTRACT BLOCKER`: registration reports a
   10-minute OTP lifetime while resend supplies no fresh expiry.
   `PRE-EXISTING PROTECTED PAYMENT-AUTHORITY BLOCKER`: frontend/VietQR prices
@@ -61,13 +63,19 @@ Branch `feat/t17b-contract-reconciliation` was created from exact `main`
   because direct board comparison and a human screen-reader walkthrough are
   external and unexecuted.
 
-**Publication/next action:** replacement PR #45 was opened against exact base
+**Publication/readiness:** replacement PR #45 was opened against exact base
 `858759f771baccb85f5ed6fd8e06df2fc0bbb112` from corrective documentation
-checkpoint `f901b028af655b419cd96c3a8e29c358de34e636`; this publication receipt
-follows without changing application code. Inspect its hosted checks, reviews,
-and unresolved threads. Separately, an external board holder compares the
-packaged visuals to the actual boards and performs NVDA/VoiceOver. Merge/deploy
-only through the authorized operator path; production remains untouched.
+checkpoint `f901b028af655b419cd96c3a8e29c358de34e636`. At publication head
+`1cacd0b08ab788d355cef5ab09d950df038938f8`, hosted validate run `35532565549`
+passed and GitHub reported `MERGEABLE / CLEAN`; reviews, review comments,
+conversation comments, and unresolved human feedback were empty. The final
+local pass reran focused auth/onboarding/session tests 74/74, changed-file
+ESLint, typecheck, ZIP integrity/hash, protected-boundary checks, and
+`git diff --check` successfully. PR #45 is ready for the authorized user's merge
+decision when the documentation-only readiness checkpoint retains green/CLEAN
+exact-head provider status. Direct board comparison and NVDA/VoiceOver remain
+pending; neither has a named assignee or tracking issue in this repository.
+Deploy only through the authorized operator path; production remains untouched.
 
 ## Previous T17 — continuation 6: contract gaps closed and certified, status `T17_PARTIAL` (2026-09-19)
 

@@ -29,9 +29,17 @@
   restored unchanged. Exact remote checkpoint `f901b02` passed supported
   synthetic reset/login and screens 04–06 at 390x844 with no page errors.
 - Replacement PR #45 opened against exact main `858759f` from `f901b02`; its
-  auto-fix CI/review loop is enabled and PR #44 remains untouched. No T17B merge
-  or staging/production deploy occurred. Next inspect hosted checks/reviews.
-  External board comparison remains pending;
+  auto-fix CI/review loop is enabled and PR #44 remains untouched. At publication
+  head `1cacd0b`, hosted validate run `35532565549` passed, GitHub reported
+  `MERGEABLE / CLEAN`, and reviews, review comments, conversation comments, and
+  unresolved human feedback were empty. The final merge-readiness pass reran
+  focused auth/onboarding/session tests 74/74, changed-file ESLint, typecheck,
+  artifact integrity, protected-boundary checks, and whitespace checks.
+- No T17B merge or staging/production deploy occurred. Once the
+  documentation-only readiness checkpoint retains green/CLEAN exact-head
+  provider status, the authorized user may decide whether to merge PR #45.
+  Direct board comparison
+  and NVDA/VoiceOver remain pending with no named assignee or tracking issue;
   `HUMAN_SCREEN_READER = NOT_EXECUTED`.
 - `PRE-EXISTING PROTECTED AUTH-CONTRACT BLOCKER`: registration reports a
   10-minute lifetime, but resend returns no fresh expiry metadata. A server/API
