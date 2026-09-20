@@ -1,4 +1,52 @@
-# Frigo / Takosan current authority — 2026-09-19
+# Frigo / Takosan current authority — 2026-09-20
+
+## Current T17B — contract reconciliation implementation complete; release pending (2026-09-20)
+
+Branch `feat/t17b-contract-reconciliation` was created from exact `main`
+`858759f771baccb85f5ed6fd8e06df2fc0bbb112` in repository id `1368281478`,
+`omin-vn/Frigo-dev`. Application HEAD is
+`0f358f2f8c9da35c2167489ad6fd63eae8ea8c47`; certification checkpoint is
+`00594eba755c6895f9edb9d3076282cf42919c44`. Documentation follows.
+
+- Screens 04–06 are route-driven and history/refresh safe. Screen 06 reviews
+  authoritative preference fields; unsupported `primaryGoal` was removed.
+  Screen 05 has exactly seven visible cuisine choices and nine visible
+  restriction choices, both including canonical `other`. Stored values outside
+  those visible chips, including `italian` and `vegetarian`, survive review and
+  completion; spicy level remains independent. Onboarding completes locally
+  only after server confirmation.
+- `/auth/verify` context is credential-free, tab-scoped, identity-bound,
+  strict-shape/expiry validated, and cleared on route, identity, cancel, and
+  success transitions. Delivery is nullable, resend expiry is unknown when the
+  API supplies none, failed replacement delivery clears stale claims, leaving
+  the route resets loading, and only the server validates OTPs or creates
+  sessions.
+- The 27-screen registry now requires every declared content marker. Its clean
+  reviewer-verified contracts passed 18/18 across six viewports, including
+  onboarding direct URLs, refresh, history, native selection state, and no
+  `primary-goal`. Older reconstructed-kit language is historical only.
+- Final validation: focused auth 102/102, final verify/onboarding 39/39, full
+  Vitest 180 files/4087 tests, T13 60/60, clean six-width T17 216 pass/6
+  intentional skips, style residual 43/43 allowlisted/0 unjustified, and
+  contrast 33/33. Lint, typecheck, migration smoke, and build passed.
+- Clean evidence is under
+  `.hoplite/artifacts/t17-playwright/final-00594eb-clean/`; validation is under
+  `.hoplite/artifacts/t17b-validation-00594eb/`. The tested package
+  `.hoplite/artifacts/t17b-final-visuals-00594eb.zip` contains 232 entries and
+  180 PNGs, with a complete per-screenshot manifest; SHA-256 is
+  `d6f6d4f032c0ac637ce5d1523ecc95b1411bc567538bca8d235a7131e6ad9d70`.
+  The 390px OTP and all onboarding captures were visually inspected.
+- Worker/payment/migration/production behavior is unchanged. No deployment
+  occurred. Full evidence: `docs/ai/T17_UI_V2_REPORT.md`.
+- Status is `T17B_IMPLEMENTATION_COMPLETE`; T17 remains `T17_PARTIAL` only
+  because direct board comparison and a human screen-reader walkthrough are
+  external and unexecuted.
+
+**Publication/next action:** commit and push the documentation checkpoint,
+verify the final managed Preview, then open/review the new PR and its hosted
+checks. Separately, an external board holder compares the packaged visuals to
+the actual boards and performs NVDA/VoiceOver. Merge/deploy only through the
+authorized operator path; production remains untouched.
 
 ## Current T17 — continuation 6: contract gaps closed and certified, status `T17_PARTIAL` (2026-09-19)
 

@@ -1,4 +1,49 @@
-# Frigo / Takosan current handoff — 2026-09-19
+# Frigo / Takosan current handoff — 2026-09-20
+
+## Current handoff — T17B contract reconciliation (2026-09-20)
+
+- **Identity/base:** repository id `1368281478`, `omin-vn/Frigo-dev`; branch
+  `feat/t17b-contract-reconciliation`; exact starting main
+  `858759f771baccb85f5ed6fd8e06df2fc0bbb112`.
+- **Preserved checkpoints:** `029011c` onboarding/registry, `cbbeb1d` verify
+  lifecycle, `f0349b6` contract coverage, `fde016a` labelled target
+  measurement, `53e950c` delivery/spicy truth, `8b0f050` onboarding preference
+  truth, `9a94afb` pending-auth/restriction truth, application HEAD `0f358f2`
+  verification-exit/stored-value truth, and certification checkpoint `00594eb`
+  settled layout measurement. The docs checkpoint is the next commit in
+  `git log` because it cannot record its own hash.
+- **Outcome:** URL-owned onboarding 04–06, real preference review instead of
+  `primaryGoal`, server-confirmed onboarding completion, owner-bound and
+  delivery/expiry-honest `/auth/verify`, stale-request/route cleanup, supported
+  spicy-value preservation, verification-exit loading reset, and concrete proof
+  for all 27 reviewer-verified registry entries. Screen 05 has exactly seven
+  visible cuisine and nine restriction choices (both include `other`) without
+  dropping stored `italian`, `vegetarian`, or other authoritative values.
+- **Final local evidence:** focused auth 102/102; final verify/onboarding 39/39;
+  full Vitest 180 files/4087; registry 18/18; T13 60/60; clean full T17
+  216 pass/6 intentional skips; residual 43/43 payment-allowlisted/0
+  unjustified; contrast 33/33; lint, typecheck, migration smoke, build, focused
+  ESLint, and `git diff --check` PASS. Exact commands are in the report.
+- **Visual artifact:** clean source
+  `.hoplite/artifacts/t17-playwright/final-00594eb-clean/`, validation source
+  `.hoplite/artifacts/t17b-validation-00594eb/`, inspected contact sheet
+  `.hoplite/artifacts/t17b-final-00594eb-contact-sheet.png`; tested 232-entry,
+  180-PNG package `.hoplite/artifacts/t17b-final-visuals-00594eb.zip`, SHA-256
+  `d6f6d4f032c0ac637ce5d1523ecc95b1411bc567538bca8d235a7131e6ad9d70`.
+- **Boundaries:** `src/worker` and protected payment behavior have zero T17B
+  diff; migrations also have zero diff. Protected prices remain frontend
+  `599000`/`79000` and billing authority `499000`/`49000`. No staging,
+  production, or deployment action.
+- **Receipt separation:** PR #44/main CI/staging receipts are historical T17;
+  T17B itself has not merged or deployed.
+- **Blockers:** implementation none; manual — original boards/ZIP unavailable,
+  final direct board comparison pending external reviewer, and
+  `HUMAN_SCREEN_READER = NOT_EXECUTED`; protected external — merge/deploy are
+  operator decisions.
+- **Next exact action:** publish this docs checkpoint, verify the managed
+  Preview at the exact remote head, then open/review the new PR and hosted
+  checks. A board holder must still compare the package and run NVDA/VoiceOver.
+  Do not merge or deploy outside the operator path.
 
 ## Current handoff — T17 continuation 6: contract gaps closed, `T17_PARTIAL` (2026-09-19)
 
@@ -18,21 +63,22 @@
   §Verification (lint, typecheck, full vitest, `check:migrations`, build,
   T13 suite at 360/390/430, T17 suite at 360/390/430/768/1024/1440, residual
   greps, `git diff 769d085 -- src/worker` = 0, payment boundary, `git diff
-  --check`, `git status --short`). Logs under `.hoplite/artifacts/t17-cert/`.
+  --check`, `git status --short`). The old ephemeral artifact directory is no
+  longer present; T17B replacement evidence is named in the current handoff.
 - **Limitations:** the kit ZIP was not present in the sandbox — board
   comparison and `SCREEN_REGISTRY` diff are outstanding (registry reconstructed
   with per-row `source` tags in `tests/e2e/t17-ui/screen-registry.ts`); no
   human screen-reader walkthrough; virtual keyboard approximated by a shrunk
   viewport. `sqlite3` had to be installed in-session (repo setup script line).
-- **Next exact action:** with the ZIP in hand, compare
-  `.hoplite/artifacts/t17-cert/canonical/{390,768,1440}/*.png` against the
-  three Takosan boards and `screens/*.md`, diff `screen-registry.ts` vs
+- **Next exact action:** with the original design ZIP in hand, compare the
+  T17B package named in the current handoff against the three Takosan boards
+  and `screens/*.md`, diff `screen-registry.ts` vs
   `SCREEN_REGISTRY`, run an NVDA/VoiceOver pass over the canonical surfaces;
   fix anything found, then set `T17_COMPLETE`. Do not merge/deploy from this
   branch without the operator path in `DEPLOYMENT.md`.
 - **Harness notes:** kill any leftover `security-preview.mjs` on :3000 before
-  Playwright; the T17 config clears its output dir per run, so the matrix
-  script copies captures to `.hoplite/artifacts/t17-cert/{canonical,states}`.
+  Playwright; the T17 config clears its output directory per run. T17B used
+  isolated per-project output directories to avoid artifact collisions.
 
 ## Previous handoff — T17 Takosan UI V2 partial redesign on feat/t17-takosan-ui-v2
 

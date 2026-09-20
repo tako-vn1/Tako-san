@@ -1,4 +1,33 @@
-# Frigo / Takosan current task board — 2026-09-19
+# Frigo / Takosan current task board — 2026-09-20
+
+## Current T17B — contract reconciliation — `IMPLEMENTATION_COMPLETE` (2026-09-20)
+
+- [done] Rebuilt from exact main `858759f` on
+  `feat/t17b-contract-reconciliation`; application HEAD `0f358f2`, certification
+  checkpoint `00594eb`; did not modify PR #44 or the old branch.
+- [done] Route-owned onboarding screens 04–06 with direct load, refresh,
+  Back/Forward, native input semantics, real preference review, and
+  server-confirmed completion. Exactly seven cuisine and nine restriction chips
+  are visible, both with `other`; stored values outside those chips (including
+  `italian` and `vegetarian`) and independent spicy level round-trip unchanged.
+- [done] Hardened `/auth/verify` context ownership, shape, expiry truth,
+  nullable delivery truth, failed-replacement cleanup, route/cancel/identity
+  cleanup, verification-exit loading reset, stale async handling, and credential
+  non-persistence while preserving server authority and guest transfer.
+- [done] Reconciled the 27-screen registry to reviewer-verified contracts and
+  concrete multi-field proof; clean six-width certification **18/18 PASS**.
+- [done] Final gates: focused auth **102/102**, verify/onboarding **39/39**,
+  full Vitest **180 files/4087**, T13 **60/60**, clean T17 **216 pass/6
+  intentional skips**, residual **43/43 allowlisted/0 unjustified**, contrast
+  **33/33**, plus lint/typecheck/migrations/build/whitespace PASS.
+- [done] Added settled OTP and onboarding evidence; clean source and validated
+  232-entry/180-PNG ZIP paths and hash are in `docs/ai/T17_UI_V2_REPORT.md`.
+- [done] Preserved boundaries: zero `src/worker`, payment, migration,
+  staging, or production behavior change.
+- [next] Publish the docs checkpoint, verify managed Preview, then open/review
+  the new PR and hosted checks; external reviewer performs direct board
+  comparison and human screen-reader walkthrough. No merge or deployment is
+  authorized by T17B.
 
 ## Current T17 — Takosan UI V2 redesign — `T17_PARTIAL` (2026-09-19)
 

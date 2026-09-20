@@ -1,4 +1,27 @@
-## Current T17 — Takosan UI V2 certification pass, `T17_PARTIAL` (2026-09-19)
+## Current — T17B contract reconciliation implementation complete (2026-09-20)
+
+- Branch `feat/t17b-contract-reconciliation`, exact base `858759f`, application
+  HEAD `0f358f2`, certification checkpoint `00594eb`. Corrective checkpoints
+  `8b0f050`, `9a94afb`, and `0f358f2` preserve all server-owned preference and
+  verification state; `00594eb` measures registry layout after finite motion.
+- Route-driven onboarding 04–06 exposes exactly seven cuisine and nine
+  restriction choices (both include canonical `other`) while round-tripping
+  authoritative values outside those chips, including `italian` and
+  `vegetarian`. Verification exit resets loading; server OTP/session authority
+  and independent spicy-level truth remain intact.
+- The current 27-screen registry uses reviewer-verified contracts. Focused auth
+  is 102/102, verify/onboarding is 39/39, full Vitest is 180 files/4087, T13 is
+  60/60, and the clean T17 matrix is 216 pass/6 intentional skips.
+- Residuals are 43/43 protected-payment allowlisted with 0 unjustified;
+  contrast is 33/33. Worker/payment/migration diffs are zero.
+- Visual source: `.hoplite/artifacts/t17-playwright/final-00594eb-clean/`;
+  validated package: `.hoplite/artifacts/t17b-final-visuals-00594eb.zip`
+  (232 entries, 180 PNGs; SHA-256 `d6f6d4f032c0ac637ce5d1523ecc95b1411bc567538bca8d235a7131e6ad9d70`).
+- No T17B merge or staging/production deploy occurred. After this checkpoint is
+  pushed, verify managed Preview, then open/review the new PR. External board
+  comparison remains pending; `HUMAN_SCREEN_READER = NOT_EXECUTED`.
+
+## Previous T17 — Takosan UI V2 certification pass, `T17_PARTIAL` (2026-09-19)
 
 - [done] `/auth/verify` real route over the existing OTP state machine; tab-scoped code-free context; honest empty state; 14 regression tests.
 - [done] 27 registered screens certified per width (`t17-registry.e2e.ts`).
