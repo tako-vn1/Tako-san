@@ -15,6 +15,11 @@
   is 102/102, verify/onboarding is 39/39, full Vitest is 180 files/4087, T13 is
   60/60, automated accessibility is 12/12 across six viewports, and the clean
   T17 matrix is 216 pass/6 intentional skips.
+- Post-review fix `56fc01b`: screen 06 is a native `today`/`week`/`both` goal
+  group (client-only, never sent to `/preferences`; `week` → `/week/setup`) and
+  stored household size `6..20` round-trips unchanged. Reran: focused 87/87,
+  Vitest 180 files/4094, registry 18/18, full T17 216/6/0, lint/typecheck/
+  migrations/build/diff-check PASS.
 - Residuals are 43/43 protected-payment allowlisted with 0 unjustified;
   contrast is 33/33. Worker/payment/migration diffs are zero.
 - Visual source: `.hoplite/artifacts/t17-playwright/final-00594eb-clean/`;

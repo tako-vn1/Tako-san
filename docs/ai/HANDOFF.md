@@ -32,6 +32,13 @@
   viewports; residual 43/43 payment-allowlisted/0 unjustified; contrast 33/33;
   lint, typecheck, migration smoke, build, focused ESLint, and
   `git diff --check` PASS. Exact commands are in the report.
+- **Post-review fix (`56fc01b`):** screen 06 goal restored and household size
+  unclamped. Reran focused onboarding/auth **87/87**, full Vitest **180
+  files/4094**, registry **18/18**, remaining T17 **198 pass/6 skips**
+  (full matrix 216/6/0), lint, typecheck, migration smoke, build,
+  `git diff --check`; worker/migration/payment diffs still 0. Logs in
+  `.hoplite/artifacts/t17b-validation-p1p2/`. The `00594eb` ZIP's screen 06
+  captures are superseded for that screen.
 - **Visual artifact:** clean source
   `.hoplite/artifacts/t17-playwright/final-00594eb-clean/`, validation source
   `.hoplite/artifacts/t17b-validation-00594eb/`, inspected contact sheet

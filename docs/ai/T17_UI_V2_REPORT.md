@@ -159,6 +159,20 @@ production.
 
 ## Verification at certification checkpoint `00594eb` (application `0f358f2`)
 
+### Post-review fix `56fc01b` (screen 06 goal + household truth) — reran
+
+| Exact check | Result |
+| --- | --- |
+| `pnpm exec vitest run tests/unit/onboarding-contract.test.tsx tests/unit/auth-funnel-ui.test.tsx tests/unit/auth-verify-route.test.tsx tests/unit/client-session.test.ts tests/unit/auth-guest-transfer-deferred.test.tsx` | **5 files; 87/87 PASS** (onboarding contract now 20 cases) |
+| `pnpm lint && pnpm typecheck && pnpm test && pnpm check:migrations && pnpm build` | exit 0; **180 files / 4094 tests PASS**; `migration-smoke=ok`; build **6.25 s** |
+| `pnpm exec playwright test --config playwright.t17.config.ts tests/e2e/t17-ui/t17-registry.e2e.ts` | **18 passed**, six viewports (`.hoplite/artifacts/t17b-validation-p1p2/t17-registry.log`) |
+| `pnpm exec playwright test --config playwright.t17.config.ts --grep-invert "screen registry certification"` | **198 passed / 6 intentional skips / 0 failed** (`t17-rest.log`); with the registry run the full matrix is again **216 / 6 / 0** |
+| `git diff 858759f -- src/worker`, `-- migrations`, payment-like paths | all **0** |
+| `git diff --check` | PASS |
+
+The `00594eb` visual ZIP predates this fix; screen 06 captures in it show the
+earlier review-only layout and are superseded for that screen.
+
 | Exact check | Result |
 | --- | --- |
 | `pnpm exec vitest run tests/unit/auth-verify-route.test.tsx tests/unit/onboarding-contract.test.tsx tests/unit/auth-funnel-ui.test.tsx tests/unit/auth-google-credential.test.tsx tests/unit/auth-guest-transfer-deferred.test.tsx tests/unit/auth-resend-turnstile.test.tsx tests/unit/auth.test.ts tests/unit/client-session.test.ts` | **8 files; 102/102 tests PASS** |

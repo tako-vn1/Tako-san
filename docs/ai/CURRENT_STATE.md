@@ -32,7 +32,10 @@ Branch `feat/t17b-contract-reconciliation` was created from exact `main`
   reviewer-verified contracts passed 18/18 across six viewports, including
   onboarding direct URLs, refresh, history, native selection state, and no
   `primary-goal`. Older reconstructed-kit language is historical only.
-- Final validation: focused auth 102/102, final verify/onboarding 39/39, full
+- Post-review fix `56fc01b` reran: focused onboarding/auth 87/87, full Vitest
+  180 files/4094, registry 18/18, full T17 216 pass/6 skips/0 failed, lint,
+  typecheck, migration smoke, build, and `git diff --check` PASS.
+- Certification-checkpoint validation: focused auth 102/102, final verify/onboarding 39/39, full
   Vitest 180 files/4087 tests, T13 60/60, clean six-width T17 216 pass/6
   intentional skips, automated accessibility 12/12 across six viewports, style
   residual 43/43 allowlisted/0 unjustified, and contrast 33/33. Lint,

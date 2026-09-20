@@ -51,6 +51,11 @@
   The local pass reran focused auth/onboarding/session tests **74/74**,
   changed-file ESLint, typecheck, ZIP integrity/hash, protected-boundary checks,
   and `git diff --check` successfully.
+- [done] Post-review fix `56fc01b`: restored screen 06 planning goal
+  (`primary-goal` radios, client-only, `week` → `/week/setup`) and removed the
+  household-size clamp. Reran focused 87/87, Vitest 180 files/4094, registry
+  18/18, full T17 216/6/0, lint/typecheck/migrations/build/diff-check PASS;
+  worker/migration/payment diffs 0.
 - [limit] `PRE-EXISTING PROTECTED AUTH-CONTRACT BLOCKER`: registration returns
   `expiresInMinutes: 10`; resend returns no fresh expiry. The client records
   unknown, and a server/API owner must resolve the contract separately.
