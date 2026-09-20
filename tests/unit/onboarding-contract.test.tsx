@@ -133,7 +133,7 @@ describe('screens 04-06 — onboarding contract', () => {
 
     await click(button('Tiếp tục'));
     expect(location()).toBe('/onboarding/goals');
-    expect(host.textContent).toContain('Bạn muốn Takosan giúp việc gì trước?');
+    expect(host.textContent).toContain('Xem lại sở thích của nhà mình');
 
     await click(button('Quay lại'));
     expect(location()).toBe('/onboarding/preferences');

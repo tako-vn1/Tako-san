@@ -319,14 +319,17 @@ export const OnboardingPage: React.FC = () => {
                 ← Quay lại
               </button>
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-takosan-green">
-                Đi thẳng tới giá trị
+                Xem lại lựa chọn
               </p>
               <h1
                 id="onboarding-goals-title"
                 className="font-heading text-3xl font-extrabold leading-tight"
               >
-                Bạn muốn Takosan giúp việc gì trước?
+                Xem lại sở thích của nhà mình
               </h1>
+              <p className="mt-2 text-sm text-semantic-text-secondary">
+                Takosan chỉ lưu các tùy chọn bên dưới sau khi máy chủ xác nhận hoàn tất.
+              </p>
             </div>
 
             <div className="space-y-3" data-testid="onboarding-preference-review">
