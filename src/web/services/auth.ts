@@ -1,8 +1,15 @@
 import { rebindPendingOps } from '../lib/sync';
 import { LOGOUT_PENDING_KEY, isOfflineGuestSession } from '../lib/private-session';
 import {
-  BASE_URL, ApiError, fetchJson, isOffline, getCurrentScope, getUserId, getHouseholdId,
-  guardPrivateSession, handleUnauthorized,
+  BASE_URL,
+  ApiError,
+  fetchJson,
+  isOffline,
+  getCurrentScope,
+  getUserId,
+  getHouseholdId,
+  guardPrivateSession,
+  handleUnauthorized,
 } from './http';
 
 // DEC-012: the server refuses guest→account inventory transfer before consuming
@@ -55,9 +62,11 @@ export const authApi = {
 
   logout: async (): Promise<void> => {
     const response = await fetch(`${BASE_URL}/auth/logout`, {
-      method: 'POST', credentials: 'include', signal: AbortSignal.timeout(10_000),
+      method: 'POST',
+      credentials: 'include',
+      signal: AbortSignal.timeout(10_000),
     });
-    if (!response.ok || (await response.json() as { success?: boolean }).success !== true) {
+    if (!response.ok || ((await response.json()) as { success?: boolean }).success !== true) {
       throw new Error('Logout not confirmed');
     }
   },
@@ -71,7 +80,10 @@ export const authApi = {
       if (result.user?.id !== scope.userId || result.user?.household?.id !== scope.householdId) {
         localStorage.setItem(LOGOUT_PENDING_KEY, 'true');
         handleUnauthorized();
-        throw new ApiError('auth', 'Danh tính phiên máy chủ đã thay đổi. Vui lòng đăng xuất và đăng nhập lại.');
+        throw new ApiError(
+          'auth',
+          'Danh tính phiên máy chủ đã thay đổi. Vui lòng đăng xuất và đăng nhập lại.',
+        );
       }
       return result;
     } catch (err) {
@@ -85,14 +97,16 @@ export const authApi = {
           onboardingCompleted: localStorage.getItem('frigo_onboarded') === 'true',
           household: { id: getHouseholdId(), name: 'Tủ lạnh nhà tôi' },
           subscription: null,
-        }
+        },
       };
     }
   },
 
   getPublicConfig: async () => {
     try {
-      return await fetchJson<{ turnstileSiteKey: string | null; googleClientId: string | null }>('/config');
+      return await fetchJson<{ turnstileSiteKey: string | null; googleClientId: string | null }>(
+        '/config',
+      );
     } catch (err) {
       if (!isOffline(err)) throw err;
       return { turnstileSiteKey: null as string | null, googleClientId: null as string | null };
@@ -104,14 +118,26 @@ export const authApi = {
     spicyLevel: 'none' | 'mild' | 'medium' | 'hot';
     favoriteCuisines: string[];
     dietaryRestrictions: string[];
-  }) => fetchJson<{ success: boolean; onboardingCompleted: boolean }>('/preferences', {
-    method: 'PATCH',
-    body: JSON.stringify({ ...preferences, completeOnboarding: true }),
-  }),
+  }) =>
+    fetchJson<{ success: boolean; onboardingCompleted: boolean }>('/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify({ ...preferences, completeOnboarding: true }),
+    }),
 
-  register: async (name: string, email: string, password: string, turnstileToken?: string | null) => {
+  register: async (
+    name: string,
+    email: string,
+    password: string,
+    turnstileToken?: string | null,
+  ) => {
     try {
-      return await fetchJson<{ success: boolean; message: string; email: string; devOtp?: string }>('/auth/register', {
+      return await fetchJson<{
+        success: boolean;
+        message: string;
+        email: string;
+        expiresInMinutes: number;
+        devOtp?: string;
+      }>('/auth/register', {
         method: 'POST',
         body: JSON.stringify({ name, email, password, turnstileToken }),
       });
@@ -126,19 +152,22 @@ export const authApi = {
     email: string,
     code: string,
     purpose: 'register' | 'forgot_password',
-    migrateFromHouseholdId?: string | null
+    migrateFromHouseholdId?: string | null,
   ) => {
     const assertCurrent = guardPrivateSession();
     try {
-      const result = await fetchJson<{ success: boolean; user?: AuthResponseUser; resetToken?: string; migratedFromHouseholdId?: string }>('/auth/verify-otp', {
+      const result = await fetchJson<{
+        success: boolean;
+        user?: AuthResponseUser;
+        resetToken?: string;
+        migratedFromHouseholdId?: string;
+      }>('/auth/verify-otp', {
         method: 'POST',
         body: JSON.stringify({
           email,
           code,
           purpose,
-          ...(purpose === 'register' && migrateFromHouseholdId
-            ? { migrateFromHouseholdId }
-            : {}),
+          ...(purpose === 'register' && migrateFromHouseholdId ? { migrateFromHouseholdId } : {}),
         }),
       });
       assertCurrent();
@@ -172,10 +201,13 @@ export const authApi = {
 
   resendOtp: async (email: string, purpose: string, turnstileToken?: string | null) => {
     try {
-      return await fetchJson<{ success: boolean; message: string; devOtp?: string }>('/auth/resend-otp', {
-        method: 'POST',
-        body: JSON.stringify({ email, purpose, turnstileToken }),
-      });
+      return await fetchJson<{ success: boolean; message: string; devOtp?: string }>(
+        '/auth/resend-otp',
+        {
+          method: 'POST',
+          body: JSON.stringify({ email, purpose, turnstileToken }),
+        },
+      );
     } catch (err: any) {
       // SEC-04: surface the real error instead of a fake OTP.
       console.warn('Backend resend OTP failed:', err);
@@ -198,10 +230,13 @@ export const authApi = {
 
   forgotPassword: async (email: string, turnstileToken?: string | null) => {
     try {
-      return await fetchJson<{ success: boolean; message: string; devOtp?: string }>('/auth/forgot-password', {
-        method: 'POST',
-        body: JSON.stringify({ email, turnstileToken }),
-      });
+      return await fetchJson<{ success: boolean; message: string; devOtp?: string }>(
+        '/auth/forgot-password',
+        {
+          method: 'POST',
+          body: JSON.stringify({ email, turnstileToken }),
+        },
+      );
     } catch (err: any) {
       // SEC-04: surface the real error instead of a fake OTP.
       console.warn('Backend forgot-password failed:', err);
@@ -211,10 +246,13 @@ export const authApi = {
 
   resetPassword: async (email: string, code: string, newPassword: string) => {
     try {
-      return await fetchJson<{ success: boolean; message: string; user?: AuthResponseUser }>('/auth/reset-password', {
-        method: 'POST',
-        body: JSON.stringify({ email, code, newPassword }),
-      });
+      return await fetchJson<{ success: boolean; message: string; user?: AuthResponseUser }>(
+        '/auth/reset-password',
+        {
+          method: 'POST',
+          body: JSON.stringify({ email, code, newPassword }),
+        },
+      );
     } catch (err: any) {
       // SEC-04: surface the real error instead of faking success.
       console.warn('Backend reset-password failed:', err);

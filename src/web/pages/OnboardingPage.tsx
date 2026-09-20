@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, Calendar, Check, Sparkles, Users, Utensils } from 'lucide-react';
+import { ArrowRight, Check, Flame, Sparkles, Users } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../components/common/Button';
 import { TAKOSAN_BRAND } from '../lib/takosan-brand';
@@ -34,29 +34,7 @@ const RESTRICTION_TAGS = [
   { id: 'gluten', label: 'Gluten' },
 ] as const;
 
-const PRIMARY_GOALS = [
-  {
-    id: 'today',
-    title: 'Hôm nay ăn gì?',
-    description: 'Gợi ý món ngay từ nguyên liệu đang có.',
-    icon: Utensils,
-  },
-  {
-    id: 'week',
-    title: 'Lên thực đơn tuần',
-    description: 'Chuẩn bị bữa ăn và danh sách đi chợ.',
-    icon: Calendar,
-  },
-  {
-    id: 'both',
-    title: 'Kết hợp cả hai',
-    description: 'Linh hoạt hôm nay, chủ động cả tuần.',
-    icon: Sparkles,
-  },
-] as const;
-
 type OnboardingStep = keyof typeof ONBOARDING_PATHS;
-type PrimaryGoal = (typeof PRIMARY_GOALS)[number]['id'];
 
 function stepFromPath(pathname: string): OnboardingStep | null {
   const match = (Object.entries(ONBOARDING_PATHS) as Array<[`${OnboardingStep}`, string]>).find(
@@ -82,7 +60,6 @@ export const OnboardingPage: React.FC = () => {
   const [restrictions, setRestrictions] = useState<string[]>(() =>
     auth.dietaryRestrictions.filter((value) => supportedRestrictions.has(value)),
   );
-  const [primaryGoal, setPrimaryGoal] = useState<PrimaryGoal>('both');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,9 +79,14 @@ export const OnboardingPage: React.FC = () => {
       dietaryRestrictions: restrictions,
     };
     try {
-      if (!isOfflineGuestSession()) await api.completeOnboarding(preferences);
-      auth.setOnboardingData({ ...preferences, primaryGoal });
-      navigate(primaryGoal === 'week' ? '/week/setup' : '/', { replace: true });
+      if (!isOfflineGuestSession()) {
+        const result = await api.completeOnboarding(preferences);
+        if (!result.success || result.onboardingCompleted !== true) {
+          throw new Error('Onboarding completion was not confirmed');
+        }
+      }
+      auth.setOnboardingData(preferences);
+      navigate('/', { replace: true });
     } catch {
       setError('Chưa thể lưu sở thích. Vui lòng kiểm tra kết nối và thử lại.');
     } finally {
@@ -347,55 +329,62 @@ export const OnboardingPage: React.FC = () => {
               </h1>
             </div>
 
-            <fieldset>
-              <legend className="sr-only">Mục tiêu chính</legend>
-              <div className="space-y-3">
-                {PRIMARY_GOALS.map((goal) => {
-                  const Icon = goal.icon;
-                  const selected = primaryGoal === goal.id;
-                  return (
-                    <label key={goal.id} className="block cursor-pointer">
-                      <input
-                        className="peer sr-only"
-                        type="radio"
-                        name="primary-goal"
-                        value={goal.id}
-                        checked={selected}
-                        onChange={() => setPrimaryGoal(goal.id)}
-                      />
-                      <span
-                        className={clsx(
-                          'flex w-full items-center gap-4 rounded-3xl border bg-white p-4 text-left shadow-sm transition-tap peer-focus-visible:ring-2 peer-focus-visible:ring-takosan-green peer-focus-visible:ring-offset-2',
-                          selected
-                            ? 'border-takosan-green ring-2 ring-takosan-green/20'
-                            : 'border-semantic-border',
-                        )}
-                      >
-                        <span
-                          className={clsx(
-                            'flex h-12 w-12 items-center justify-center rounded-2xl',
-                            selected
-                              ? 'bg-takosan-mint text-takosan-green'
-                              : 'bg-semantic-border/60 text-semantic-text-muted',
-                          )}
-                        >
-                          <Icon className="h-5 w-5" aria-hidden="true" />
-                        </span>
-                        <span className="flex-1">
-                          <strong className="block font-heading text-base">{goal.title}</strong>
-                          <span className="mt-1 block text-xs text-semantic-text-muted">
-                            {goal.description}
-                          </span>
-                        </span>
-                        {selected && (
-                          <Check className="h-5 w-5 text-takosan-green" aria-hidden="true" />
-                        )}
-                      </span>
-                    </label>
-                  );
-                })}
+            <div className="space-y-3" data-testid="onboarding-preference-review">
+              <div className="flex items-center gap-4 rounded-3xl border border-semantic-border bg-white p-4 shadow-sm">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-takosan-mint text-takosan-green">
+                  <Users className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <span>
+                  <strong className="block font-heading text-base">Quy mô bữa ăn</strong>
+                  <span className="mt-1 block text-xs text-semantic-text-muted">
+                    {householdSize === 5 ? '5 người trở lên' : `${householdSize} người`}
+                  </span>
+                </span>
               </div>
-            </fieldset>
+              <div className="flex items-center gap-4 rounded-3xl border border-semantic-border bg-white p-4 shadow-sm">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-takosan-mint text-takosan-green">
+                  <Sparkles className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <span>
+                  <strong className="block font-heading text-base">Ẩm thực yêu thích</strong>
+                  <span className="mt-1 block text-xs text-semantic-text-muted">
+                    {selectedCuisines.length === 0
+                      ? 'Không có lựa chọn'
+                      : selectedCuisines
+                          .map((value) => CUISINE_TAGS.find(({ id }) => id === value)?.label)
+                          .filter(Boolean)
+                          .join(', ')}
+                  </span>
+                </span>
+              </div>
+              <div className="flex items-center gap-4 rounded-3xl border border-semantic-border bg-white p-4 shadow-sm">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-takosan-mint text-takosan-green">
+                  <Flame className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <span>
+                  <strong className="block font-heading text-base">Mức độ cay</strong>
+                  <span className="mt-1 block text-xs text-semantic-text-muted">
+                    {restrictions.includes('spicy') ? 'Không ăn cay' : 'Cay vừa'}
+                  </span>
+                </span>
+              </div>
+              <div className="flex items-center gap-4 rounded-3xl border border-semantic-border bg-white p-4 shadow-sm">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-takosan-mint text-takosan-green">
+                  <Check className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <span>
+                  <strong className="block font-heading text-base">Món cần tránh</strong>
+                  <span className="mt-1 block text-xs text-semantic-text-muted">
+                    {restrictions.length === 0
+                      ? 'Không có lựa chọn'
+                      : restrictions
+                          .map((value) => RESTRICTION_TAGS.find(({ id }) => id === value)?.label)
+                          .filter(Boolean)
+                          .join(', ')}
+                  </span>
+                </span>
+              </div>
+            </div>
 
             <div className="mt-auto pt-7">
               {error && (

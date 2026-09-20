@@ -60,7 +60,6 @@ describe('screens 04-06 — onboarding contract', () => {
       householdSize: 2,
       favoriteCuisines: [],
       dietaryRestrictions: [],
-      primaryGoal: undefined,
     });
     mocks.completeOnboarding.mockReset();
     mocks.completeOnboarding.mockResolvedValue({ success: true, onboardingCompleted: true });
@@ -141,18 +140,18 @@ describe('screens 04-06 — onboarding contract', () => {
     expect(host.textContent).toContain('Nền ẩm thực yêu thích');
   });
 
-  it('screen 06 exposes only the existing primaryGoal values and keeps completion server-authoritative', async () => {
+  it('screen 06 reviews only persisted preference fields and keeps completion server-authoritative', async () => {
     await mount('/onboarding/goals');
 
-    const goals = Array.from(
-      host.querySelectorAll<HTMLInputElement>('input[type="radio"][name="primary-goal"]'),
-    );
-    expect(goals.map((goal) => goal.value)).toEqual(['today', 'week', 'both']);
-    expect(goals.filter((goal) => goal.checked).map((goal) => goal.value)).toEqual(['both']);
-    expect(host.textContent).toContain('Gợi ý món ngay từ nguyên liệu đang có.');
-    expect(host.textContent).toContain('Chuẩn bị bữa ăn và danh sách đi chợ.');
+    expect(host.querySelector('[data-testid="onboarding-preference-review"]')).toBeTruthy();
+    expect(host.querySelector('[name="primary-goal"]')).toBeNull();
+    expect(host.textContent).toContain('Quy mô bữa ăn');
+    expect(host.textContent).toContain('2 người');
+    expect(host.textContent).toContain('Việt Nam');
+    expect(host.textContent).toContain('Mức độ cay');
+    expect(host.textContent).toContain('Cay vừa');
+    expect(host.textContent).toContain('Không có lựa chọn');
 
-    await act(async () => goals[1].click());
     await click(button('Bắt đầu với Takosan'));
 
     expect(mocks.completeOnboarding).toHaveBeenCalledWith({
@@ -161,8 +160,26 @@ describe('screens 04-06 — onboarding contract', () => {
       favoriteCuisines: ['vietnamese'],
       dietaryRestrictions: [],
     });
-    expect(location()).toBe('/week/setup');
-    expect(useAuthStore.getState()).toMatchObject({ isOnboarded: true, primaryGoal: 'week' });
+    expect(location()).toBe('/');
+    expect(useAuthStore.getState()).toMatchObject({
+      isOnboarded: true,
+      householdSize: 2,
+      favoriteCuisines: ['vietnamese'],
+      dietaryRestrictions: [],
+    });
+  });
+
+  it('does not complete locally when the server response does not confirm completion', async () => {
+    mocks.completeOnboarding.mockResolvedValueOnce({
+      success: false,
+      onboardingCompleted: false,
+    });
+    await mount('/onboarding/goals');
+    await click(button('Bắt đầu với Takosan'));
+
+    expect(location()).toBe('/onboarding/goals');
+    expect(useAuthStore.getState().isOnboarded).toBe(false);
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain('Chưa thể lưu sở thích');
   });
 
   it('canonicalizes the legacy onboarding entry to screen 04', async () => {

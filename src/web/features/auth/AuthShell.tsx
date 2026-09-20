@@ -8,6 +8,7 @@ interface AuthShellProps {
   email: string;
   errorMessage: string | null;
   successMessage: string | null;
+  otpDelivered?: boolean;
   devOtp: string | null;
   onFillDevOtp: () => void;
   onBack: () => void;
@@ -28,6 +29,7 @@ export const AuthShell: React.FC<AuthShellProps> = ({
   email,
   errorMessage,
   successMessage,
+  otpDelivered,
   devOtp,
   onFillDevOtp,
   onBack,
@@ -48,15 +50,25 @@ export const AuthShell: React.FC<AuthShellProps> = ({
       </div>
 
       <div className="mt-6 text-center">
-        <img src={TAKOSAN_BRAND.logos.horizontal} alt="Takosan" className="h-11 mx-auto mb-3 object-contain" />
+        <img
+          src={TAKOSAN_BRAND.logos.horizontal}
+          alt="Takosan"
+          className="h-11 mx-auto mb-3 object-contain"
+        />
         {/* Single page heading (accessibility checklist: sequential levels). */}
-        <h1 className="font-heading font-bold text-xl text-semantic-text-primary tracking-tight">{HEADING[mode]}</h1>
+        <h1 className="font-heading font-bold text-xl text-semantic-text-primary tracking-tight">
+          {HEADING[mode]}
+        </h1>
         <p className="text-xs text-semantic-text-muted mt-1 max-w-xs mx-auto leading-relaxed">
           {mode === 'login' && 'Đồng bộ tủ lạnh, thực đơn tuần và gợi ý món ăn mọi lúc mọi nơi'}
-          {mode === 'register' && 'Gia nhập Takosan để quản lý thực phẩm thông minh và giảm lãng phí'}
-          {mode === 'otp_verify' && (email
-            ? `Nhập 6 số mã OTP đã gửi tới ${email}`
-            : 'Xác thực tài khoản bằng mã OTP gửi qua email')}
+          {mode === 'register' &&
+            'Gia nhập Takosan để quản lý thực phẩm thông minh và giảm lãng phí'}
+          {mode === 'otp_verify' &&
+            (email
+              ? otpDelivered === false
+                ? `Địa chỉ cần xác thực: ${email}. Email OTP chưa gửi được.`
+                : `Nhập 6 số mã OTP đã gửi tới ${email}`
+              : 'Xác thực tài khoản bằng mã OTP gửi qua email')}
           {mode === 'forgot_password' && 'Nhập email để nhận mã OTP khôi phục mật khẩu'}
         </p>
       </div>
@@ -70,7 +82,9 @@ export const AuthShell: React.FC<AuthShellProps> = ({
               aria-pressed={mode === m}
               onClick={() => onModeChange(m)}
               className={`flex-1 py-2 rounded-lg font-heading font-semibold text-xs transition-tap tap-target ${
-                mode === m ? 'bg-white text-semantic-text-primary shadow-xs' : 'text-semantic-text-secondary hover:text-semantic-text-primary'
+                mode === m
+                  ? 'bg-white text-semantic-text-primary shadow-xs'
+                  : 'text-semantic-text-secondary hover:text-semantic-text-primary'
               }`}
             >
               {m === 'login' ? 'Đăng nhập' : 'Đăng ký tài khoản'}
@@ -79,14 +93,20 @@ export const AuthShell: React.FC<AuthShellProps> = ({
         </div>
       )}
 
-      {errorMessage && (
-        <div className="mt-4 p-3 bg-semantic-danger-soft border border-semantic-danger/30 text-semantic-danger-strong rounded-xl text-xs flex items-center gap-2 animate-fade-in" role="alert">
+      {mode !== 'otp_verify' && errorMessage && (
+        <div
+          className="mt-4 p-3 bg-semantic-danger-soft border border-semantic-danger/30 text-semantic-danger-strong rounded-xl text-xs flex items-center gap-2 animate-fade-in"
+          role="alert"
+        >
           <AlertCircle className="w-4 h-4 shrink-0 text-semantic-danger" />
           <span>{errorMessage}</span>
         </div>
       )}
-      {successMessage && (
-        <div className="mt-4 p-3 bg-takosan-mint border border-takosan-mint-deep text-takosan-green-deep rounded-xl text-xs flex items-center gap-2 animate-fade-in" role="status">
+      {mode !== 'otp_verify' && successMessage && (
+        <div
+          className="mt-4 p-3 bg-takosan-mint border border-takosan-mint-deep text-takosan-green-deep rounded-xl text-xs flex items-center gap-2 animate-fade-in"
+          role="status"
+        >
           <CheckCircle2 className="w-4 h-4 shrink-0 text-takosan-green" />
           <span>{successMessage}</span>
         </div>
@@ -102,7 +122,9 @@ export const AuthShell: React.FC<AuthShellProps> = ({
             <Sparkles className="w-4 h-4 text-takosan-green" aria-hidden="true" />
             <div>
               <span className="font-medium">Mã OTP Thử nghiệm: </span>
-              <span className="font-heading font-bold text-sm tracking-widest text-takosan-green-deep">{devOtp}</span>
+              <span className="font-heading font-bold text-sm tracking-widest text-takosan-green-deep">
+                {devOtp}
+              </span>
             </div>
           </div>
           <span className="text-[10px] font-semibold text-takosan-green bg-white px-2 py-0.5 rounded-md border border-takosan-mint-deep">
