@@ -1,9 +1,18 @@
 import { create } from 'zustand';
 import { api } from '../services/api';
 import {
-  capturePrivateSession, clearPrivateIdentity, currentPrivateScope, LOGOUT_PENDING_KEY,
-  LOGOUT_WARNING, OFFLINE_GUEST_KEY, onPrivateSessionReset, privateSessionBlocked, removeLegacyPrivateCaches, resetPrivateSession,
+  capturePrivateSession,
+  clearPrivateIdentity,
+  currentPrivateScope,
+  LOGOUT_PENDING_KEY,
+  LOGOUT_WARNING,
+  OFFLINE_GUEST_KEY,
+  onPrivateSessionReset,
+  privateSessionBlocked,
+  removeLegacyPrivateCaches,
+  resetPrivateSession,
 } from '../lib/private-session';
+import { clearVerifyContext } from '../features/auth/verify-context';
 
 interface AuthUser {
   id: string;
@@ -26,13 +35,19 @@ interface AuthState {
   spicyLevel: string;
   favoriteCuisines: string[];
   dietaryRestrictions: string[];
+  /** Client-only planning goal from onboarding; not persisted by the server. */
   primaryGoal?: string;
   isPlus: boolean;
   setPlusFromServer: (isPlus: boolean) => void;
   syncPlusFromServer: () => Promise<void>;
   setGuestSession: () => Promise<void>;
   setAuthSession: (user: AuthUser) => void;
-  setOnboardingFromServer: (completed: boolean, preferences?: Partial<Pick<AuthState, 'householdSize' | 'spicyLevel' | 'favoriteCuisines' | 'dietaryRestrictions'>>) => void;
+  setOnboardingFromServer: (
+    completed: boolean,
+    preferences?: Partial<
+      Pick<AuthState, 'householdSize' | 'spicyLevel' | 'favoriteCuisines' | 'dietaryRestrictions'>
+    >,
+  ) => void;
   setOnboardingData: (data: {
     householdSize: number;
     spicyLevel: string;
@@ -46,16 +61,29 @@ interface AuthState {
 }
 
 const anonymousState = {
-  userId: '', householdId: '', email: '', displayName: 'Khách ghé thăm', avatarUrl: undefined,
-  isGuest: true, isOnboarded: false, isPlus: false, householdSize: 2, spicyLevel: 'medium',
-  favoriteCuisines: [] as string[], dietaryRestrictions: [], primaryGoal: undefined,
+  userId: '',
+  householdId: '',
+  email: '',
+  displayName: 'Khách ghé thăm',
+  avatarUrl: undefined,
+  isGuest: true,
+  isOnboarded: false,
+  isPlus: false,
+  householdSize: 2,
+  spicyLevel: 'medium',
+  favoriteCuisines: [] as string[],
+  dietaryRestrictions: [],
+  primaryGoal: undefined as string | undefined,
 };
 let logoutRequest: Promise<boolean> | null = null;
 let guestSessionRequest: Promise<void> | null = null;
 
 export const useAuthStore = create<AuthState>((set, get) => {
   removeLegacyPrivateCaches();
-  if (privateSessionBlocked()) clearPrivateIdentity();
+  if (privateSessionBlocked()) {
+    clearVerifyContext();
+    clearPrivateIdentity();
+  }
   const savedUserId = localStorage.getItem('frigo_user_id') || '';
   const savedHouseholdId = localStorage.getItem('frigo_household_id') || '';
 
@@ -65,6 +93,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
   const savedOnboarded = localStorage.getItem('frigo_onboarded') === 'true';
   const savedPlus = localStorage.getItem('frigo_is_plus') === 'true';
   const savedIsGuest = !savedUserId || localStorage.getItem('frigo_is_guest') === 'true';
+  if (savedUserId && !savedIsGuest) clearVerifyContext();
 
   return {
     userId: savedUserId,
@@ -109,12 +138,15 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
     setAuthSession: (user: AuthUser) => {
       if (privateSessionBlocked()) throw new Error(LOGOUT_WARNING);
-      if (!user.id || !user.householdId) throw new Error('Máy chủ chưa xác nhận danh tính và hộ gia đình.');
+      if (!user.id || !user.householdId)
+        throw new Error('Máy chủ chưa xác nhận danh tính và hộ gia đình.');
+      clearVerifyContext();
       const hid = user.householdId;
       const current = currentPrivateScope();
       if (current.userId !== user.id || current.householdId !== hid) {
         resetPrivateSession();
-        for (const key of ['frigo_onboarded', 'frigo_is_plus', 'frigo_avatar_url']) localStorage.removeItem(key);
+        for (const key of ['frigo_onboarded', 'frigo_is_plus', 'frigo_avatar_url'])
+          localStorage.removeItem(key);
       }
       localStorage.setItem('frigo_user_id', user.id);
       localStorage.setItem('frigo_household_id', hid);
@@ -127,9 +159,12 @@ export const useAuthStore = create<AuthState>((set, get) => {
       localStorage.setItem('frigo_is_guest', 'false');
       localStorage.removeItem(OFFLINE_GUEST_KEY);
       const identityChanged = current.userId !== user.id || current.householdId !== hid;
-      const isOnboarded = typeof user.onboardingCompleted === 'boolean'
-        ? user.onboardingCompleted
-        : identityChanged ? false : get().isOnboarded;
+      const isOnboarded =
+        typeof user.onboardingCompleted === 'boolean'
+          ? user.onboardingCompleted
+          : identityChanged
+            ? false
+            : get().isOnboarded;
       localStorage.setItem('frigo_onboarded', isOnboarded ? 'true' : 'false');
 
       set({
@@ -168,12 +203,17 @@ export const useAuthStore = create<AuthState>((set, get) => {
             localStorage.setItem('frigo_household_id', `hh_${id}`);
             localStorage.setItem('frigo_is_guest', 'true');
             localStorage.setItem(OFFLINE_GUEST_KEY, 'true');
-            set({ userId: id, householdId: `hh_${id}`, isGuest: true, displayName: 'Khách ghé thăm' });
+            set({
+              userId: id,
+              householdId: `hh_${id}`,
+              isGuest: true,
+              displayName: 'Khách ghé thăm',
+            });
             return;
           }
           if (!isCurrent()) throw new Error('Phiên làm việc đã thay đổi. Vui lòng thử lại.');
           if (!res.ok) throw new Error('Không thể khởi tạo phiên khách. Vui lòng thử lại.');
-          const data = await res.json() as { success?: boolean; user?: AuthUser };
+          const data = (await res.json()) as { success?: boolean; user?: AuthUser };
           if (!isCurrent()) throw new Error('Phiên làm việc đã thay đổi. Vui lòng thử lại.');
           if (!data.success || !data.user?.id || !data.user?.householdId) {
             throw new Error('Máy chủ chưa xác nhận phiên khách.');
@@ -230,15 +270,22 @@ export const useAuthStore = create<AuthState>((set, get) => {
   };
 });
 
-onPrivateSessionReset(() => useAuthStore.setState({
-  ...anonymousState,
-  logoutStatus: privateSessionBlocked() ? 'error' : 'idle',
-  logoutError: privateSessionBlocked() ? LOGOUT_WARNING : null,
-}));
+onPrivateSessionReset(() => {
+  clearVerifyContext();
+  useAuthStore.setState({
+    ...anonymousState,
+    logoutStatus: privateSessionBlocked() ? 'error' : 'idle',
+    logoutError: privateSessionBlocked() ? LOGOUT_WARNING : null,
+  });
+});
 
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event) => {
-    if (event.key === LOGOUT_PENDING_KEY || event.key === 'frigo_user_id' || event.key === 'frigo_household_id') {
+    if (
+      event.key === LOGOUT_PENDING_KEY ||
+      event.key === 'frigo_user_id' ||
+      event.key === 'frigo_household_id'
+    ) {
       sessionStorage.removeItem('frigo_guest_token');
       resetPrivateSession();
       useAuthStore.setState({

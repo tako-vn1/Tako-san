@@ -1,6 +1,75 @@
-# Frigo / Takosan current task board — 2026-09-19
+# Frigo / Takosan current task board — 2026-09-20
 
-## Current T17 — Takosan UI V2 redesign — `T17_PARTIAL` (2026-09-19)
+## Current T17B — contract reconciliation — `T17B_COMPLETE` (2026-09-20)
+
+- [done] Rebuilt from exact main `858759f` on
+  `feat/t17b-contract-reconciliation`; application HEAD `0f358f2`, certification
+  checkpoint `00594eb`; did not modify PR #44 or the old branch.
+- [done] Route-owned onboarding screens 04–06 with direct load, refresh,
+  Back/Forward, native input semantics, a client-only `today`/`week`/`both`
+  planning goal on screen 06 (never sent to `/preferences`; `week` →
+  `/week/setup`), unclamped household size (stored `7` round-trips as `7`,
+  shown as "5+"), a review of server-stored preferences, and
+  server-confirmed completion for authenticated sessions. The existing
+  offline-guest path intentionally completes locally. Exactly seven cuisine and
+  nine restriction chips are visible, both with `other`; stored values outside
+  those chips (including `italian` and `vegetarian`) and independent spicy level
+  round-trip unchanged.
+- [done] Hardened `/auth/verify` context ownership, shape, expiry truth,
+  nullable delivery truth, failed-replacement cleanup, route/cancel/identity
+  cleanup, verification-exit loading reset, stale async handling, and credential
+  non-persistence while preserving server authority and guest transfer.
+- [done] Reconciled the 27-screen registry to reviewer-verified contracts and
+  concrete multi-field proof; clean six-width certification **18/18 PASS**.
+- [done] Final gates: focused auth **102/102**, verify/onboarding **39/39**,
+  full Vitest **180 files/4087**, T13 **60/60**, clean T17 **216 pass/6
+  intentional skips**, automated accessibility **12/12 across six viewports**,
+  residual **43/43 allowlisted/0 unjustified**, contrast **33/33**, plus
+  lint/typecheck/migrations/build/whitespace PASS.
+- [done] Added settled OTP and onboarding evidence; clean source and validated
+  232-entry/180-PNG ZIP paths and hash are in `docs/ai/T17_UI_V2_REPORT.md`.
+- [done] Preserved boundaries: zero `src/worker`, protected payment, migration,
+  production-infrastructure, staging-deployment, or deployed-production-state
+  change. The intended frontend auth/onboarding behavior changes are documented
+  above.
+- [done] Corrective documentation review and checks passed: whitespace,
+  required markers, protected zero-diff boundaries, and full ZIP/manifest/hash
+  revalidation. The first ad hoc manifest check used the wrong command-field
+  name; the corrected check passed with no artifact defect.
+- [done] Restored the repository-owned Preview settings after inference changed
+  them, ran the isolated `security-preview.mjs` path at exact remote checkpoint
+  `f901b02`, and verified screens 04–06 at 390x844 with supported synthetic
+  reset/login. The initial inferred `pnpm dev` path lacked the isolated API and
+  guest creation returned 500; the recovered Preview was ready and the verified
+  onboarding flow reported no page errors.
+- [done] Opened replacement PR #45 against exact main `858759f` from remote
+  checkpoint `f901b02`; the auto-fix CI/review loop is enabled. PR #44 remains
+  untouched. This publication receipt changes documentation only.
+- [done] Final merge-readiness receipt: publication head `1cacd0b` is
+  `MERGEABLE / CLEAN`; hosted validate run `35532565549` passed; reviews, review
+  comments, conversation comments, and unresolved human feedback are empty.
+  The local pass reran focused auth/onboarding/session tests **74/74**,
+  changed-file ESLint, typecheck, ZIP integrity/hash, protected-boundary checks,
+  and `git diff --check` successfully.
+- [done] Post-review fix `56fc01b`: restored screen 06 planning goal
+  (`primary-goal` radios, client-only, `week` → `/week/setup`) and removed the
+  household-size clamp. Reran focused 87/87, Vitest 180 files/4094, registry
+  18/18, full T17 216/6/0, lint/typecheck/migrations/build/diff-check PASS;
+  worker/migration/payment diffs 0.
+- [limit] `PRE-EXISTING PROTECTED AUTH-CONTRACT BLOCKER`: registration returns
+  `expiresInMinutes: 10`; resend returns no fresh expiry. The client records
+  unknown, and a server/API owner must resolve the contract separately.
+- [limit] `PRE-EXISTING PROTECTED PAYMENT-AUTHORITY BLOCKER`: frontend/VietQR
+  prices are `599000`/`79000`, server payment-intent authority is
+  `499000`/`49000`, and the QR amount is frontend-prop-owned. A separately
+  authorized payment owner should align all three; T17B made no payment change.
+- [next] PR #45 is ready for the authorized user's merge decision when the
+  documentation-only readiness checkpoint retains green/CLEAN exact-head
+  provider status. Direct board comparison and the NVDA/VoiceOver walkthrough
+  remain pending; neither has a named assignee or tracking issue in this
+  repository. No deployment is authorized by T17B.
+
+## Previous T17 — Takosan UI V2 redesign — `T17_PARTIAL` (2026-09-19)
 
 - [done] Baseline gates on live main `769d08597563f816ef9c1dd9523fdafb687de3e2`: lint, typecheck, vitest 178 files / 4046 tests, migration smoke (sqlite3 CLI installed per repo setup), build — all PASS; branch `feat/t17-takosan-ui-v2` created; `main` untouched.
 - [done] Audit recorded in `docs/ai/T17_UI_V2_AUDIT.md` (routes, migration map, Frigo leaks, phone wrappers, Week/Planner + settings + notification overlap, fake-flow survey).

@@ -46,7 +46,7 @@ describe('auth funnel UI', () => {
       root.render(<MemoryRouter initialEntries={['/onboarding']}><OnboardingPage /></MemoryRouter>);
     });
     expect(host.textContent).toContain('1 / 3');
-    expect(host.textContent).toContain('Takosan nên nấu cho nhà mình thế nào?');
+    expect(host.textContent).toContain('Nhà mình thường có bao nhiêu người ăn?');
     expect(host.textContent).not.toMatch(/Đăng nhập|Đăng ký bằng Google|Đăng ký bằng Apple|Tạo tài khoản/);
   });
 });

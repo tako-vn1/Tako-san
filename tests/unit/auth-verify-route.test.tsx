@@ -1,9 +1,18 @@
 // @vitest-environment jsdom
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  type NavigateFunction,
+} from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthPage } from '../../src/web/pages/AuthPage';
+import { VerifyRouteLifecycle } from '../../src/web/features/auth/VerifyRouteLifecycle';
+import { useAuthStore } from '../../src/web/stores/useAuthStore';
 import {
   VERIFY_CONTEXT_KEY,
   readVerifyContext,
@@ -16,7 +25,13 @@ import {
 // replaced. No test here fabricates a verified session.
 const EMAIL = 'verify-route@example.test';
 const OTP = '493817';
-const ACCOUNT = { id: 'usr_verify', email: EMAIL, displayName: 'Verify Route', avatarUrl: '', householdId: 'hh_usr_verify' };
+const ACCOUNT = {
+  id: 'usr_verify',
+  email: EMAIL,
+  displayName: 'Verify Route',
+  avatarUrl: '',
+  householdId: 'hh_usr_verify',
+};
 
 const fetchMock = vi.fn<typeof fetch>();
 let root: Root | undefined;
@@ -25,39 +40,65 @@ let calls: Array<{ path: string; body: Record<string, unknown> }>;
 let registerResponse: { status: number; body: unknown };
 let verifyResponses: Array<{ status: number; body: unknown }>;
 let resendResponse: { status: number; body: unknown };
+let verifyOffline: boolean;
+let resendOffline: boolean;
+let navigateForTest: NavigateFunction;
+let verifyGate: Promise<Response> | null;
+let registerGate: Promise<Response> | null;
+let loginGate: Promise<Response> | null;
 
 function response(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 function LocationProbe() {
+  navigateForTest = useNavigate();
   return <output data-testid="location">{useLocation().pathname}</output>;
 }
 
 async function flush() {
-  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 5)); });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  });
 }
 
 async function until(assertion: () => void) {
   const deadline = Date.now() + 1_500;
   for (;;) {
     await flush();
-    try { assertion(); return; } catch (failure) { if (Date.now() >= deadline) throw failure; }
+    try {
+      assertion();
+      return;
+    } catch (failure) {
+      if (Date.now() >= deadline) throw failure;
+    }
   }
 }
 
 async function mount(initialEntry: string) {
   root ??= createRoot(container);
   await act(async () => {
-    root!.render(<MemoryRouter initialEntries={[initialEntry]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <LocationProbe />
-      <Routes>
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/auth/verify" element={<AuthPage />} />
-        <Route path="/onboarding" element={<output data-testid="onboarding">onboarding</output>} />
-        <Route path="/landing" element={<output data-testid="landing">landing</output>} />
-      </Routes>
-    </MemoryRouter>);
+    root!.render(
+      <MemoryRouter
+        initialEntries={[initialEntry]}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
+        <LocationProbe />
+        <VerifyRouteLifecycle />
+        <Routes>
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/auth/verify" element={<AuthPage />} />
+          <Route
+            path="/onboarding"
+            element={<output data-testid="onboarding">onboarding</output>}
+          />
+          <Route path="/landing" element={<output data-testid="landing">landing</output>} />
+        </Routes>
+      </MemoryRouter>,
+    );
   });
   await flush();
 }
@@ -80,7 +121,9 @@ function button(label: string | RegExp) {
 }
 
 async function click(label: string | RegExp) {
-  await act(async () => { button(label).click(); });
+  await act(async () => {
+    button(label).click();
+  });
   await flush();
 }
 
@@ -95,12 +138,15 @@ function otpBoxes() {
 }
 
 function otpValue() {
-  return otpBoxes().map((box) => box.value).join('');
+  return otpBoxes()
+    .map((box) => box.value)
+    .join('');
 }
 
 async function fillRegisterForm() {
   const inputs = [...container.querySelectorAll<HTMLInputElement>('form input')];
-  const byPlaceholder = (placeholder: string) => inputs.find((input) => input.placeholder === placeholder)!;
+  const byPlaceholder = (placeholder: string) =>
+    inputs.find((input) => input.placeholder === placeholder)!;
   await act(async () => {
     setNative(byPlaceholder('Nguyễn Văn A'), 'Verify Route');
     setNative(byPlaceholder('ban@example.com'), EMAIL);
@@ -119,30 +165,66 @@ async function registerAndReachVerify() {
 
 async function typeOtp(code = OTP) {
   for (const [index, digit] of code.split('').entries()) {
-    await act(async () => { setNative(otpBoxes()[index], digit); });
+    await act(async () => {
+      setNative(otpBoxes()[index], digit);
+    });
   }
 }
 
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
   vi.stubGlobal('fetch', fetchMock);
-  localStorage.clear(); sessionStorage.clear();
-  calls = []; verifyResponses = [];
-  registerResponse = { status: 200, body: { success: true, message: 'Mã xác thực OTP đã được gửi đến email của bạn.', email: EMAIL } };
+  localStorage.clear();
+  sessionStorage.clear();
+  useAuthStore.setState({
+    userId: '',
+    householdId: '',
+    email: '',
+    isGuest: true,
+    isOnboarded: false,
+  });
+  calls = [];
+  verifyResponses = [];
+  verifyOffline = false;
+  resendOffline = false;
+  verifyGate = null;
+  registerGate = null;
+  loginGate = null;
+  registerResponse = {
+    status: 200,
+    body: {
+      success: true,
+      message: 'Mã xác thực OTP đã được gửi đến email của bạn.',
+      email: EMAIL,
+      expiresInMinutes: 10,
+    },
+  };
   resendResponse = { status: 200, body: { success: true, message: 'Đã gửi lại mã OTP mới.' } };
   fetchMock.mockReset();
   fetchMock.mockImplementation(async (input, init) => {
     const path = new URL(String(input), 'https://takosan.example.test').pathname;
     if (path.endsWith('/config')) return response({ turnstileSiteKey: null, googleClientId: null });
-    const body = init?.body ? JSON.parse(String(init.body)) as Record<string, unknown> : {};
+    const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {};
     calls.push({ path, body });
-    if (path.endsWith('/auth/register')) return response(registerResponse.body, registerResponse.status);
+    if (path.endsWith('/auth/register')) {
+      if (registerGate) return registerGate;
+      return response(registerResponse.body, registerResponse.status);
+    }
+    if (path.endsWith('/auth/login')) {
+      if (loginGate) return loginGate;
+      throw new Error('unexpected login request');
+    }
     if (path.endsWith('/auth/verify-otp')) {
+      if (verifyOffline) throw new TypeError('network unavailable');
+      if (verifyGate) return verifyGate;
       const next = verifyResponses.shift();
       if (!next) throw new Error(`unexpected verify-otp call #${calls.length}`);
       return response(next.body, next.status);
     }
-    if (path.endsWith('/auth/resend-otp')) return response(resendResponse.body, resendResponse.status);
+    if (path.endsWith('/auth/resend-otp')) {
+      if (resendOffline) throw new TypeError('network unavailable');
+      return response(resendResponse.body, resendResponse.status);
+    }
     throw new Error(`unexpected fetch ${path}`);
   });
   container = document.createElement('div');
@@ -150,10 +232,14 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  await act(async () => { root?.unmount(); });
+  await act(async () => {
+    root?.unmount();
+  });
   root = undefined;
   container.remove();
-  vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 describe('screen 03 — /auth/verify route', () => {
@@ -178,14 +264,119 @@ describe('screen 03 — /auth/verify route', () => {
   });
 
   it('registration navigates to /auth/verify with the email, a 60s cooldown and a tab-scoped context that never holds the code', async () => {
+    registerResponse = {
+      status: 200,
+      body: {
+        success: true,
+        message: 'Mã xác thực OTP đã được gửi đến email của bạn.',
+        email: EMAIL,
+        expiresInMinutes: 10,
+        devOtp: OTP,
+      },
+    };
+    const startedAt = Date.now();
     await registerAndReachVerify();
-    expect(container.textContent).toContain(`Nhập 6 số mã OTP đã gửi tới ${EMAIL}`);
+    expect(container.textContent).toContain(`Nhập 6 số mã OTP để xác thực ${EMAIL}`);
     expect(container.textContent).toMatch(/Gửi lại sau \(\d+s\)/);
     const context = readVerifyContext();
-    expect(context).toMatchObject({ email: EMAIL, delivered: true });
+    expect(context).toMatchObject({ email: EMAIL, delivered: null });
+    expect(context?.expiresAt).toBeGreaterThanOrEqual(startedAt + 10 * 60_000);
+    expect(context?.expiresAt).toBeLessThanOrEqual(Date.now() + 10 * 60_000);
     expect(resendSecondsRemaining(context)).toBeGreaterThan(55);
-    expect(sessionStorage.getItem(VERIFY_CONTEXT_KEY)).not.toContain(OTP);
+    expect(container.querySelector('[data-testid="otp-expiry"]')?.textContent).toContain(
+      'Mã hết hạn lúc',
+    );
+    const rawContext = sessionStorage.getItem(VERIFY_CONTEXT_KEY)!;
+    expect(rawContext).not.toContain(OTP);
+    expect(rawContext).not.toContain('strong-password-1');
+    expect(rawContext.toLowerCase()).not.toMatch(/"(?:otp|code|token|password)"/);
+    expect(Object.keys(JSON.parse(rawContext) as Record<string, unknown>).sort()).toEqual([
+      'delivered',
+      'email',
+      'expiresAt',
+      'owner',
+      'resendAvailableAt',
+    ]);
     expect(localStorage.getItem(VERIFY_CONTEXT_KEY)).toBeNull();
+  });
+
+  it('does not let a delayed registration response revive verification after the user switches modes', async () => {
+    let release!: (value: Response) => void;
+    registerGate = new Promise<Response>((resolve) => {
+      release = resolve;
+    });
+    await mount('/auth?mode=register');
+    await fillRegisterForm();
+    await act(async () => button('Tạo tài khoản & Nhận mã OTP').click());
+    await until(() => expect(calls.some(({ path }) => path.endsWith('/auth/register'))).toBe(true));
+    await click('Đăng nhập');
+
+    release(response(registerResponse.body, registerResponse.status));
+    await flush();
+    expect(location()).toBe('/auth');
+    expect(container.textContent).toContain('Đăng nhập vào Takosan');
+    expect(readVerifyContext()).toBeNull();
+  });
+
+  it('does not let a delayed unverified-login response attach to a replacement session', async () => {
+    let release!: (value: Response) => void;
+    loginGate = new Promise<Response>((resolve) => {
+      release = resolve;
+    });
+    await mount('/auth');
+    const inputs = [...container.querySelectorAll<HTMLInputElement>('form input')];
+    await act(async () => {
+      setNative(inputs.find((input) => input.placeholder === 'ban@example.com')!, EMAIL);
+      setNative(inputs.find((input) => input.placeholder === '••••••••')!, 'strong-password-1');
+      container.querySelector<HTMLButtonElement>('form button[type="submit"]')!.click();
+    });
+    await until(() => expect(calls.some(({ path }) => path.endsWith('/auth/login'))).toBe(true));
+    await act(async () => useAuthStore.getState().setAuthSession(ACCOUNT));
+
+    release(
+      response(
+        {
+          error: 'Account verification required',
+          requireOtp: true,
+          otpDelivered: true,
+        },
+        401,
+      ),
+    );
+    await flush();
+    expect(location()).toBe('/auth');
+    expect(readVerifyContext()).toBeNull();
+    expect(localStorage.getItem('frigo_user_id')).toBe(ACCOUNT.id);
+  });
+
+  it('does not let a delayed login response navigate after the auth route is abandoned', async () => {
+    let release!: (value: Response) => void;
+    loginGate = new Promise<Response>((resolve) => {
+      release = resolve;
+    });
+    await mount('/auth');
+    const inputs = [...container.querySelectorAll<HTMLInputElement>('form input')];
+    await act(async () => {
+      setNative(inputs.find((input) => input.placeholder === 'ban@example.com')!, EMAIL);
+      setNative(inputs.find((input) => input.placeholder === '••••••••')!, 'strong-password-1');
+      container.querySelector<HTMLButtonElement>('form button[type="submit"]')!.click();
+    });
+    await until(() => expect(calls.some(({ path }) => path.endsWith('/auth/login'))).toBe(true));
+    await act(async () => navigateForTest('/landing'));
+
+    release(
+      response(
+        {
+          error: 'Account verification required',
+          requireOtp: true,
+          otpDelivered: true,
+        },
+        401,
+      ),
+    );
+    await flush();
+    expect(location()).toBe('/landing');
+    expect(readVerifyContext()).toBeNull();
   });
 
   it('refresh of /auth/verify restores the verification (email, cooldown) from the tab-scoped context and completes with the server', async () => {
@@ -198,7 +389,10 @@ describe('screen 03 — /auth/verify route', () => {
     await typeOtp();
     await click('Xác thực & Hoàn tất');
     await until(() => expect(container.textContent).toContain('Xác thực tài khoản thành công!'));
-    expect(calls.at(-1)).toEqual({ path: '/api/v1/auth/verify-otp', body: { email: EMAIL, code: OTP, purpose: 'register' } });
+    expect(calls.at(-1)).toEqual({
+      path: '/api/v1/auth/verify-otp',
+      body: { email: EMAIL, code: OTP, purpose: 'register' },
+    });
     // Verification consumed: the context is gone so a later visit is honest.
     expect(readVerifyContext()).toBeNull();
     await until(() => expect(container.querySelector('[data-testid="onboarding"]')).toBeTruthy());
@@ -207,7 +401,9 @@ describe('screen 03 — /auth/verify route', () => {
   it('restored context whose email was never delivered shows the delivery problem and enables resend immediately', async () => {
     writeVerifyContext({ email: EMAIL, resendAvailableAt: 0, delivered: false });
     await mount('/auth/verify');
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Email OTP chưa gửi được. Hãy bấm gửi lại mã.');
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      'Email OTP chưa gửi được. Hãy bấm gửi lại mã.',
+    );
     expect(button(/Gửi lại mã OTP/).disabled).toBe(false);
   });
 
@@ -215,12 +411,18 @@ describe('screen 03 — /auth/verify route', () => {
     await registerAndReachVerify();
     const boxes = otpBoxes();
     boxes[0].focus();
-    await act(async () => { setNative(boxes[0], '4'); });
+    await act(async () => {
+      setNative(boxes[0], '4');
+    });
     expect(document.activeElement).toBe(boxes[1]);
-    await act(async () => { setNative(boxes[1], 'x'); });
+    await act(async () => {
+      setNative(boxes[1], 'x');
+    });
     expect(boxes[1].value).toBe('');
     expect(document.activeElement).toBe(boxes[1]);
-    await act(async () => { setNative(boxes[1], '9'); });
+    await act(async () => {
+      setNative(boxes[1], '9');
+    });
     expect(document.activeElement).toBe(boxes[2]);
     await act(async () => {
       boxes[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
@@ -241,7 +443,9 @@ describe('screen 03 — /auth/verify route', () => {
     const group = container.querySelector<HTMLElement>('[role="group"]')!;
     const paste = new Event('paste', { bubbles: true, cancelable: true }) as ClipboardEvent;
     Object.defineProperty(paste, 'clipboardData', { value: { getData: () => ' 49-38 17abc' } });
-    await act(async () => { group.dispatchEvent(paste); });
+    await act(async () => {
+      group.dispatchEvent(paste);
+    });
     expect(otpValue()).toBe(OTP);
     expect(document.activeElement).toBe(otpBoxes()[5]);
   });
@@ -251,19 +455,64 @@ describe('screen 03 — /auth/verify route', () => {
     const requestsBefore = calls.length;
     await typeOtp('4');
     await click('Xác thực & Hoàn tất');
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Vui lòng nhập đủ 6 chữ số mã OTP');
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      'Vui lòng nhập đủ 6 chữ số mã OTP',
+    );
     expect(calls.length).toBe(requestsBefore);
   });
 
-  it('a wrong or expired code shows the exact server error as an alert and keeps the user on /auth/verify', async () => {
-    verifyResponses.push({ status: 400, body: { error: 'Mã OTP không chính xác hoặc đã được sử dụng' } });
+  it.each([
+    ['invalid', 400, 'Mã OTP không chính xác hoặc đã được sử dụng'],
+    ['expired', 400, 'Mã OTP đã hết hạn. Vui lòng bấm gửi lại mã mới.'],
+    ['rate-limited', 429, 'Bạn đã thử quá nhiều lần. Vui lòng chờ rồi thử lại.'],
+  ])(
+    '%s verification failure stays server-authoritative on /auth/verify',
+    async (_case, status, error) => {
+      verifyResponses.push({
+        status,
+        body: { error },
+      });
+      await registerAndReachVerify();
+      await typeOtp();
+      await click('Xác thực & Hoàn tất');
+      await until(() =>
+        expect(container.querySelector('[role="alert"]')?.textContent).toContain(error),
+      );
+      expect(location()).toBe('/auth/verify');
+      expect(localStorage.getItem('frigo_user_id')).toBeFalsy();
+      expect(readVerifyContext()).toMatchObject({ email: EMAIL });
+    },
+  );
+
+  it('shows locally elapsed metadata without replacing the server as final OTP authority', async () => {
+    writeVerifyContext({
+      email: EMAIL,
+      resendAvailableAt: 0,
+      expiresAt: Date.now() - 1_000,
+      delivered: true,
+    });
+    await mount('/auth/verify');
+    expect(container.querySelector('[data-testid="otp-expiry"]')?.textContent).toContain(
+      'Mã đã hết hạn theo thời hạn máy chủ trả về',
+    );
+    expect(container.querySelector('[data-testid="otp-expiry"]')?.textContent).toContain(
+      'Máy chủ vẫn xác nhận kết quả cuối cùng',
+    );
+    expect(button(/Gửi lại mã OTP/).disabled).toBe(false);
+  });
+
+  it('reports an offline verification without consuming context or establishing a local session', async () => {
+    verifyOffline = true;
     await registerAndReachVerify();
     await typeOtp();
     await click('Xác thực & Hoàn tất');
-    await until(() => expect(container.querySelector('[role="alert"]')?.textContent).toContain('Mã OTP không chính xác'));
-    expect(location()).toBe('/auth/verify');
-    expect(localStorage.getItem('frigo_user_id')).toBeFalsy();
+    await until(() =>
+      expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+        'Không thể kết nối máy chủ. Mã OTP chưa được xác nhận',
+      ),
+    );
     expect(readVerifyContext()).toMatchObject({ email: EMAIL });
+    expect(localStorage.getItem('frigo_user_id')).toBeNull();
   });
 
   it('resend is locked during the cooldown, then re-requests with the same email and purpose and restarts the cooldown', async () => {
@@ -272,32 +521,115 @@ describe('screen 03 — /auth/verify route', () => {
     expect(button(/Gửi lại sau/).disabled).toBe(true);
     // The countdown is a chain of 1s timers; advance second by second.
     for (let second = 0; second < 61; second++) {
-      await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1_000);
+      });
     }
     const resend = button(/Gửi lại mã OTP/);
     expect(resend.disabled).toBe(false);
-    await act(async () => { resend.click(); });
+    await act(async () => {
+      resend.click();
+    });
     await until(() => expect(container.textContent).toContain('Đã gửi lại mã OTP mới.'));
-    expect(calls.at(-1)).toMatchObject({ path: '/api/v1/auth/resend-otp', body: { email: EMAIL, purpose: 'register' } });
+    expect(calls.at(-1)).toMatchObject({
+      path: '/api/v1/auth/resend-otp',
+      body: { email: EMAIL, purpose: 'register' },
+    });
     expect(container.textContent).toMatch(/Gửi lại sau \(\d+s\)/);
     expect(resendSecondsRemaining(readVerifyContext())).toBeGreaterThan(55);
+    expect(readVerifyContext()?.expiresAt).toBeNull();
+    expect(container.querySelector('[data-testid="otp-expiry"]')?.textContent).toContain(
+      'Máy chủ chưa cung cấp thời hạn cho mã này',
+    );
   });
 
   it('OTP_DELIVERY_UNAVAILABLE on register still reaches /auth/verify honestly: error shown, no cooldown, context marked undelivered', async () => {
-    registerResponse = { status: 503, body: { error: 'Email OTP chưa gửi được.', code: 'OTP_DELIVERY_UNAVAILABLE', accountCreated: true } };
+    registerResponse = {
+      status: 503,
+      body: {
+        error: 'Email OTP chưa gửi được.',
+        code: 'OTP_DELIVERY_UNAVAILABLE',
+        accountCreated: true,
+      },
+    };
     await registerAndReachVerify();
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Tài khoản đã được lưu nhưng email OTP chưa gửi được');
-    expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      'Tài khoản đã được lưu nhưng email OTP chưa gửi được',
+    );
+    expect(container.querySelector('[data-testid="otp-expiry"]')?.textContent).toContain(
+      'Chưa có mã đang hoạt động vì email OTP chưa gửi được',
+    );
     expect(button(/Gửi lại mã OTP/).disabled).toBe(false);
-    expect(readVerifyContext()).toMatchObject({ email: EMAIL, delivered: false, resendAvailableAt: 0 });
+    expect(readVerifyContext()).toMatchObject({
+      email: EMAIL,
+      delivered: false,
+      resendAvailableAt: 0,
+    });
   });
 
   it('a failed resend surfaces the server error and leaves resend available', async () => {
     resendResponse = { status: 429, body: { error: 'Vui lòng chờ trước khi gửi lại mã.' } };
-    registerResponse = { status: 503, body: { error: 'Email OTP chưa gửi được.', code: 'OTP_DELIVERY_UNAVAILABLE', accountCreated: true } };
+    registerResponse = {
+      status: 503,
+      body: {
+        error: 'Email OTP chưa gửi được.',
+        code: 'OTP_DELIVERY_UNAVAILABLE',
+        accountCreated: true,
+      },
+    };
     await registerAndReachVerify();
     await click(/Gửi lại mã OTP/);
-    await until(() => expect(container.querySelector('[role="alert"]')?.textContent).toContain('Vui lòng chờ trước khi gửi lại mã.'));
+    await until(() =>
+      expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+        'Vui lòng chờ trước khi gửi lại mã.',
+      ),
+    );
+    expect(button(/Gửi lại mã OTP/).disabled).toBe(false);
+  });
+
+  it('invalidates stale delivery and expiry claims when the server cannot deliver a replacement', async () => {
+    writeVerifyContext({
+      email: EMAIL,
+      resendAvailableAt: 0,
+      expiresAt: Date.now() + 10 * 60_000,
+      delivered: true,
+    });
+    resendResponse = {
+      status: 503,
+      body: { error: 'Email OTP chưa gửi được.', code: 'OTP_DELIVERY_UNAVAILABLE' },
+    };
+    await mount('/auth/verify');
+    await click(/Gửi lại mã OTP/);
+    await until(() =>
+      expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+        'Email OTP chưa gửi được.',
+      ),
+    );
+    expect(readVerifyContext()).toMatchObject({
+      delivered: false,
+      expiresAt: null,
+      resendAvailableAt: 0,
+    });
+  });
+
+  it('reports an offline resend without fabricating delivery or expiry metadata', async () => {
+    registerResponse = {
+      status: 503,
+      body: {
+        error: 'Email OTP chưa gửi được.',
+        code: 'OTP_DELIVERY_UNAVAILABLE',
+        accountCreated: true,
+      },
+    };
+    resendOffline = true;
+    await registerAndReachVerify();
+    await click(/Gửi lại mã OTP/);
+    await until(() =>
+      expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+        'Không thể kết nối máy chủ. Chưa gửi lại mã OTP',
+      ),
+    );
+    expect(readVerifyContext()).toMatchObject({ delivered: null, expiresAt: null });
     expect(button(/Gửi lại mã OTP/).disabled).toBe(false);
   });
 
@@ -307,16 +639,85 @@ describe('screen 03 — /auth/verify route', () => {
     expect(location()).toBe('/auth');
     expect(container.textContent).toContain('Đăng nhập vào Takosan');
     expect(readVerifyContext()).toBeNull();
-    await act(async () => { root?.unmount(); });
+    await act(async () => {
+      root?.unmount();
+    });
     root = undefined;
     await mount('/auth/verify');
     expect(container.querySelector('[data-testid="verify-context-missing"]')).toBeTruthy();
   });
 
+  it('browser back clears verification so browser forward cannot revive the OTP form', async () => {
+    await registerAndReachVerify();
+    await act(async () => navigateForTest(-1));
+    await until(() => expect(location()).toBe('/auth'));
+    expect(readVerifyContext()).toBeNull();
+    await act(async () => navigateForTest(1));
+    await until(() => expect(location()).toBe('/auth/verify'));
+    expect(container.querySelector('[data-testid="verify-context-missing"]')).toBeTruthy();
+    expect(otpBoxes()).toHaveLength(0);
+  });
+
+  it('ignores an in-flight verification result after the user leaves the route', async () => {
+    let release!: (value: Response) => void;
+    verifyGate = new Promise<Response>((resolve) => {
+      release = resolve;
+    });
+    await registerAndReachVerify();
+    await typeOtp();
+    await act(async () => button('Xác thực & Hoàn tất').click());
+    await act(async () => navigateForTest('/auth'));
+    await until(() => expect(location()).toBe('/auth'));
+    expect(container.querySelector<HTMLButtonElement>('form button[type="submit"]')?.disabled).toBe(
+      false,
+    );
+    release(response({ success: true, user: ACCOUNT }));
+    await flush();
+    expect(location()).toBe('/auth');
+    expect(container.querySelector<HTMLButtonElement>('form button[type="submit"]')?.disabled).toBe(
+      false,
+    );
+    expect(localStorage.getItem('frigo_user_id')).toBeNull();
+    expect(readVerifyContext()).toBeNull();
+  });
+
   it('a corrupt stored context is treated as absent', () => {
     sessionStorage.setItem(VERIFY_CONTEXT_KEY, '{not json');
     expect(readVerifyContext()).toBeNull();
+    expect(sessionStorage.getItem(VERIFY_CONTEXT_KEY)).toBeNull();
     sessionStorage.setItem(VERIFY_CONTEXT_KEY, JSON.stringify({ email: '' }));
     expect(readVerifyContext()).toBeNull();
+    expect(sessionStorage.getItem(VERIFY_CONTEXT_KEY)).toBeNull();
+    sessionStorage.setItem(
+      VERIFY_CONTEXT_KEY,
+      JSON.stringify({
+        email: EMAIL,
+        resendAvailableAt: 0,
+        delivered: true,
+        otp: OTP,
+      }),
+    );
+    expect(readVerifyContext()).toBeNull();
+    expect(sessionStorage.getItem(VERIFY_CONTEXT_KEY)).toBeNull();
+  });
+
+  it('migrates the safe anonymous legacy context and rejects an owner mismatch', () => {
+    sessionStorage.setItem(
+      VERIFY_CONTEXT_KEY,
+      JSON.stringify({ email: EMAIL, resendAvailableAt: 0, delivered: true }),
+    );
+    expect(readVerifyContext()).toMatchObject({
+      email: EMAIL,
+      expiresAt: null,
+      owner: { userId: '', householdId: '' },
+    });
+    expect(JSON.parse(sessionStorage.getItem(VERIFY_CONTEXT_KEY)!)).toHaveProperty('owner');
+
+    localStorage.setItem('frigo_user_id', 'guest-a');
+    localStorage.setItem('frigo_household_id', 'hh_guest_a');
+    writeVerifyContext({ email: EMAIL, resendAvailableAt: 0, delivered: true });
+    localStorage.setItem('frigo_household_id', 'hh_guest_b');
+    expect(readVerifyContext()).toBeNull();
+    expect(sessionStorage.getItem(VERIFY_CONTEXT_KEY)).toBeNull();
   });
 });

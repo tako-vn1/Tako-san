@@ -1,4 +1,60 @@
-## Current T17 — Takosan UI V2 certification pass, `T17_PARTIAL` (2026-09-19)
+## Current — T17B contract reconciliation `T17B_COMPLETE` (2026-09-20)
+
+- Branch `feat/t17b-contract-reconciliation`, exact base `858759f`, application
+  HEAD `0f358f2`, certification checkpoint `00594eb`. Corrective checkpoints
+  `8b0f050`, `9a94afb`, and `0f358f2` preserve all server-owned preference and
+  verification state; `00594eb` measures registry layout after finite motion.
+- Route-driven onboarding 04–06 exposes exactly seven cuisine and nine
+  restriction choices (both include canonical `other`) while round-tripping
+  authoritative values outside those chips, including `italian` and
+  `vegetarian`. Authenticated completion waits for server confirmation; the
+  preserved offline-guest path intentionally commits locally. Verification
+  exit resets loading; server OTP/session authority and independent spicy-level
+  truth remain intact.
+- The current 27-screen registry uses reviewer-verified contracts. Focused auth
+  is 102/102, verify/onboarding is 39/39, full Vitest is 180 files/4087, T13 is
+  60/60, automated accessibility is 12/12 across six viewports, and the clean
+  T17 matrix is 216 pass/6 intentional skips.
+- Post-review fix `56fc01b`: screen 06 is a native `today`/`week`/`both` goal
+  group (client-only, never sent to `/preferences`; `week` → `/week/setup`) and
+  stored household size `6..20` round-trips unchanged. Reran: focused 87/87,
+  Vitest 180 files/4094, registry 18/18, full T17 216/6/0, lint/typecheck/
+  migrations/build/diff-check PASS.
+- Residuals are 43/43 protected-payment allowlisted with 0 unjustified;
+  contrast is 33/33. Worker/payment/migration diffs are zero.
+- Visual source: `.hoplite/artifacts/t17-playwright/final-00594eb-clean/`;
+  validated package: `.hoplite/artifacts/t17b-final-visuals-00594eb.zip`
+  (232 entries, 180 PNGs; SHA-256 `d6f6d4f032c0ac637ce5d1523ecc95b1411bc567538bca8d235a7131e6ad9d70`).
+- Corrective documentation checks pass: whitespace, required markers,
+  protected-boundary zero diffs, ZIP integrity, and all 180 JSON/TSV screenshot
+  records and hashes. The first ad hoc validator expected the wrong command
+  field; the corrected `generatingCommand` check found no artifact defect.
+- Managed Preview was recovered from an inferred `pnpm dev` path that lacked the
+  isolated API to `node scripts/security-preview.mjs`; tracked settings were
+  restored unchanged. Exact remote checkpoint `f901b02` passed supported
+  synthetic reset/login and screens 04–06 at 390x844 with no page errors.
+- Replacement PR #45 opened against exact main `858759f` from `f901b02`; its
+  auto-fix CI/review loop is enabled and PR #44 remains untouched. At publication
+  head `1cacd0b`, hosted validate run `35532565549` passed, GitHub reported
+  `MERGEABLE / CLEAN`, and reviews, review comments, conversation comments, and
+  unresolved human feedback were empty. The final merge-readiness pass reran
+  focused auth/onboarding/session tests 74/74, changed-file ESLint, typecheck,
+  artifact integrity, protected-boundary checks, and whitespace checks.
+- No T17B merge or staging/production deploy occurred. Once the
+  documentation-only readiness checkpoint retains green/CLEAN exact-head
+  provider status, the authorized user may decide whether to merge PR #45.
+  Direct board comparison
+  and NVDA/VoiceOver remain pending with no named assignee or tracking issue;
+  `HUMAN_SCREEN_READER = NOT_EXECUTED`.
+- `PRE-EXISTING PROTECTED AUTH-CONTRACT BLOCKER`: registration reports a
+  10-minute lifetime, but resend returns no fresh expiry metadata. A server/API
+  owner must resolve that separately; the client honestly records unknown.
+- `PRE-EXISTING PROTECTED PAYMENT-AUTHORITY BLOCKER`: frontend/QR prices remain
+  `599000`/`79000`, while payment-intent authority remains `499000`/`49000`;
+  the VietQR amount comes from a frontend prop instead of the server intent.
+  This requires a separate owner-authorized payment follow-up; T17B made no fix.
+
+## Previous T17 — Takosan UI V2 certification pass, `T17_PARTIAL` (2026-09-19)
 
 - [done] `/auth/verify` real route over the existing OTP state machine; tab-scoped code-free context; honest empty state; 14 regression tests.
 - [done] 27 registered screens certified per width (`t17-registry.e2e.ts`).

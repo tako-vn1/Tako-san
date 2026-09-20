@@ -2,6 +2,14 @@ import { test, expect, reset, control } from '../t13b/fixtures';
 
 const CERTIFIED_WIDTHS = [390, 768, 1440];
 
+async function settle(page: import('@playwright/test').Page) {
+  await page.evaluate(() =>
+    document.fonts.ready.then(
+      () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 300))),
+    ),
+  );
+}
+
 /**
  * T17 canonical screenshots (QA/visual-regression-plan.md). Deterministic
  * seeded fixtures only; artifacts land in the private test output dir and are
@@ -9,11 +17,11 @@ const CERTIFIED_WIDTHS = [390, 768, 1440];
  */
 
 test('canonical surfaces captured per certification width', async ({ page }, info) => {
-  // 25 full-page captures; give the loop headroom instead of the default budget.
+  // Canonical full-page captures; give the loop headroom instead of the default budget.
   test.setTimeout(240_000);
   test.skip(
     !CERTIFIED_WIDTHS.includes(page.viewportSize()!.width),
-    'canonical screenshots are captured at 390 / 768 / 1440 only (visual-regression-plan)'
+    'canonical screenshots are captured at 390 / 768 / 1440 only (visual-regression-plan)',
   );
   // Public surfaces first (no session). A fresh test page sits at about:blank
   // where storage access is denied, so navigate before clearing state.
@@ -22,22 +30,47 @@ test('canonical surfaces captured per certification width', async ({ page }, inf
   await page.evaluate(() => localStorage.clear());
   await page.goto('/landing');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await settle(page);
   await page.screenshot({ path: info.outputPath('landing.png'), fullPage: true });
   await page.goto('/auth');
   await expect(page.getByRole('heading', { name: 'Đăng nhập vào Takosan' })).toBeVisible();
+  await settle(page);
   await page.screenshot({ path: info.outputPath('auth.png'), fullPage: true });
+  await page.evaluate(() => {
+    sessionStorage.setItem(
+      'frigo_auth_verify_context',
+      JSON.stringify({
+        email: 'visual-contract@example.test',
+        resendAvailableAt: Date.now() + 60_000,
+        expiresAt: Date.now() + 10 * 60_000,
+        delivered: true,
+        owner: { userId: '', householdId: '' },
+      }),
+    );
+  });
+  await page.goto('/auth/verify');
+  await expect(page.locator('input[inputmode="numeric"]')).toHaveCount(6);
+  await settle(page);
+  await page.screenshot({ path: info.outputPath('otp.png'), fullPage: true });
 
   // Authenticated surfaces.
   await reset(page);
   await page.goto('/onboarding');
   // The step indicator is an aria-label on the progress region.
   await expect(page.getByLabel('Bước 1 trên 3')).toBeVisible();
-  await page.screenshot({ path: info.outputPath('onboarding.png'), fullPage: true });
+  await settle(page);
+  await page.screenshot({ path: info.outputPath('onboarding-household.png'), fullPage: true });
 
   await page.getByRole('button', { name: 'Tiếp tục' }).click();
+  await expect(page).toHaveURL(/\/onboarding\/preferences$/);
+  await settle(page);
+  await page.screenshot({ path: info.outputPath('onboarding-preferences.png'), fullPage: true });
   await page.getByRole('button', { name: 'Tiếp tục' }).click();
+  await expect(page).toHaveURL(/\/onboarding\/goals$/);
+  await settle(page);
+  await page.screenshot({ path: info.outputPath('onboarding-goals.png'), fullPage: true });
   await page.getByRole('button', { name: /Bắt đầu với Takosan/ }).click();
-  await expect(page).toHaveURL(/\/onboarding|\/week\/setup|\/$/);
+  await expect(page).toHaveURL(/\/$/);
   // Screen 09 needs a real pending scan: seeded T13 review evidence.
   await control(page, 't13-scans');
 
@@ -67,14 +100,18 @@ test('canonical surfaces captured per certification width', async ({ page }, inf
     // `networkidle` can stall behind background polling; wait for the page's
     // main landmark and a settle frame instead.
     await page.locator('main, [role="main"], h1').first().waitFor({ state: 'visible' });
-    await page.evaluate(() => document.fonts.ready.then(() => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 150)))));
+    await settle(page);
     await page.screenshot({ path: info.outputPath(`${name}.png`), fullPage: true });
   }
   // Screen 03 empty state (no verification in progress) is part of the canon.
   await page.context().clearCookies();
-  await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
   await page.goto('/auth/verify');
   await expect(page.getByTestId('verify-context-missing')).toBeVisible();
+  await settle(page);
   await page.screenshot({ path: info.outputPath('otp-empty.png'), fullPage: true });
 });
 

@@ -1,4 +1,80 @@
-# T17 — Takosan UI V2 audit — 2026-09-19
+# T17B — reviewer-contract audit — 2026-09-20
+
+Current authority: repository id `1368281478`, `omin-vn/Frigo-dev`; exact
+starting `main` `858759f771baccb85f5ed6fd8e06df2fc0bbb112`; branch
+`feat/t17b-contract-reconciliation`; application HEAD `0f358f2`; certification
+checkpoint `00594eb`. The 2026-09-19 audit is retained below as historical
+context and is superseded where it conflicts with this section.
+
+## Confirmed gap-to-proof map
+
+| Confirmed gap on starting main | T17B correction | Independent proof |
+| --- | --- | --- |
+| Screens 04–06 shared one component-internal step instead of URL ownership | URL-derived steps at `/onboarding/household`, `/onboarding/preferences`, `/onboarding/goals`; root redirect | unit route contract plus six-width direct-load/refresh/Back/Forward browser case |
+| Screen 06 goal buttons lacked native single-select semantics and `primaryGoal` was sent in the completion body | native `primary-goal` radio group with the existing `today`/`week`/`both` values; goal kept client-only and excluded from `/preferences`; server-confirmed completion then routes `week` → `/week/setup`, otherwise `/` | unit API-body (no `primaryGoal` key), routing, and navigation-survival cases; browser three-radio and Back/Forward assertions |
+| Onboarding presentation clamped stored household size to 5 | stored `6..20` displayed as "5+" but sent back unchanged unless the user explicitly picks a size; explicit "5+" writes canonical `5` | unit round-trip of `householdSize = 7` through all steps and explicit-choice case |
+| Registry could certify route existence with broad or partial markers | concrete weak contracts replaced; all declared contract fields asserted | 27 result records per viewport, **18/18** registry matrix |
+| Verify context accepted insufficiently bounded lifecycle/expiry state | strict shape, identity binding, safe dates, cleanup on route/identity/cancel/success | verify-route and client-session tests for corrupt/owner mismatch/history/stale requests |
+| Resend could imply a fabricated new OTP lifetime | resend expiry becomes explicitly unknown without server metadata | unit assertion plus honest UI copy |
+| Delivery state could overclaim email send or survive a failed replacement | `boolean | null` truth; development OTP is not delivery; failures clear stale delivery/expiry | verify-route resend/delivery regressions and 102-test auth run |
+| Review completion could overwrite a valid supported spicy preference | preserve the authoritative stored value through review/completion | onboarding regression for `hot` review and request body |
+| Visible onboarding chips could narrow persisted server truth | exactly seven cuisine and nine restriction choices, both with canonical `other`; preserve values outside the visible set | regressions round-trip and review `italian` cuisine plus `vegetarian` restriction |
+| Leaving `/auth/verify` during an async operation could retain loading UI | reset route-local loading whenever the route is no longer verify | verification-abandonment regression |
+| Target audit measured labelled children rather than effective controls | measure enclosing labelled control hit areas | six-width a11y matrix in the 216-pass clean run |
+
+## Authority and data audit
+
+- The server remains the only OTP/session authority. Browser context is
+  presentation metadata, tab-scoped, owner-bound, and credential-free.
+- `primaryGoal` has no worker, migration, domain, query, or persisted
+  `user_preferences` authority; it is a client-only draft/auth-state value that
+  selects the post-onboarding route and is never sent to the server. Supported
+  server onboarding fields are household size, spicy level, favorite cuisines,
+  dietary restrictions, and the server-confirmed completion flag.
+- For authenticated sessions, onboarding preference state is a draft until the
+  server confirms completion. The preserved offline-guest path intentionally
+  skips the server write and completes locally. The visible choice set does not
+  redefine server truth: unknown-to-this-screen stored values remain in the
+  draft, review, and completion body. Spicy level is an independent persisted
+  field, not inferred from the `spicy` restriction. Existing household
+  isolation, session guards, guest-transfer deferral, and Week compatibility
+  are preserved.
+- Accepted screen 09 route spelling remains `/scan/:id/review`.
+- Current registry entries are the reviewer-verified contract. Any older
+  reconstructed-kit wording retained below is historical only.
+
+## Scope audit
+
+- Application changes are limited to frontend auth/onboarding routing,
+  lifecycle, and their tests. `src/worker` has no T17B diff.
+- No PayOS/payment/billing/checkout/webhook behavior or protected Plus pricing
+  code changed. No migration or production infrastructure changed.
+- `PRE-EXISTING PROTECTED AUTH-CONTRACT BLOCKER`: registration returns a
+  10-minute lifetime, while resend supplies no new expiry metadata. T17B keeps
+  the client honest with unknown expiry; a server/API owner must resolve the
+  protected contract separately.
+- `PRE-EXISTING PROTECTED PAYMENT-AUTHORITY BLOCKER`: frontend/VietQR-prop
+  prices `599000`/`79000` differ from payment-intent authority
+  `499000`/`49000`, and the QR does not source its amount from the server
+  intent. A separate owner-authorized payment follow-up is recommended; T17B
+  intentionally has zero payment diff.
+- Final evidence is 180 files/4087 Vitest tests, focused auth 102/102,
+  verify/onboarding 39/39, T13 60/60, registry 18/18,
+  clean T17 216 pass/6 intentional skips, automated accessibility 12/12 across
+  six viewports, residual 43/43 allowlisted/0 unjustified, and contrast 33/33.
+  Full commands and superseded environment failures are recorded in
+  `docs/ai/T17_UI_V2_REPORT.md`.
+- Private visual source is
+  `.hoplite/artifacts/t17-playwright/final-00594eb-clean/`; the validated
+  package is `.hoplite/artifacts/t17b-final-visuals-00594eb.zip` (232 entries,
+  180 PNGs; SHA-256
+  `d6f6d4f032c0ac637ce5d1523ecc95b1411bc567538bca8d235a7131e6ad9d70`).
+- Actual redesign boards/ZIP were unavailable. Implemented against externally verified reviewer contract; final direct board comparison pending external reviewer.
+- `HUMAN_SCREEN_READER = NOT_EXECUTED`.
+
+---
+
+# Historical T17 — Takosan UI V2 audit — 2026-09-19 (superseded where noted)
 
 Pre-edit record required by `03_REPO_BASELINE.md` of the Takosan Redesign OS
 v2.0.0 kit. Design contract: attached `takosan-redesign-os-v2.0.0.zip`,

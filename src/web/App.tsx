@@ -8,8 +8,11 @@ import { useAuthStore } from './stores/useAuthStore';
 import { AppLayout } from './components/layout/AppLayout';
 import { isMealPlannerEnabled } from './features/planner/feature';
 import { MotionProvider } from './design-system/motion';
+import { VerifyRouteLifecycle } from './features/auth/VerifyRouteLifecycle';
 
-const PlannerPage = lazy(() => import('./pages/PlannerPage').then((m) => ({ default: m.PlannerPage })));
+const PlannerPage = lazy(() =>
+  import('./pages/PlannerPage').then((m) => ({ default: m.PlannerPage })),
+);
 
 const LandingPage = lazy(() =>
   import('./pages/LandingPage').then((m) => ({ default: m.LandingPage })),
@@ -69,10 +72,14 @@ const FoodPreferencesPage = lazy(() =>
   import('./pages/settings/FoodPreferencesPage').then((m) => ({ default: m.FoodPreferencesPage })),
 );
 const PlanningSettingsPage = lazy(() =>
-  import('./pages/settings/PlanningSettingsPage').then((m) => ({ default: m.PlanningSettingsPage })),
+  import('./pages/settings/PlanningSettingsPage').then((m) => ({
+    default: m.PlanningSettingsPage,
+  })),
 );
 const NotificationPreferencesPage = lazy(() =>
-  import('./pages/settings/NotificationPreferencesPage').then((m) => ({ default: m.NotificationPreferencesPage })),
+  import('./pages/settings/NotificationPreferencesPage').then((m) => ({
+    default: m.NotificationPreferencesPage,
+  })),
 );
 const PrivacyDataPage = lazy(() =>
   import('./pages/settings/PrivacyDataPage').then((m) => ({ default: m.PrivacyDataPage })),
@@ -147,106 +154,197 @@ export const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <MotionProvider>
-        <AppErrorBoundary key={`${userId}:${householdId}`}>
-          <SessionBoundary>
-            <Suspense fallback={<RouteFallback />}>
-              <Routes key={`${userId}:${householdId}`}>
-                {/* Public / Intro Routes */}
-                <Route path="/landing" element={userId && householdId
-                  ? <Navigate to={isOnboarded ? '/' : '/onboarding'} replace />
-                  : <LandingPage />} />
-                <Route path="/auth" element={userId && householdId && !isGuest
-                  ? <Navigate to={isOnboarded ? '/' : '/onboarding'} replace />
-                  : <AuthPage />} />
-                {/* Screen 03: OTP verification is a real route (same state machine). */}
-                <Route path="/auth/verify" element={userId && householdId && !isGuest
-                  ? <Navigate to={isOnboarded ? '/' : '/onboarding'} replace />
-                  : <AuthPage />} />
-                <Route path="/onboarding" element={userId && householdId
-                  ? isOnboarded ? <Navigate to="/" replace /> : <OnboardingPage />
-                  : <Navigate to="/landing" replace />} />
-                {/* Kit step routes (screens 04-06); same server-authoritative flow. */}
-                <Route path="/onboarding/household" element={userId && householdId
-                  ? isOnboarded ? <Navigate to="/" replace /> : <OnboardingPage initialStep={1} />
-                  : <Navigate to="/landing" replace />} />
-                <Route path="/onboarding/preferences" element={userId && householdId
-                  ? isOnboarded ? <Navigate to="/" replace /> : <OnboardingPage initialStep={2} />
-                  : <Navigate to="/landing" replace />} />
-                <Route path="/onboarding/goals" element={userId && householdId
-                  ? isOnboarded ? <Navigate to="/" replace /> : <OnboardingPage initialStep={3} />
-                  : <Navigate to="/landing" replace />} />
-
-                {/* Core App Shell */}
-                <Route
-                  element={
-                    userId && householdId ? <AppLayout /> : <Navigate to="/landing" replace />
-                  }
-                >
+          <AppErrorBoundary key={`${userId}:${householdId}`}>
+            <SessionBoundary>
+              <VerifyRouteLifecycle />
+              <Suspense fallback={<RouteFallback />}>
+                <Routes key={`${userId}:${householdId}`}>
+                  {/* Public / Intro Routes */}
                   <Route
-                    path="/"
-                    element={isOnboarded ? <HomePage /> : <Navigate to="/onboarding" replace />}
+                    path="/landing"
+                    element={
+                      userId && householdId ? (
+                        <Navigate to={isOnboarded ? '/' : '/onboarding'} replace />
+                      ) : (
+                        <LandingPage />
+                      )
+                    }
+                  />
+                  <Route
+                    path="/auth"
+                    element={
+                      userId && householdId && !isGuest ? (
+                        <Navigate to={isOnboarded ? '/' : '/onboarding'} replace />
+                      ) : (
+                        <AuthPage />
+                      )
+                    }
+                  />
+                  {/* Screen 03: OTP verification is a real route (same state machine). */}
+                  <Route
+                    path="/auth/verify"
+                    element={
+                      userId && householdId && !isGuest ? (
+                        <Navigate to={isOnboarded ? '/' : '/onboarding'} replace />
+                      ) : (
+                        <AuthPage />
+                      )
+                    }
+                  />
+                  {/* Screens 04-06 share one draft while the URL owns the visible step. */}
+                  <Route
+                    path="/onboarding/*"
+                    element={
+                      userId && householdId ? (
+                        isOnboarded ? (
+                          <Navigate to="/" replace />
+                        ) : (
+                          <OnboardingPage />
+                        )
+                      ) : (
+                        <Navigate to="/landing" replace />
+                      )
+                    }
                   />
 
-                  {/* Fridge / Inventory */}
-                  <Route path="/fridge" element={<InventoryPage />} />
-                  <Route path="/inventory" element={<Navigate to="/fridge" replace />} />
-                  <Route path="/fridge/:id" element={<IngredientDetailPage />} />
-                  <Route path="/ingredients/:id" element={<IngredientDetailPage />} />
-                  <Route path="/inventory/:id" element={<IngredientDetailPage />} />
-                  <Route path="/inventory-reconciliation" element={<ReconciliationPage />} />
+                  {/* Core App Shell */}
+                  <Route
+                    element={
+                      userId && householdId ? <AppLayout /> : <Navigate to="/landing" replace />
+                    }
+                  >
+                    <Route
+                      path="/"
+                      element={isOnboarded ? <HomePage /> : <Navigate to="/onboarding" replace />}
+                    />
 
-                  {/* AI Scan & Review */}
-                  <Route path="/scan" element={<ScanPage />} />
-                  <Route path="/scan/:id/review" element={<ScanResultPage />} />
-                  <Route path="/scan/receipt-review" element={<ReceiptReviewPage />} />
-                  <Route path="/scan/result" element={<ScanResultPage />} />
+                    {/* Fridge / Inventory */}
+                    <Route path="/fridge" element={<InventoryPage />} />
+                    <Route path="/inventory" element={<Navigate to="/fridge" replace />} />
+                    <Route path="/fridge/:id" element={<IngredientDetailPage />} />
+                    <Route path="/ingredients/:id" element={<IngredientDetailPage />} />
+                    <Route path="/inventory/:id" element={<IngredientDetailPage />} />
+                    <Route path="/inventory-reconciliation" element={<ReconciliationPage />} />
 
-                  {/* Recipes & Cooking */}
-                  <Route path="/recipes" element={<RecipesPage />} />
-                  <Route path="/recipes/:slug" element={<RecipeDetailPage />} />
-                  <Route path="/recipes/id/:id" element={<RecipeDetailPage />} />
-                  <Route path="/cook/:slug" element={<CookingModePage />} />
-                  <Route path="/cooking/:id" element={<CookingModePage />} />
-                  <Route path="/cooking/complete" element={<CookingCompletePage />} />
+                    {/* AI Scan & Review */}
+                    <Route path="/scan" element={<ScanPage />} />
+                    <Route path="/scan/:id/review" element={<ScanResultPage />} />
+                    <Route path="/scan/receipt-review" element={<ReceiptReviewPage />} />
+                    <Route path="/scan/result" element={<ScanResultPage />} />
 
-                  {/* Planner is canonical when enabled; Week stays the visible
+                    {/* Recipes & Cooking */}
+                    <Route path="/recipes" element={<RecipesPage />} />
+                    <Route path="/recipes/:slug" element={<RecipeDetailPage />} />
+                    <Route path="/recipes/id/:id" element={<RecipeDetailPage />} />
+                    <Route path="/cook/:slug" element={<CookingModePage />} />
+                    <Route path="/cooking/:id" element={<CookingModePage />} />
+                    <Route path="/cooking/complete" element={<CookingCompletePage />} />
+
+                    {/* Planner is canonical when enabled; Week stays the visible
                       compatibility surface while the flag is off. Params are
                       preserved in both redirect directions. */}
-                  <Route path="/week" element={isMealPlannerEnabled() ? <WeekHomeRedirect /> : <WeekDashboardPage />} />
-                  <Route path="/week/setup" element={isMealPlannerEnabled() ? <WeekSetupRedirect /> : <WeekSetupPage />} />
-                  <Route path="/week/generating" element={isMealPlannerEnabled() ? <Navigate to="/planner" replace /> : <WeekGeneratingPage />} />
-                  <Route path="/week/:planId" element={isMealPlannerEnabled() ? <WeekPlanRedirect /> : <WeekDashboardPage />} />
-                  <Route path="/week/:planId/meal/:mealId" element={isMealPlannerEnabled() ? <WeekMealRedirect /> : <MealDetailPage />} />
-                  <Route path="/week/:planId/shopping" element={isMealPlannerEnabled() ? <WeekShoppingRedirect /> : <WeekShoppingPage />} />
-                  <Route path="/week/:planId/settings" element={isMealPlannerEnabled() ? <Navigate to="/settings/planning" replace /> : <WeekSettingsPage />} />
-                  <Route path="/planner" element={isMealPlannerEnabled() ? <PlannerPage /> : <Navigate to="/week" replace />} />
-                  <Route path="/planner/new" element={isMealPlannerEnabled() ? <PlannerPage /> : <Navigate to="/week" replace />} />
-                  <Route path="/planner/:planId" element={isMealPlannerEnabled() ? <PlannerPage /> : <Navigate to="/week" replace />} />
-                  <Route path="/planner/:planId/meal/:slotId" element={isMealPlannerEnabled() ? <PlannerPage /> : <Navigate to="/week" replace />} />
-                  <Route path="/planner/:planId/shopping" element={isMealPlannerEnabled() ? <PlannerPage /> : <Navigate to="/week" replace />} />
+                    <Route
+                      path="/week"
+                      element={
+                        isMealPlannerEnabled() ? <WeekHomeRedirect /> : <WeekDashboardPage />
+                      }
+                    />
+                    <Route
+                      path="/week/setup"
+                      element={isMealPlannerEnabled() ? <WeekSetupRedirect /> : <WeekSetupPage />}
+                    />
+                    <Route
+                      path="/week/generating"
+                      element={
+                        isMealPlannerEnabled() ? (
+                          <Navigate to="/planner" replace />
+                        ) : (
+                          <WeekGeneratingPage />
+                        )
+                      }
+                    />
+                    <Route
+                      path="/week/:planId"
+                      element={
+                        isMealPlannerEnabled() ? <WeekPlanRedirect /> : <WeekDashboardPage />
+                      }
+                    />
+                    <Route
+                      path="/week/:planId/meal/:mealId"
+                      element={isMealPlannerEnabled() ? <WeekMealRedirect /> : <MealDetailPage />}
+                    />
+                    <Route
+                      path="/week/:planId/shopping"
+                      element={
+                        isMealPlannerEnabled() ? <WeekShoppingRedirect /> : <WeekShoppingPage />
+                      }
+                    />
+                    <Route
+                      path="/week/:planId/settings"
+                      element={
+                        isMealPlannerEnabled() ? (
+                          <Navigate to="/settings/planning" replace />
+                        ) : (
+                          <WeekSettingsPage />
+                        )
+                      }
+                    />
+                    <Route
+                      path="/planner"
+                      element={
+                        isMealPlannerEnabled() ? <PlannerPage /> : <Navigate to="/week" replace />
+                      }
+                    />
+                    <Route
+                      path="/planner/new"
+                      element={
+                        isMealPlannerEnabled() ? <PlannerPage /> : <Navigate to="/week" replace />
+                      }
+                    />
+                    <Route
+                      path="/planner/:planId"
+                      element={
+                        isMealPlannerEnabled() ? <PlannerPage /> : <Navigate to="/week" replace />
+                      }
+                    />
+                    <Route
+                      path="/planner/:planId/meal/:slotId"
+                      element={
+                        isMealPlannerEnabled() ? <PlannerPage /> : <Navigate to="/week" replace />
+                      }
+                    />
+                    <Route
+                      path="/planner/:planId/shopping"
+                      element={
+                        isMealPlannerEnabled() ? <PlannerPage /> : <Navigate to="/week" replace />
+                      }
+                    />
 
-                  {/* Shopping, Profile/Me, Settings, Notifications, Plus, Household */}
-                  <Route path="/shopping" element={<ShoppingPage />} />
-                  <Route path="/notifications" element={<NotificationsPage />} />
-                  <Route path="/me" element={<ProfilePage />} />
-                  <Route path="/profile" element={<Navigate to="/me" replace />} />
-                  <Route path="/me/preferences" element={<FoodPreferencesPage />} />
-                  <Route path="/family" element={<Navigate to="/me/household" replace />} />
-                  <Route path="/me/household" element={<FamilySharingPage />} />
-                  <Route path="/settings" element={<Navigate to="/settings/app" replace />} />
-                  <Route path="/settings/app" element={<SettingsPage />} />
-                  <Route path="/settings/notifications" element={<NotificationPreferencesPage />} />
-                  <Route path="/settings/planning" element={<PlanningSettingsPage />} />
-                  <Route path="/settings/privacy" element={<PrivacyDataPage />} />
-                  <Route path="/plus" element={<PlusPaywallPage />} />
-                </Route>
+                    {/* Shopping, Profile/Me, Settings, Notifications, Plus, Household */}
+                    <Route path="/shopping" element={<ShoppingPage />} />
+                    <Route path="/notifications" element={<NotificationsPage />} />
+                    <Route path="/me" element={<ProfilePage />} />
+                    <Route path="/profile" element={<Navigate to="/me" replace />} />
+                    <Route path="/me/preferences" element={<FoodPreferencesPage />} />
+                    <Route path="/family" element={<Navigate to="/me/household" replace />} />
+                    <Route path="/me/household" element={<FamilySharingPage />} />
+                    <Route path="/settings" element={<Navigate to="/settings/app" replace />} />
+                    <Route path="/settings/app" element={<SettingsPage />} />
+                    <Route
+                      path="/settings/notifications"
+                      element={<NotificationPreferencesPage />}
+                    />
+                    <Route path="/settings/planning" element={<PlanningSettingsPage />} />
+                    <Route path="/settings/privacy" element={<PrivacyDataPage />} />
+                    <Route path="/plus" element={<PlusPaywallPage />} />
+                  </Route>
 
-                {/* Catch-all fallback */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Suspense>
-          </SessionBoundary>
-        </AppErrorBoundary>
+                  {/* Catch-all fallback */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Suspense>
+            </SessionBoundary>
+          </AppErrorBoundary>
         </MotionProvider>
       </BrowserRouter>
     </QueryClientProvider>

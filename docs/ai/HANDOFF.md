@@ -1,6 +1,99 @@
-# Frigo / Takosan current handoff — 2026-09-19
+# Frigo / Takosan current handoff — 2026-09-20
 
-## Current handoff — T17 continuation 6: contract gaps closed, `T17_PARTIAL` (2026-09-19)
+## Current handoff — T17B contract reconciliation (2026-09-20)
+
+- **Identity/base:** repository id `1368281478`, `omin-vn/Frigo-dev`; branch
+  `feat/t17b-contract-reconciliation`; exact starting main
+  `858759f771baccb85f5ed6fd8e06df2fc0bbb112`.
+- **Preserved checkpoints:** `029011c` onboarding/registry, `cbbeb1d` verify
+  lifecycle, `f0349b6` contract coverage, `fde016a` labelled target
+  measurement, `53e950c` delivery/spicy truth, `8b0f050` onboarding preference
+  truth, `9a94afb` pending-auth/restriction truth, application HEAD `0f358f2`
+  verification-exit/stored-value truth, and certification checkpoint `00594eb`
+  settled layout measurement. Initial documentation checkpoint `dd108a2`
+  published the evidence; corrective documentation checkpoint `f901b02` fixed
+  authority wording and blockers. This publication receipt follows and cannot
+  record its own hash.
+- **Outcome:** URL-owned onboarding 04–06, screen 06 as a native single-select
+  planning goal (`today`/`week`/`both`, client-only, never sent to the server,
+  `week` → `/week/setup` after confirmation) with a review of the server-stored
+  fields, unclamped household size (stored `6..20` shown as "5+" and
+  round-tripped unchanged), server-confirmed completion for authenticated
+  sessions, the
+  preserved local-only offline-guest exception, owner-bound and
+  delivery/expiry-honest `/auth/verify`, stale-request/route cleanup, supported
+  spicy-value preservation, verification-exit loading reset, and concrete proof
+  for all 27 reviewer-verified registry entries. Screen 05 has exactly seven
+  visible cuisine and nine restriction choices (both include `other`) without
+  dropping stored `italian`, `vegetarian`, or other authoritative values.
+- **Final local evidence:** focused auth 102/102; final verify/onboarding 39/39;
+  full Vitest 180 files/4087; registry 18/18; T13 60/60; clean full T17
+  216 pass/6 intentional skips; automated accessibility 12/12 across six
+  viewports; residual 43/43 payment-allowlisted/0 unjustified; contrast 33/33;
+  lint, typecheck, migration smoke, build, focused ESLint, and
+  `git diff --check` PASS. Exact commands are in the report.
+- **Post-review fix (`56fc01b`):** screen 06 goal restored and household size
+  unclamped. Reran focused onboarding/auth **87/87**, full Vitest **180
+  files/4094**, registry **18/18**, remaining T17 **198 pass/6 skips**
+  (full matrix 216/6/0), lint, typecheck, migration smoke, build,
+  `git diff --check`; worker/migration/payment diffs still 0. Logs in
+  `.hoplite/artifacts/t17b-validation-p1p2/`. The `00594eb` ZIP's screen 06
+  captures are superseded for that screen.
+- **Visual artifact:** clean source
+  `.hoplite/artifacts/t17-playwright/final-00594eb-clean/`, validation source
+  `.hoplite/artifacts/t17b-validation-00594eb/`, inspected contact sheet
+  `.hoplite/artifacts/t17b-final-00594eb-contact-sheet.png`; tested 232-entry,
+  180-PNG package `.hoplite/artifacts/t17b-final-visuals-00594eb.zip`, SHA-256
+  `d6f6d4f032c0ac637ce5d1523ecc95b1411bc567538bca8d235a7131e6ad9d70`.
+- **Boundaries:** `src/worker` and protected payment behavior have zero T17B
+  diff; migrations also have zero diff.
+  `PRE-EXISTING PROTECTED AUTH-CONTRACT BLOCKER`: registration reports
+  `expiresInMinutes: 10`, while resend supplies no fresh expiry metadata; a
+  server/API owner must resolve it separately.
+  `PRE-EXISTING PROTECTED PAYMENT-AUTHORITY BLOCKER`: frontend and VietQR-prop
+  prices remain `599000`/`79000`, while payment-intent authority is
+  `499000`/`49000`; the QR does not source its amount from that intent. Aligning
+  these requires separate owner-authorized payment work. No staging,
+  production, or deployment action.
+- **Corrective documentation verification:** `git diff --check`, required-marker
+  assertions, and fresh Worker/migration/payment zero-diff checks pass. The ZIP
+  revalidated at 232 entries/180 PNGs with 180 JSON + 180 TSV records, no missing
+  fields/files or hash mismatches, and the recorded SHA-256. An initial ad hoc
+  validator looked for `command` instead of the declared `generatingCommand`
+  key; the corrected validator passed. Application gates were not rerun because
+  this follow-up changes only the six documentation files.
+- **Final merge-readiness verification:** focused auth/onboarding/session suites
+  reran at 74/74; changed-file ESLint, full typecheck, and `git diff --check`
+  passed; protected release/configuration surfaces remained unchanged; and the
+  ZIP again passed integrity with recorded SHA-256
+  `d6f6d4f032c0ac637ce5d1523ecc95b1411bc567538bca8d235a7131e6ad9d70`.
+- **Managed Preview:** an initial inferred `pnpm dev` run path lacked the
+  isolated API and guest creation returned 500. Restoring the effective
+  `node scripts/security-preview.mjs` path recovered a ready Preview; the
+  tracked `.hoplite/settings.json` was restored unchanged. At exact remote
+  checkpoint `f901b02`, supported synthetic reset/login verified screens 04–06
+  at 390x844, including five household radios, 7 cuisine and 9 restriction
+  checkboxes, independent review values, and Back/Forward preservation. No page
+  error was reported in the successful flow. The separate real-guest fixture
+  endpoint still returned 500 and was not broadened by T17B.
+- **Receipt separation:** PR #44/main CI/staging receipts are historical T17;
+  T17B replacement PR #45 opened against exact main `858759f` from remote
+  checkpoint `f901b02`. At publication head `1cacd0b`, hosted validate run
+  `35532565549` passed, GitHub reported `MERGEABLE / CLEAN`, and reviews, review
+  comments, conversation comments, and unresolved human feedback were empty.
+  Its auto-fix CI/review loop is enabled. T17B itself has not merged or deployed.
+- **Status/blockers:** `T17B_COMPLETE`; no in-scope implementation blocker.
+  Manual — original boards/ZIP unavailable, final direct board comparison
+  pending external reviewer, and `HUMAN_SCREEN_READER = NOT_EXECUTED`.
+  Pre-existing protected auth/payment blockers are recorded above, not fixed;
+  merge/deploy remain operator decisions.
+- **Next exact action:** PR #45 is ready for the authorized user's merge decision
+  when the documentation-only readiness checkpoint retains green/CLEAN
+  exact-head provider status. Direct package/board comparison and NVDA/VoiceOver
+  remain pending; neither has a named assignee or tracking issue in this
+  repository. Do not deploy outside the operator path.
+
+## Previous handoff — T17 continuation 6: contract gaps closed, `T17_PARTIAL` (2026-09-19)
 
 - **Branch/PR:** `feat/t17-takosan-ui-v2`, PR #44, repository id `1368281478`
   (`tako-san1/Frigo-dev`). Implementation commits `dfdd0ab`, `227e36b`,
@@ -18,21 +111,22 @@
   §Verification (lint, typecheck, full vitest, `check:migrations`, build,
   T13 suite at 360/390/430, T17 suite at 360/390/430/768/1024/1440, residual
   greps, `git diff 769d085 -- src/worker` = 0, payment boundary, `git diff
-  --check`, `git status --short`). Logs under `.hoplite/artifacts/t17-cert/`.
+  --check`, `git status --short`). The old ephemeral artifact directory is no
+  longer present; T17B replacement evidence is named in the current handoff.
 - **Limitations:** the kit ZIP was not present in the sandbox — board
   comparison and `SCREEN_REGISTRY` diff are outstanding (registry reconstructed
   with per-row `source` tags in `tests/e2e/t17-ui/screen-registry.ts`); no
   human screen-reader walkthrough; virtual keyboard approximated by a shrunk
   viewport. `sqlite3` had to be installed in-session (repo setup script line).
-- **Next exact action:** with the ZIP in hand, compare
-  `.hoplite/artifacts/t17-cert/canonical/{390,768,1440}/*.png` against the
-  three Takosan boards and `screens/*.md`, diff `screen-registry.ts` vs
+- **Next exact action:** with the original design ZIP in hand, compare the
+  T17B package named in the current handoff against the three Takosan boards
+  and `screens/*.md`, diff `screen-registry.ts` vs
   `SCREEN_REGISTRY`, run an NVDA/VoiceOver pass over the canonical surfaces;
   fix anything found, then set `T17_COMPLETE`. Do not merge/deploy from this
   branch without the operator path in `DEPLOYMENT.md`.
 - **Harness notes:** kill any leftover `security-preview.mjs` on :3000 before
-  Playwright; the T17 config clears its output dir per run, so the matrix
-  script copies captures to `.hoplite/artifacts/t17-cert/{canonical,states}`.
+  Playwright; the T17 config clears its output directory per run. T17B used
+  isolated per-project output directories to avoid artifact collisions.
 
 ## Previous handoff — T17 Takosan UI V2 partial redesign on feat/t17-takosan-ui-v2
 

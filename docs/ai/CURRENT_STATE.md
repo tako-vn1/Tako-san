@@ -1,6 +1,92 @@
-# Frigo / Takosan current authority — 2026-09-19
+# Frigo / Takosan current authority — 2026-09-20
 
-## Current T17 — continuation 6: contract gaps closed and certified, status `T17_PARTIAL` (2026-09-19)
+## Current T17B — contract reconciliation `T17B_COMPLETE`; release pending (2026-09-20)
+
+Branch `feat/t17b-contract-reconciliation` was created from exact `main`
+`858759f771baccb85f5ed6fd8e06df2fc0bbb112` in repository id `1368281478`,
+`omin-vn/Frigo-dev`. Application HEAD is
+`0f358f2f8c9da35c2167489ad6fd63eae8ea8c47`; certification checkpoint is
+`00594eba755c6895f9edb9d3076282cf42919c44`. Documentation follows.
+
+- Screens 04–06 are route-driven and history/refresh safe. Screen 06 is the
+  planning-goal screen: a native `primary-goal` radio group with the existing
+  client values `today`/`week`/`both` plus a review of the server-stored
+  fields. `primaryGoal` is client-only (draft + auth state, never sent to
+  `/preferences`); after confirmed completion `week` routes to `/week/setup`,
+  otherwise `/`. Household size is not clamped: stored `6..20` shows as "5+"
+  and round-trips unchanged unless the user explicitly picks a size (explicit
+  "5+" writes canonical `5`).
+  Screen 05 has exactly seven visible cuisine choices and nine visible
+  restriction choices, both including canonical `other`. Stored values outside
+  those visible chips, including `italian` and `vegetarian`, survive review and
+  completion; spicy level remains independent. Authenticated onboarding updates
+  local auth state only after server confirmation. The preserved offline-guest
+  session path intentionally skips the server write and completes locally.
+- `/auth/verify` context is credential-free, tab-scoped, identity-bound,
+  strict-shape/expiry validated, and cleared on route, identity, cancel, and
+  success transitions. Delivery is nullable, resend expiry is unknown when the
+  API supplies none, failed replacement delivery clears stale claims, leaving
+  the route resets loading, and only the server validates OTPs or creates
+  sessions.
+- The 27-screen registry now requires every declared content marker. Its clean
+  reviewer-verified contracts passed 18/18 across six viewports, including
+  onboarding direct URLs, refresh, history, native selection state, and no
+  `primary-goal`. Older reconstructed-kit language is historical only.
+- Post-review fix `56fc01b` reran: focused onboarding/auth 87/87, full Vitest
+  180 files/4094, registry 18/18, full T17 216 pass/6 skips/0 failed, lint,
+  typecheck, migration smoke, build, and `git diff --check` PASS.
+- Certification-checkpoint validation: focused auth 102/102, final verify/onboarding 39/39, full
+  Vitest 180 files/4087 tests, T13 60/60, clean six-width T17 216 pass/6
+  intentional skips, automated accessibility 12/12 across six viewports, style
+  residual 43/43 allowlisted/0 unjustified, and contrast 33/33. Lint,
+  typecheck, migration smoke, and build passed.
+- Clean evidence is under
+  `.hoplite/artifacts/t17-playwright/final-00594eb-clean/`; validation is under
+  `.hoplite/artifacts/t17b-validation-00594eb/`. The tested package
+  `.hoplite/artifacts/t17b-final-visuals-00594eb.zip` contains 232 entries and
+  180 PNGs, with a complete per-screenshot manifest; SHA-256 is
+  `d6f6d4f032c0ac637ce5d1523ecc95b1411bc567538bca8d235a7131e6ad9d70`.
+  The 390px OTP and all onboarding captures were visually inspected.
+- Corrective documentation checks passed for whitespace, required markers,
+  protected zero-diff boundaries, ZIP integrity, and all 180 JSON/TSV manifest
+  records and hashes. An initial ad hoc validator used the wrong command-field
+  name; the corrected `generatingCommand` check found no artifact defect.
+- Managed Preview initially inherited an inferred `pnpm dev` run path and could
+  not provide the isolated API; guest creation returned 500. The effective run
+  path was restored to `node scripts/security-preview.mjs`, the tracked Preview
+  settings were restored unchanged, and the final exact-head Preview was ready.
+  Supported synthetic reset/login then verified screens 04–06 at 390x844: five
+  household radios, 7 cuisine and 9 restriction checkboxes, independent review
+  values, and Back/Forward preservation, with no page errors.
+- Worker, protected payment, migration, production-infrastructure, and deployed
+  production state are unchanged; T17B intentionally changes the documented
+  frontend auth/onboarding behavior.
+  `PRE-EXISTING PROTECTED AUTH-CONTRACT BLOCKER`: registration reports a
+  10-minute OTP lifetime while resend supplies no fresh expiry.
+  `PRE-EXISTING PROTECTED PAYMENT-AUTHORITY BLOCKER`: frontend/VietQR prices
+  `599000`/`79000` differ from server payment-intent authority
+  `499000`/`49000`. Their server/API and payment owners must resolve them in
+  separately authorized work. No deployment occurred. Full evidence:
+  `docs/ai/T17_UI_V2_REPORT.md`.
+- Status is `T17B_COMPLETE`; T17 remains `T17_PARTIAL` only
+  because direct board comparison and a human screen-reader walkthrough are
+  external and unexecuted.
+
+**Publication/readiness:** replacement PR #45 was opened against exact base
+`858759f771baccb85f5ed6fd8e06df2fc0bbb112` from corrective documentation
+checkpoint `f901b028af655b419cd96c3a8e29c358de34e636`. At publication head
+`1cacd0b08ab788d355cef5ab09d950df038938f8`, hosted validate run `35532565549`
+passed and GitHub reported `MERGEABLE / CLEAN`; reviews, review comments,
+conversation comments, and unresolved human feedback were empty. The final
+local pass reran focused auth/onboarding/session tests 74/74, changed-file
+ESLint, typecheck, ZIP integrity/hash, protected-boundary checks, and
+`git diff --check` successfully. PR #45 is ready for the authorized user's merge
+decision when the documentation-only readiness checkpoint retains green/CLEAN
+exact-head provider status. Direct board comparison and NVDA/VoiceOver remain
+pending; neither has a named assignee or tracking issue in this repository.
+Deploy only through the authorized operator path; production remains untouched.
+
+## Previous T17 — continuation 6: contract gaps closed and certified, status `T17_PARTIAL` (2026-09-19)
 
 Branch `feat/t17-takosan-ui-v2`, PR #44 (repository id `1368281478`, now
 `tako-san1/Frigo-dev`). Final-HEAD evidence lives in

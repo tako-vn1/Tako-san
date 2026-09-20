@@ -1,4 +1,287 @@
-# T17 — Takosan UI V2 report — 2026-09-19 (final HEAD evidence)
+# T17B — contract reconciliation report — 2026-09-20
+
+T17B was rebuilt from exact `main`
+`858759f771baccb85f5ed6fd8e06df2fc0bbb112` on
+`feat/t17b-contract-reconciliation`. Repository identity is id `1368281478`,
+`omin-vn/Frigo-dev`. Application HEAD is
+`0f358f2f8c9da35c2167489ad6fd63eae8ea8c47`; certification checkpoint is
+`00594eba755c6895f9edb9d3076282cf42919c44`. This section is the current
+authority; the original T17 report below is historical evidence only.
+
+## Status
+
+`T17B_COMPLETE`; overall T17 remains `T17_PARTIAL` only for the two protected
+manual checks listed below. T17B has not been merged or deployed to staging or
+production.
+
+> Implemented against externally verified reviewer contract; final direct board comparison pending external reviewer.
+
+`HUMAN_SCREEN_READER = NOT_EXECUTED`
+
+### Human screen-reader checklist — every item `NOT_EXECUTED`
+
+- [ ] VoiceOver: traverse all 27 registry surfaces by landmarks, headings,
+  links, buttons, and form controls; verify names, roles, states, reading order,
+  and current-navigation announcements.
+- [ ] NVDA: repeat the same 27-surface traversal and checks.
+- [ ] VoiceOver and NVDA: exercise `/auth/verify` pending, invalid-code,
+  resend, and success states; verify the grouped six-digit label, digit order,
+  error alerts, status announcements, and predictable focus.
+- [ ] VoiceOver and NVDA: exercise onboarding screens 04–06; verify route
+  heading/progress announcements, radio/checkbox labels and checked states,
+  Back/Forward state, save errors, and completion focus/navigation.
+- [ ] VoiceOver and NVDA: verify AppShell navigation plus dialogs/sheets on
+  scan/review, inventory, planner, recipe/cook, settings, and Plus surfaces;
+  check focus entry, containment, Escape/dismissal, focus return, and async
+  status announcements. Do not initiate a payment.
+
+## Reconciliation checkpoints
+
+- `029011c39ad67af57752ad4bf68f419742a6fe01` — route-owned onboarding and
+  initial registry reconciliation.
+- `cbbeb1df74e2f9dbcf1e77c07803822ead460f41` — verification lifecycle,
+  ownership, expiry, stale-request, and server-authority hardening.
+- `f0349b6d76a06a8185906df2b844586c3008d700` — independent screen-contract,
+  onboarding history/refresh, and settled visual-capture certification.
+- `fde016a7b391e7f55153a92ffb1f1b9361686301` — accessible-target measurement
+  against effective labelled controls.
+- `53e950c161a81d77188ac7033f0f9dd248669fea` — nullable delivery truth,
+  failed-resend cleanup, and preservation of supported spicy preferences.
+- `8b0f050d91e919e4bbbb43d7be0ff1a661f2b050` — preservation of authoritative
+  cuisine/restriction drafts across onboarding routes.
+- `9a94afb975dee2d15066bf6f6bf2c284c0e76c60` — pending-auth ownership and
+  restriction truth across lifecycle transitions.
+- `0f358f2f8c9da35c2167489ad6fd63eae8ea8c47` — application HEAD; verification
+  exit loading reset and round-trip/review of stored values outside visible
+  onboarding chips.
+- `00594eba755c6895f9edb9d3076282cf42919c44` — certification-only checkpoint;
+  registry layout measurement waits for finite 200–250 ms entry transitions.
+- `dd108a29e5747009beb48a9382c9199e16000184` — initial documentation
+  checkpoint. This report plus current state, boards, audit, and handoff receive
+  one corrective documentation checkpoint after review; its own hash is
+  intentionally obtained from `git log` after commit.
+
+## Reviewer-confirmed gaps closed
+
+### Screens 04–06 are route-owned
+
+- `/onboarding/household`, `/onboarding/preferences`, and `/onboarding/goals`
+  derive the visible step from the URL. Direct load, refresh, Back, and Forward
+  preserve route ownership; `/onboarding` redirects to screen 04.
+- Screen 04 owns native single-select household size. Screen 05 owns native
+  multi-select cuisine and dietary restrictions: exactly seven visible cuisine
+  choices and nine visible restriction choices, both including canonical
+  `other`. These visible choices do not narrow server truth: stored values
+  outside the chips, including `italian` and `vegetarian`, survive navigation,
+  appear in review, and are sent unchanged on completion.
+- Screen 06 is the planning-goal screen ("Bạn muốn Takosan giúp việc gì
+  trước?"): a native single-select `primary-goal` radio group with exactly the
+  pre-existing client values `today`, `week`, and `both` (default `both`),
+  followed by a review of the fields the server actually stores. `primaryGoal`
+  is client-only: it is kept in the onboarding draft and auth state, steers the
+  post-completion route, and is never included in the `/preferences` body. The
+  copy states that the goal only decides the starting screen on this device.
+  Screen 06 neither infers spicy level from the `spicy` restriction nor forces a
+  valid stored preference back to `medium`.
+- Household size keeps server truth (1..20). The five visible choices bucket
+  stored values `>= 5` as "5+" without rewriting them; an untouched stored `7`
+  is sent back as `7`. Only an explicit tap on the "5+" choice writes the
+  canonical value `5`, matching the existing `/me/preferences` editor.
+- For authenticated sessions, completion updates local auth state only after
+  `/preferences` confirms `onboardingComplete: true`; failures and
+  non-confirming responses remain on screen 06 without claiming success. The
+  preserved offline-guest path intentionally skips the server write and updates
+  local state. After confirmed completion, `week` navigates to `/week/setup`
+  and `today`/`both` navigate to `/`, as on the PR base.
+
+### Screen 03 lifecycle is tab-scoped and server-authoritative
+
+- `/auth/verify` remains a public route over the existing auth API. Its
+  `sessionStorage` context contains only normalized email, presentation-only
+  cooldown/expiry metadata, nullable delivery state, and initiating identity
+  scope. OTPs, dev OTPs, passwords, tokens, and validity decisions are never
+  persisted there.
+- Corrupt, unknown-key, unsafe-date, expired, or owner-mismatched records are
+  removed. Anonymous legacy context is migrated only for an anonymous owner.
+  Route exit/cancel, logout or identity change, and successful verification
+  clear the context. Leaving `/auth/verify` also resets route-local loading;
+  stale in-flight work cannot restore cleared state or claim a session.
+- Registration returns `expiresInMinutes: 10`, from which the client derives
+  presentation expiry. Resend has no expiry field, so expiry becomes unknown
+  (`null`) rather than fabricated. This unresolved server/API contract is
+  recorded below as a pre-existing protected blocker. Delivery remains
+  `boolean | null`: a development OTP is not an email-delivery claim, and a
+  failed replacement send clears stale delivery/expiry claims.
+- Local expiry and delivery values are copy only. The server remains the sole
+  OTP-validity and session-creation authority; guest-transfer deferral remains
+  unchanged.
+
+### Registry proof is independent of route existence
+
+- `tests/e2e/t17-ui/screen-registry.ts` contains exactly 27 numbered entries,
+  including accepted `/scan/:id/review` spelling and concrete landing,
+  onboarding, planner-meal, and planner-shopping contracts (no `/.+/` proof).
+- Every current registry entry is tagged to the reviewer-verified contract;
+  reconstructed-kit wording in the historical T17 material is not current
+  authority.
+- `assertScreenContract` checks every declared heading, text marker, and test
+  id. The suite also checks URL and navigation ownership, progress semantics,
+  seeded server truth, and horizontal layout at each viewport.
+- The clean registry-only matrix passed **18/18** across 360, 390, 430, 768,
+  1024, and 1440. Its route-ownership case covers direct load, refresh,
+  history, native radio/checkbox state, persisted review values, and the
+  three-value `primary-goal` radio group (selection surviving Back/Forward) at
+  every width.
+
+## Changed-file and architecture inventory
+
+- Runtime (9): `src/web/App.tsx`, `src/web/features/auth/AuthShell.tsx`,
+  `src/web/features/auth/OtpMode.tsx`,
+  `src/web/features/auth/VerifyRouteLifecycle.tsx`,
+  `src/web/features/auth/verify-context.ts`, `src/web/pages/AuthPage.tsx`,
+  `src/web/pages/OnboardingPage.tsx`, `src/web/services/auth.ts`, and
+  `src/web/stores/useAuthStore.ts`.
+- Certification/tests (8): `tests/e2e/t17-ui/screen-registry.ts`,
+  `tests/e2e/t17-ui/t17-a11y.e2e.ts`,
+  `tests/e2e/t17-ui/t17-registry.e2e.ts`,
+  `tests/e2e/t17-ui/t17-screenshots.e2e.ts`,
+  `tests/unit/auth-funnel-ui.test.tsx`,
+  `tests/unit/auth-verify-route.test.tsx`,
+  `tests/unit/client-session.test.ts`, and the new
+  `tests/unit/onboarding-contract.test.tsx`.
+- Documentation checkpoint (6): `TASK_BOARD.md`, `docs/ai/CURRENT_STATE.md`,
+  `docs/ai/HANDOFF.md`, `docs/ai/T17_UI_V2_AUDIT.md`,
+  `docs/ai/T17_UI_V2_REPORT.md`, and `docs/ai/TASK_BOARD.md`.
+- The architectural change is frontend-only: URL-owned onboarding, an
+  owner-bound verification lifecycle boundary, strict presentation context,
+  and stronger independent certification. No schema, dependency, Worker,
+  payment, recipe/planner algorithm, or infrastructure architecture changed.
+
+## Verification at certification checkpoint `00594eb` (application `0f358f2`)
+
+### Post-review fix `56fc01b` (screen 06 goal + household truth) — reran
+
+| Exact check | Result |
+| --- | --- |
+| `pnpm exec vitest run tests/unit/onboarding-contract.test.tsx tests/unit/auth-funnel-ui.test.tsx tests/unit/auth-verify-route.test.tsx tests/unit/client-session.test.ts tests/unit/auth-guest-transfer-deferred.test.tsx` | **5 files; 87/87 PASS** (onboarding contract now 20 cases) |
+| `pnpm lint && pnpm typecheck && pnpm test && pnpm check:migrations && pnpm build` | exit 0; **180 files / 4094 tests PASS**; `migration-smoke=ok`; build **6.25 s** |
+| `pnpm exec playwright test --config playwright.t17.config.ts tests/e2e/t17-ui/t17-registry.e2e.ts` | **18 passed**, six viewports (`.hoplite/artifacts/t17b-validation-p1p2/t17-registry.log`) |
+| `pnpm exec playwright test --config playwright.t17.config.ts --grep-invert "screen registry certification"` | **198 passed / 6 intentional skips / 0 failed** (`t17-rest.log`); with the registry run the full matrix is again **216 / 6 / 0** |
+| `git diff 858759f -- src/worker`, `-- migrations`, payment-like paths | all **0** |
+| `git diff --check` | PASS |
+
+The `00594eb` visual ZIP predates this fix; screen 06 captures in it show the
+earlier review-only layout and are superseded for that screen.
+
+| Exact check | Result |
+| --- | --- |
+| `pnpm exec vitest run tests/unit/auth-verify-route.test.tsx tests/unit/onboarding-contract.test.tsx tests/unit/auth-funnel-ui.test.tsx tests/unit/auth-google-credential.test.tsx tests/unit/auth-guest-transfer-deferred.test.tsx tests/unit/auth-resend-turnstile.test.tsx tests/unit/auth.test.ts tests/unit/client-session.test.ts` | **8 files; 102/102 tests PASS** |
+| `pnpm exec vitest run tests/unit/auth-verify-route.test.tsx tests/unit/onboarding-contract.test.tsx` | **2 files; 39/39 tests PASS** |
+| focused `pnpm exec eslint …` and `git diff --check` (commands recorded in `focused.log`) | both PASS |
+| `pnpm lint && pnpm typecheck && pnpm test && pnpm check:migrations && pnpm build` | exit 0; lint/typecheck PASS; **180 files / 4087 tests PASS**; `migration-smoke=ok`; Vite **2501 modules**, build **5.92 s** |
+| `node scripts/t17/style-residuals.mjs && node scripts/t17/contrast-audit.mjs` | residuals **43 total / 43 protected-payment allowlisted / 0 unjustified**; contrast **33/33 PASS** |
+| `pnpm exec playwright test --config=playwright.t17.config.ts tests/e2e/t17-ui/t17-registry.e2e.ts` | **18/18 PASS**, six viewports |
+| clean serial `playwright.t17.config.ts` full projects | **216 passed / 6 intentional skips / 0 failed** across 222 project cases |
+| `t17-a11y.e2e.ts` subset within that clean serial matrix | **12/12 PASS**: two automated accessibility cases × six viewports; separate from human screen-reader status |
+| `pnpm exec playwright test --config=playwright.config.ts` | T13 **60/60 PASS**, eight files × three projects |
+
+Full T17 breakdown: mobile-360 **36 pass / 1 skip**; mobile-390 **37 / 0**;
+mobile-430 **36 / 1**; tablet-768 **36 / 1**; desktop-1024 **35 / 2**;
+desktop-1440 **36 / 1**. Each project ran with its own isolated preview/API
+ports and output directory under the artifact root.
+
+The first fresh 360px certification attempt measured transient width 364 while
+a finite entry transition was still active. Its isolated rerun passed; the
+certification-only `00594eb` checkpoint increased settle time from 150 ms to
+300 ms, after the documented 200–250 ms transitions. The clean serial matrix
+then passed as recorded above. Earlier concurrent mobile attempts had preview
+contention, and one T13 start found a leaked local preview; isolated serial
+reruns superseded both environmental failures. No failing result is included
+in the authoritative clean package.
+
+## Visual evidence
+
+The clean source evidence is private and uncommitted at
+`.hoplite/artifacts/t17-playwright/final-00594eb-clean/`. It contains six
+successful run logs, a11y reports, and **168 PNGs**, including independent OTP,
+onboarding household, onboarding preferences, and onboarding review captures.
+Capture waits exceed the finite 200–250 ms entry animations. The 390px OTP and
+all three onboarding captures were inspected after the clean run and are
+settled, readable, and not mid-opacity. The inspected contact sheet is
+`.hoplite/artifacts/t17b-final-00594eb-contact-sheet.png`. Final gate, focused,
+style/contrast, boundary, and T13 evidence is under
+`.hoplite/artifacts/t17b-validation-00594eb/`.
+
+Packaged evidence:
+`.hoplite/artifacts/t17b-final-visuals-00594eb.zip` (18,043,834 bytes, 232
+entries, **180 PNGs**: 168 T17 plus 12 T13 validation; SHA-256
+`d6f6d4f032c0ac637ce5d1523ecc95b1411bc567538bca8d235a7131e6ad9d70`).
+`MANIFEST.tsv` and `MANIFEST.json` record every screenshot's route, viewport,
+filename, state, generating command, and SHA-256. The ZIP passed `unzip -t`.
+It is workspace-private, not committed, and is not evidence that the
+unavailable external boards were compared.
+
+## Historical merge/deployment receipt (not T17B)
+
+PR #44 head `c9525ab997777f259b428d7fc55e3864db064012` merged as current `main`
+`858759f771baccb85f5ed6fd8e06df2fc0bbb112`. Exact-main CI run `35504648193`
+succeeded. Deploy workflow `35504873956` then succeeded for release and
+staging while production was skipped. Those receipts belong to the historical
+T17 merge only; **T17B has not deployed to staging or production**.
+
+## Boundaries and remaining external work
+
+- `git diff 858759f771baccb85f5ed6fd8e06df2fc0bbb112 -- src/worker` is empty.
+- Diffs are empty for `src/web/components/payment`,
+  `src/web/pages/PlusPaywallPage.tsx`, `src/web/services/{api,http}.ts`, and
+  `src/worker/routes/billing.ts`.
+- **PRE-EXISTING PROTECTED AUTH-CONTRACT BLOCKER:** registration reports
+  `expiresInMinutes: 10`, but resend supplies no fresh expiry metadata. T17B
+  honestly sets presentation expiry to unknown after resend and has no Worker
+  diff. A server/API owner must separately decide and return the authoritative
+  resend lifetime.
+- **PRE-EXISTING PROTECTED PAYMENT-AUTHORITY BLOCKER:** frontend annual/monthly
+  values and the `VietQRModal` amount prop remain `599000`/`79000`, while
+  `/billing/payment-intents` authority remains `499000`/`49000`; the QR amount
+  is not sourced from the server payment intent. T17B intentionally has zero
+  payment diff. A separate owner-authorized payment follow-up should align the
+  displayed price, QR amount, and payment-intent authority.
+- Migration diff is empty. No remote D1, production configuration, staging,
+  production, release, merge, or PR #44 mutation was performed by T17B.
+- **In-scope T17B implementation blockers:** none. The two pre-existing
+  protected authority blockers above remain unresolved outside this task.
+- **Manual blockers:** actual boards/ZIP were unavailable, so direct board
+  comparison remains external; human NVDA/VoiceOver testing was not run.
+- **Protected external:** hosted PR review/CI follows publication; merge and
+  deployment remain operator decisions and are not authorized by T17B.
+
+## Corrective documentation verification
+
+The application and certification checkpoints did not change. Review of the
+initial documentation checkpoint found imprecise offline-guest wording and
+missing protected-blocker/accessibility detail; this follow-up changes only the
+same six documentation files.
+
+- `git diff --check` passed. Fresh base-to-worktree line counts remain
+  `src/worker=0`, `migrations=0`, and protected payment paths `=0`.
+- Required documentation-marker assertions passed for canonical status,
+  blockers, onboarding routes, automated accessibility, and the unexecuted
+  human checklist.
+- `sha256sum` still reports
+  `d6f6d4f032c0ac637ce5d1523ecc95b1411bc567538bca8d235a7131e6ad9d70`;
+  `unzip -t` reports no errors. The corrected manifest validator passed with
+  232 entries, 180 PNGs, 180 JSON records, 180 TSV records, zero missing fields
+  or files, zero SHA-256 mismatches, and `testzip=None`.
+- The first ad hoc manifest validator expected a `command` field instead of the
+  manifest's declared `generatingCommand` field and therefore reported 180
+  missing fields. Correcting that validator produced the passing result above;
+  this was a validator-schema mistake, not an artifact defect.
+- Application gates were not rerun for this documentation-only follow-up; their
+  exact final application/certification results remain the table above.
+
+---
+
+# Historical T17 — Takosan UI V2 report — 2026-09-19 (superseded by T17B above)
 
 Task: T17 Takosan UI V2 Full Product Redesign per the Takosan Redesign OS
 v2.0.0 design contract. Branch `feat/t17-takosan-ui-v2`, PR #44 into `main`.
@@ -169,9 +452,10 @@ with a visible ring), mobile fixed action (scan-review CTA above the bottom
 nav; stays inside a 55 %-height viewport with an input focused — the
 virtual-keyboard proxy available headlessly).
 
-Captures are preserved per width under
-`.hoplite/artifacts/t17-cert/canonical/<width>/*.png` and
-`.hoplite/artifacts/t17-cert/states/<width>/*.png` (private artifact dir).
+The historical branch used an ephemeral private capture directory that is no
+longer present in this workspace. T17B replacement evidence is preserved under
+`.hoplite/artifacts/t17-playwright/final-00594eb-clean/` and in the ZIP named
+in the current report above.
 
 ## 5. Reduced-motion certification
 
@@ -275,7 +559,7 @@ repo setup script's own `apt-get` line (sandbox lacked it).
 | T17 suite 768×1024 | `… --project tablet-768` | **35 passed / 1 skipped (by design) / 0 failed** |
 | T17 suite 1024×768 | `… --project desktop-1024` | **34 passed / 2 skipped (by design) / 0 failed** |
 | T17 suite 1440×900 | `… --project desktop-1440` | **35 passed / 1 skipped (by design) / 0 failed** |
-| Canonical captures | part of the 390/768/1440 runs above | 25 surfaces × 3 widths preserved under `.hoplite/artifacts/t17-cert/canonical/` |
+| Canonical captures | part of the 390/768/1440 runs above | historical run reported 25 surfaces × 3 widths; the old ephemeral directory is unavailable, and T17B replacement evidence is named above |
 | T13 inventory suite | `pnpm exec playwright test` (playwright.config.ts, 20 cases × 360/390/430) | **60 passed / 0 failed** (7.4 m) |
 | Worker boundary | `git diff 769d085 -- src/worker` | **0 lines** |
 | Payment boundary | `git diff 769d085 -- src/web/components/payment src/web/services` | `VietQRModal.tsx` 16+/16− presentation-only lines from earlier T17 commits (class names, "Takosan Plus" copy); **0 lines added by this continuation**; services untouched |
@@ -331,9 +615,9 @@ behaviour; `auth-guest-transfer-deferred.test.tsx` declares the new
 
 ## Remaining blockers (why not `T17_COMPLETE`)
 
-1. **Board comparison** — a reviewer with the ZIP must compare
-   `.hoplite/artifacts/t17-cert/canonical/{390,768,1440}/*.png` against the
-   three Takosan boards and `screens/*.md`, and diff
+1. **Board comparison** — a reviewer with the original design ZIP must compare
+   the T17B package named in the current report against the three Takosan
+   boards and `screens/*.md`, and diff
    `tests/e2e/t17-ui/screen-registry.ts` against `SCREEN_REGISTRY`.
 2. **Screen-reader walkthrough** — NVDA/VoiceOver pass over the canonical
    surfaces (automated semantics are clean; the human check is unexecuted).
