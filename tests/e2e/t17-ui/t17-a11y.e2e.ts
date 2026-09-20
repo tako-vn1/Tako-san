@@ -44,20 +44,25 @@ async function auditSurface(page: Page, name: string, path: string): Promise<Sur
     const small: string[] = [];
     for (const el of Array.from(document.querySelectorAll<HTMLElement>('a[href], button, input:not([type=hidden]), select, textarea, [role=button], [role=switch], [role=tab]'))) {
       if (el.closest('[aria-hidden="true"]')) continue;
-      const rect = el.getBoundingClientRect();
-      const style = getComputedStyle(el);
-      if (rect.width === 0 || rect.height === 0 || style.visibility === 'hidden') continue;
       // Inline text links inside paragraphs are exempt (WCAG 2.5.8 inline exception).
       if (el.tagName === 'A' && el.closest('p, li')) continue;
-      // A positioned ::before with negative insets extends the hit area (Switch).
-      const before = getComputedStyle(el, '::before');
-      const inset = (v: string) => (before.content !== 'none' && before.position === 'absolute' ? Math.max(0, -parseFloat(v) || 0) : 0);
-      const hitW = rect.width + inset(before.left) + inset(before.right);
-      const hitH = rect.height + inset(before.top) + inset(before.bottom);
-      if (hitW < 44 || hitH < 44) {
+      const targets = [el];
+      if (el instanceof HTMLInputElement) targets.push(...Array.from(el.labels ?? []));
+      const hitAreas = targets.flatMap((target) => {
+        const rect = target.getBoundingClientRect();
+        const style = getComputedStyle(target);
+        if (rect.width === 0 || rect.height === 0 || style.visibility === 'hidden' || style.display === 'none') return [];
+        // A positioned ::before with negative insets extends the hit area (Switch).
+        const before = getComputedStyle(target, '::before');
+        const inset = (v: string) => (before.content !== 'none' && before.position === 'absolute' ? Math.max(0, -parseFloat(v) || 0) : 0);
+        return [{ width: rect.width + inset(before.left) + inset(before.right), height: rect.height + inset(before.top) + inset(before.bottom) }];
+      });
+      if (hitAreas.length === 0 || hitAreas.some(({ width, height }) => width >= 44 && height >= 44)) continue;
+      const effective = hitAreas.reduce((largest, area) => area.width * area.height > largest.width * largest.height ? area : largest);
+      if (effective.width < 44 || effective.height < 44) {
         // `tap-target` enforces min 44×44 via CSS; measured boxes below that are real.
-        if (el.classList.contains('tap-target') && rect.width >= 44 && rect.height >= 44) continue;
-        small.push(`${el.tagName.toLowerCase()}[${el.getAttribute('aria-label') || el.textContent?.trim().slice(0, 24) || el.className.toString().slice(0, 24)}] ${Math.round(rect.width)}x${Math.round(rect.height)}`);
+        if (el.classList.contains('tap-target') && effective.width >= 44 && effective.height >= 44) continue;
+        small.push(`${el.tagName.toLowerCase()}[${el.getAttribute('aria-label') || el.textContent?.trim().slice(0, 24) || el.className.toString().slice(0, 24)}] ${Math.round(effective.width)}x${Math.round(effective.height)}`);
       }
     }
     return { h1Count: document.querySelectorAll('h1').length, headingLevels: headings, imagesWithoutAlt, smallTargets: small };
