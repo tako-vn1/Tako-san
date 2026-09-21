@@ -91,7 +91,6 @@ export const useAuthStore = create<AuthState>((set, get) => {
   const savedDisplayName = localStorage.getItem('frigo_display_name') || 'Người dùng Takosan';
   const savedAvatarUrl = localStorage.getItem('frigo_avatar_url') || '';
   const savedOnboarded = localStorage.getItem('frigo_onboarded') === 'true';
-  const savedPlus = localStorage.getItem('frigo_is_plus') === 'true';
   const savedIsGuest = !savedUserId || localStorage.getItem('frigo_is_guest') === 'true';
   if (savedUserId && !savedIsGuest) clearVerifyContext();
 
@@ -103,7 +102,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
     displayName: savedDisplayName,
     avatarUrl: savedAvatarUrl,
     isOnboarded: savedOnboarded,
-    isPlus: savedPlus,
+    isPlus: false,
     householdSize: 2,
     spicyLevel: 'medium',
     favoriteCuisines: [],
@@ -111,9 +110,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
     logoutStatus: privateSessionBlocked() ? 'error' : 'idle',
     logoutError: privateSessionBlocked() ? LOGOUT_WARNING : null,
 
-    // S2: entitlement is owned by the server. These are only ever called with
-    // values returned from authenticated API responses (/me, /auth/plus/activate);
-    // the UI can no longer grant Plus to itself.
+    // Only authenticated /me responses supply entitlement; local cache is not proof.
     setPlusFromServer: (isPlus: boolean) => {
       if (privateSessionBlocked() || !get().userId) return;
       localStorage.setItem('frigo_is_plus', isPlus ? 'true' : 'false');
@@ -123,10 +120,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
     syncPlusFromServer: async () => {
       const isCurrent = capturePrivateSession();
       try {
-        const me = await api.getMe();
+        const me = await api.getMe({ requireServer: true });
         if (!isCurrent() || me?.user?.id !== get().userId) return;
-        const sub = me?.user?.subscription;
-        const isPlus = me?.user?.isPlus === true || sub?.plan === 'plus';
+        const isPlus = me?.user?.isPlus === true;
         localStorage.setItem('frigo_is_plus', isPlus ? 'true' : 'false');
         const isOnboarded = me?.user?.onboardingCompleted === true;
         localStorage.setItem('frigo_onboarded', isOnboarded ? 'true' : 'false');

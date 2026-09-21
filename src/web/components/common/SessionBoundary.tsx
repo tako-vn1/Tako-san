@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { api } from '../../services/api';
-import { isOfflineGuestSession } from '../../lib/private-session';
+import { capturePrivateSession, isOfflineGuestSession } from '../../lib/private-session';
 import { queryClient } from '../../lib/query-client';
 import { queryKeys } from '../../lib/queryKeys';
 
 export const SessionBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { userId, householdId, isGuest, logoutStatus, logoutError, logout, setOnboardingFromServer } = useAuthStore();
+  const { userId, householdId, isGuest, logoutStatus, logoutError, logout, setOnboardingFromServer, setPlusFromServer } = useAuthStore();
   const identity = `${userId}:${householdId}`;
   const [verifiedIdentity, setVerifiedIdentity] = useState<string | null>(null);
   const [verificationFailed, setVerificationFailed] = useState(false);
@@ -16,6 +16,7 @@ export const SessionBoundary: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     if (logoutStatus !== 'idle' || !userId) return;
     let cancelled = false;
+    const isCurrent = capturePrivateSession();
     setVerificationFailed(false);
     void queryClient.fetchQuery({
       queryKey: queryKeys.me(),
@@ -25,6 +26,7 @@ export const SessionBoundary: React.FC<{ children: React.ReactNode }> = ({ child
     }).then((me) => {
       if (!cancelled) {
         setOnboardingFromServer(me?.user?.onboardingCompleted === true, me?.user?.preferences);
+        if (isCurrent() && me?.user?.id === userId) setPlusFromServer(me.user.isPlus === true);
         setVerifiedIdentity(identity);
       }
     }).catch(() => {
