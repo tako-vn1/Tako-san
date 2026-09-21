@@ -102,6 +102,26 @@ function expectOtpTtl(expiresInMinutes: number, startedAt: number, purpose = 're
   expect(expiresAt).toBeLessThanOrEqual(Date.now() + durationMs);
 }
 
+function resendCache() {
+  const records = new Map<string, string>();
+  return {
+    get: vi.fn(async (key: string, type?: string) => {
+      const value = records.get(key) ?? null;
+      return value && type === 'json' ? JSON.parse(value) : value;
+    }),
+    put: vi.fn(async (key: string, value: string) => { records.set(key, value); }),
+    delete: vi.fn(async (key: string) => { records.delete(key); }),
+  };
+}
+
+function nextOtpDiffersFrom(code: string) {
+  vi.spyOn(crypto, 'getRandomValues').mockImplementationOnce((array) => {
+    if (!(array instanceof Uint32Array)) throw new Error('Expected OTP randomness');
+    array.fill(code === '100000' ? 1 : 0);
+    return array;
+  });
+}
+
 function sessionCount(): number {
   return Number(db.query('SELECT COUNT(*) AS count FROM sessions_v2')[0].count);
 }
@@ -556,6 +576,7 @@ describe('D1-authoritative OTP verification', () => {
   it('returns authoritative expiry for register resend and preserves replacement semantics', async () => {
     const initial = await register();
     const oldOtpId = otp().id;
+    nextOtpDiffersFrom(initial.code);
     const startedAt = Date.now();
     const resend = await request('/auth/resend-otp', {
       body: { email: EMAIL, purpose: 'register', expiresInMinutes: 1 },
@@ -597,6 +618,7 @@ describe('D1-authoritative OTP verification', () => {
     expectOtpTtl(initial.json.expiresInMinutes, initialStartedAt, 'forgot_password');
     const oldCode = deliveredCode();
     const oldOtpId = otp('forgot_password').id;
+    nextOtpDiffersFrom(oldCode);
 
     const resendStartedAt = Date.now();
     const resend = await request('/auth/resend-otp', {
@@ -661,6 +683,8 @@ describe('D1-authoritative OTP verification', () => {
 
   it('fails resend honestly and leaves the newly generated challenge unusable', async () => {
     await register();
+    const cache = resendCache();
+    env.CACHE = cache as unknown as Env['CACHE'];
     vi.mocked(sendEmail).mockResolvedValueOnce({ sent: false, provider: 'workers-email', error: 'provider_unavailable' } as any);
     const result = await request('/auth/resend-otp', { body: { email: EMAIL, purpose: 'register' } });
     expect(result.status).toBe(503);
@@ -668,6 +692,58 @@ describe('D1-authoritative OTP verification', () => {
     expect(result.json.message).not.toContain('Đã gửi');
     expect(result.json).not.toHaveProperty('expiresInMinutes');
     expect(otp().used).toBe(1);
+    expect(cache.delete).toHaveBeenCalledWith(`otp_resend_${EMAIL}_register`);
+    const retry = await request('/auth/resend-otp', { body: { email: EMAIL, purpose: 'register' } });
+    expect(retry.status).toBe(200);
+    expect(retry.json.expiresInMinutes).toBe(10);
+  });
+
+  it.each(['register', 'forgot_password'])('retains the 60-second %s resend cooldown without replacing a blocked OTP', async (purpose) => {
+    await register();
+    const cache = resendCache();
+    env.CACHE = cache as unknown as Env['CACHE'];
+    const body = { email: `  ${EMAIL.toUpperCase()}  `, purpose };
+    expect((await request('/auth/resend-otp', { body })).status).toBe(200);
+    const before = db.query('SELECT * FROM auth_otps');
+    const mailCount = vi.mocked(sendEmail).mock.calls.length;
+    const blocked = await request('/auth/resend-otp', { body });
+    expect(blocked.status).toBe(429);
+    expect(blocked.response.headers.get('Retry-After')).toBe('60');
+    expect(blocked.json.retryAfterSeconds).toBe(60);
+    expect(blocked.json).not.toHaveProperty('expiresInMinutes');
+    expect(cache.put).toHaveBeenCalledWith(`otp_resend_${EMAIL}_${purpose}`, '1', { expirationTtl: 60 });
+    expect(db.query('SELECT * FROM auth_otps')).toEqual(before);
+    expect(sendEmail).toHaveBeenCalledTimes(mailCount);
+  });
+
+  it('retains route-level rate limiting before resend issuance', async () => {
+    await register();
+    const cache = resendCache();
+    await cache.put(`rl_auth:198.51.100.${fixtureNumber}:/auth/resend-otp`, JSON.stringify({
+      count: 15, resetTime: Math.floor(Date.now() / 1000) + 60,
+    }));
+    env.CACHE = cache as unknown as Env['CACHE'];
+    const before = db.query('SELECT * FROM auth_otps');
+    const blocked = await request('/auth/resend-otp', { body: { email: EMAIL, purpose: 'register' } });
+    expect(blocked.status).toBe(429);
+    expect(blocked.json.code).toBe('RATE_LIMIT_EXCEEDED');
+    expect(Number(blocked.response.headers.get('Retry-After'))).toBeGreaterThan(0);
+    expect(blocked.json).not.toHaveProperty('expiresInMinutes');
+    expect(db.query('SELECT * FROM auth_otps')).toEqual(before);
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['register', 'forgot_password'])('requires Turnstile before replacing a %s OTP', async (purpose) => {
+    await register();
+    const before = db.query('SELECT * FROM auth_otps');
+    const blocked = await request('/auth/resend-otp', {
+      body: { email: EMAIL, purpose }, withoutTurnstile: true,
+    });
+    expect(blocked.status).toBe(403);
+    expect(blocked.json.code).toBe('TURNSTILE_FAILED');
+    expect(blocked.json).not.toHaveProperty('expiresInMinutes');
+    expect(db.query('SELECT * FROM auth_otps')).toEqual(before);
+    expect(sendEmail).toHaveBeenCalledTimes(1);
   });
 
   it('keeps resend available when the optional KV cooldown store is unavailable', async () => {
