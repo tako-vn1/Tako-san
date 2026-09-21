@@ -189,7 +189,7 @@ export const PlusPaywallPage: React.FC = () => {
           </div>
         </div>
 
-        {errorMsg && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{errorMsg}</p>}
+        {errorMsg && <p role="alert" className="rounded-xl border border-semantic-danger/20 bg-semantic-danger-soft px-3 py-2 text-sm text-semantic-danger">{errorMsg}</p>}
 
         <div className="grid grid-cols-2 gap-3" aria-label="Gói Takosan Plus">
           {plans.map((price) => {
