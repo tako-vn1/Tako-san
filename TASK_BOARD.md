@@ -1,3 +1,7 @@
+**Current: T18C_PARTIAL, resumed 2026-09-21.** Approved source is now available.
+See the continuation checkpoint below and
+[provenance](docs/ai/T18C_SOURCE_PROVENANCE.md). The safe pause is historical.
+
 ## T18C — final redesign certification — SAFE PAUSE (2026-09-21)
 
 **STATUS: `T18C_PAUSED_SAFE`** — implementation halted by owner instruction.
@@ -382,3 +386,12 @@
 - Readiness exact-SHA PASS; DB/queue/AI/config healthy, PLUS-grant warning only.
 - Full Vitest `3630/3630`, lint/typecheck/build and frozen install PASS.
 - Follow-up blocked on hosted CI/review for open PR #4; no protection bypass.
+## T18C continuation checkpoint — 2026-09-21
+
+**T18C_PARTIAL** — resumed existing branch at `2e770f8`, exact base `b8447e85`,
+repository `1368281478` / `vn-tako/Frigo-dev`; upstream corrected. Fresh
+pause-tree matrix **6 passed / 162 screenshots / 162 axe audits / zero
+violations and overflow**. Approved source ZIP is now available and direct
+comparison is underway: [provenance](docs/ai/T18C_SOURCE_PROVENANCE.md).
+Final source-led fixes, regressions, full gates and PR remain pending.
+Original baseline and workspace settings preserved; no merge/deploy/T18D.

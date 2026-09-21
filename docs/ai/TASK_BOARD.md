@@ -1,5 +1,9 @@
 # Frigo / Takosan current task board — 2026-09-20
 
+**Current: T18C_PARTIAL, resumed 2026-09-21.** Approved source is now available.
+See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
+The safe-pause section is historical.
+
 ## T18C — final redesign certification — SAFE PAUSE (2026-09-21)
 
 **STATUS: `T18C_PAUSED_SAFE`** — implementation halted by owner instruction;
@@ -1370,3 +1374,15 @@ rolling `qwen3.7-flash` alias is canary-only.
 - [done] Post-deploy smoke, health/readiness and SPA/API COOP header checks
   pass. Only the pre-existing `CONFIG_PLUS_GRANT_SECRET_MISSING` warning
   remains.
+## T18C continuation checkpoint — 2026-09-21
+
+- [done] Authorized renamed repository `1368281478` / `vn-tako/Frigo-dev`;
+  exact `b8447e85` base and `2e770f8` handoff verified, existing branch resumed,
+  upstream corrected; unrelated workspace settings preserved.
+- [done] Fresh fixed-tree matrix: 6 passed; 162 screenshots/strict axe audits,
+  zero violations and horizontal overflow. Baseline archive unchanged.
+- [done] Owner-supplied approved OS ZIP recovered and checksum-verified;
+  see `T18C_SOURCE_PROVENANCE.md`. Reference unavailability is superseded.
+- [in progress] Direct board comparison and source-led presentation findings;
+  full T17 regressions, final fixes/evidence/gates/PR remain pending.
+- **T18C_PARTIAL**; no merge/deploy/T18D. VoiceOver/NVDA NOT PERFORMED.

@@ -1,5 +1,9 @@
 # Frigo / Takosan current authority — 2026-09-20
 
+**Current: T18C_PARTIAL, resumed 2026-09-21.** Approved source is now available.
+See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
+The safe-pause section is historical.
+
 ## T18C — final redesign certification — SAFE PAUSE (2026-09-21)
 
 - Exact start gate passed at `b8447e85f099b800a9a8ebc6c4c137adc9e45a32`,
@@ -2211,3 +2215,20 @@ Playwright 51 passed); certification and freeze not started. Details:
   responses retain `same-origin`, and readiness reports database/queue/AI/email
   healthy with only the pre-existing `CONFIG_PLUS_GRANT_SECRET_MISSING`
   warning. No migration, secret, PayOS, DNS, KV, R2 or queue mutation occurred.
+## T18C continuation — approved source recovered (2026-09-21)
+
+Resumed `2e770f8e93bdda63dc3534093dc313d99fab229d` on the existing
+`feat/t18c-final-redesign-certification` branch. Repository ID `1368281478`
+now resolves to owner-authorized `vn-tako/Frigo-dev`; main remains `b8447e85`.
+Upstream corrected to the matching origin branch. Pre-existing
+`.hoplite/settings.json` is preserved and excluded from task commits.
+
+`PORT=5173 pnpm exec playwright test -c playwright.t18c.config.ts
+tests/e2e/t17-ui/t18c-matrix.e2e.ts`: **6 passed**, 162 screenshots,
+162 strict axe audits with **zero violations**, zero overflow. This fresh
+pause-tree result does not yet certify the upcoming source-led fixes.
+The original ZIP is now available; see `T18C_SOURCE_PROVENANCE.md`.
+Direct comparison is underway; desktop composition/breakpoint and keyboard
+findings are being classified. Status: **T18C_PARTIAL**. Full T17 regression
+and final gates remain pending. VoiceOver/NVDA NOT PERFORMED. No merge,
+deployment, remote migration, or T18D work.

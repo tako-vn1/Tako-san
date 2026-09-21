@@ -1,5 +1,9 @@
 # Frigo / Takosan current handoff — 2026-09-20
 
+**Current: T18C_PARTIAL, resumed 2026-09-21.** Approved source is now available.
+See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
+The safe-pause section is historical.
+
 ## T18C safe pause — certification handoff (2026-09-21)
 
 - **Task/status:** `T18C_PAUSED_SAFE`; overall `T18C_PARTIAL` with
@@ -2440,3 +2444,25 @@ readiness pass, `/auth` now returns `same-origin-allow-popups`, and `/api/*`
 retains `same-origin`. The only readiness warning is the pre-existing
 `CONFIG_PLUS_GRANT_SECRET_MISSING`; no migration or production data resource
 was changed.
+## T18C resumed — source comparison checkpoint (2026-09-21)
+
+- **Status:** T18C_PARTIAL; historical pause below is retained, not current.
+- **Resume:** `2e770f8e93bdda63dc3534093dc313d99fab229d`, existing branch,
+  main `b8447e85`, repository `1368281478` / `vn-tako/Frigo-dev`.
+  Correct upstream is `origin/feat/t18c-final-redesign-certification`.
+- **Executed:** `PORT=5173 pnpm exec playwright test -c
+  playwright.t18c.config.ts tests/e2e/t17-ui/t18c-matrix.e2e.ts` — 6 passed,
+  162 captures/audits, zero axe violations/overflow. Source remains unedited
+  since the pause. Style 39 allowlisted/0 unjustified; contrast 33/33
+  configured pairs (one decorative informational pair).
+- **Evidence:** baseline untouched; `fixed-tree.zip` preserves the fresh
+  rerun. `approved-source.zip` now preserves the supplied original kit.
+  See `T18C_SOURCE_PROVENANCE.md` for hashes and authority hierarchy.
+- **Environment:** dependency install was missing. Durable project setup/run
+  overrides use frozen pnpm install, Chromium, SQLite and repository-owned
+  isolated Preview on 5173. Platform setup claim failed twice; the exact
+  setup command succeeded through shell. Settings file remains untouched.
+- **Next:** finish direct 27-screen comparison, classify/fix evidenced UI
+  gaps, run T17 and final gates, then produce separate final evidence.
+  Do not reuse pause-tree results for subsequent edits. No human screen-reader
+  test, merge, deploy, remote migration or T18D.

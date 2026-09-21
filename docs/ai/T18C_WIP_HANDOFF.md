@@ -1,5 +1,16 @@
 # T18C SAFE HANDOFF
 
+## RESUMED addendum — 2026-09-21
+
+The historical pause below is preserved. Continuation resumed at `2e770f8`
+on the same branch, main `b8447e85`, repository ID `1368281478` now named
+`vn-tako/Frigo-dev` with owner authorization. Upstream is corrected to the
+matching origin branch. Fresh unchanged-tree matrix: 6 passed, 162 captures,
+zero strict axe violations or horizontal overflow. The owner has now supplied
+the original approved OS ZIP; reference unavailability below is historical.
+See `T18C_SOURCE_PROVENANCE.md` and current state/handoff for next actions.
+No final certification, merge, deployment, or T18D has occurred.
+
 ## Repository
 
 - repository_id: `1368281478`
