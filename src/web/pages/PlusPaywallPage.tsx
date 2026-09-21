@@ -192,7 +192,7 @@ export const PlusPaywallPage: React.FC = () => {
 
         {errorMsg && <p role="alert" className="rounded-xl border border-semantic-danger/20 bg-semantic-danger-soft px-3 py-2 text-sm text-semantic-danger">{errorMsg}</p>}
 
-        <div className="grid grid-cols-2 gap-3" aria-label="Gói Takosan Plus">
+        <div className="grid grid-cols-2 gap-3" role="group" aria-label="Gói Takosan Plus">
           {plans.map((price) => {
             const isSelected = selectedPlan === price.plan;
             return (

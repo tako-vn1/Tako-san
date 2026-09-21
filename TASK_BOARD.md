@@ -2,6 +2,11 @@
 See the continuation checkpoint below and
 [provenance](docs/ai/T18C_SOURCE_PROVENANCE.md). The safe pause is historical.
 
+All 27 identities have now been compared directly. Localized source-led fixes
+passed targeted browser gates (43 + 18 + 1 passes; five intentional project
+skips) and typecheck. Full final certification is next; see the current
+[handoff](docs/ai/HANDOFF.md) for diagnostic failures and preserved evidence.
+
 ## T18C — final redesign certification — SAFE PAUSE (2026-09-21)
 
 **STATUS: `T18C_PAUSED_SAFE`** — implementation halted by owner instruction.

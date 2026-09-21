@@ -4,6 +4,14 @@
 See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
 The safe-pause section is historical.
 
+- [done] Direct approved-source comparison of 27 identities and evidence-led
+  keyboard, semantic and responsive corrections; no protected business change.
+- [done] Focused browser gates 43 passed/5 intentional skips, 18 passed,
+  supplemental boundary 1 passed; fresh typecheck passed. Logs retained in
+  `.hoplite/artifacts/t18c/fix-verification.zip`.
+- [pending] Final combined browser/matrix, native gates, screenshot review,
+  certification report and review-only PR. No final readiness claim yet.
+
 ## T18C — final redesign certification — SAFE PAUSE (2026-09-21)
 
 **STATUS: `T18C_PAUSED_SAFE`** — implementation halted by owner instruction;

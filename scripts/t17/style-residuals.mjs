@@ -14,7 +14,7 @@ export const ALLOWLIST = [
     id: 'payment-boundary',
     files: ['src/web/components/payment/VietQRModal.tsx'],
     pattern: /^(hover:|backdrop:)?(bg|text|border)-(slate|rose|amber)-\d+(\/\d+)?$/,
-    reason: 'PayOS/payment UI is a protected boundary (AGENT_RULES rule 7); T17 leaves its neutral palette untouched so the payment diff stays zero.',
+    reason: 'Retain the protected payment neutral palette; T18C changes presentation semantics/focus without restyling its provider-specific surface or business authority.',
   },
 ];
 

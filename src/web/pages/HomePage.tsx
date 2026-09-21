@@ -136,7 +136,8 @@ export const HomePage: React.FC = () => {
         </button>
       </header>
 
-      <div className="px-4 pt-4 space-y-5 animate-fade-in">
+      <div className="px-4 pt-4 grid gap-5 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:items-start animate-fade-in">
+        <div data-testid="t18c-home-primary" className="min-w-0 space-y-5">
         {/* HERO: today's meal from the live Week plan */}
         {weekPlanQuery.isPending ? (
           <SkeletonCard className="h-36 rounded-3xl" />
@@ -358,8 +359,10 @@ export const HomePage: React.FC = () => {
           )}
         </div>
 
+        </div>
+
         {/* SECTION 4: GỢI Ý MÓN NGON */}
-        <div className="space-y-3 pt-2">
+        <div data-testid="t18c-home-recommendations" className="min-w-0 space-y-3 pt-2">
           <div className="flex items-center justify-between">
             <h2 className="font-heading font-bold text-sm text-takosan-navy">
               Gợi ý cho bạn
@@ -414,6 +417,7 @@ export const HomePage: React.FC = () => {
             ) : (recommendationsQuery.data ?? []).length === 0 ? (
               <EmptyState
                 type="no-recipes"
+                headingLevel={3}
                 title="Chưa tìm thấy món phù hợp"
                 description="Hãy thử tắt bộ lọc 'Không mua thêm gì' hoặc quét thêm nguyên liệu vào tủ lạnh nhé."
                 actionText="Xem tất cả công thức"

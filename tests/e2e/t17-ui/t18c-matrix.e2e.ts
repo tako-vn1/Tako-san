@@ -5,7 +5,7 @@ import { test, expect, reset, control } from '../t13b/fixtures';
 import { SCREEN_REGISTRY, type RegisteredScreen } from './screen-registry';
 import { installNunito } from './font-fixture';
 
-const root = '.hoplite/artifacts/t18c';
+const root = process.env.T18C_ARTIFACT_DIR ?? '.hoplite/artifacts/t18c/final';
 
 async function completeOnboarding(page: Page) {
   await page.goto('/onboarding/household');
@@ -70,10 +70,11 @@ test('T18C: all 27 identities have fresh screenshots, responsive and accessibili
     await page.screenshot({ path: `${root}/${screenshot}`, fullPage: true, animations: 'disabled' });
     reports.push({
       id: screen.id, name: screen.name, canonicalRoute: screen.path, fixtureRoute: path,
-      auth: screen.auth, shell: screen.nav === 'hidden' ? 'immersive' : geometry.width < 768 ? 'bottom-navigation' : geometry.width < 1024 ? 'rail' : 'sidebar',
+      auth: screen.auth, shell: screen.nav === 'hidden' ? 'immersive' : geometry.width < 640 ? 'bottom-navigation' : geometry.width < 1024 ? 'rail' : 'sidebar',
       viewport: page.viewportSize(), screenshot, geometry, violations,
       state: screen.id === '03' ? 'no-verification-context' : 'settled-seeded',
-      directReference: 'UNAVAILABLE', visualParity: 'BLOCKED_REFERENCE_UNAVAILABLE',
+      directReference: `approved-source.zip#references/board-0${Math.ceil(Number(screen.id) / 9)}-${Number(screen.id) <= 9 ? 'entry-home-scan' : Number(screen.id) <= 18 ? 'food-planner' : 'account-settings'}.png`,
+      visualParityReport: 'docs/ai/T18C_VISUAL_CERTIFICATION.md',
       axeIncomplete: axe.incomplete.map(({ id, nodes }) => ({ id, targets: nodes.map(({ target }) => target) })),
     });
     await writeFile(`${root}/registry/${info.project.name}.json`, JSON.stringify(reports, null, 2));

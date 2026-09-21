@@ -2,11 +2,12 @@ import { defineConfig } from '@playwright/test';
 import baseline from './playwright.t17.config';
 
 const baseURL = `http://localhost:${process.env.PORT ?? 3000}`;
+const artifactRoot = process.env.T18C_ARTIFACT_DIR ?? '.hoplite/artifacts/t18c/final';
 
 export default defineConfig({
   ...baseline,
-  outputDir: '.hoplite/artifacts/t18c/results',
-  reporter: [['list'], ['json', { outputFile: '.hoplite/artifacts/t18c/reports/browser.json' }]],
+  outputDir: `${artifactRoot}/results`,
+  reporter: [['list'], ['json', { outputFile: `${artifactRoot}/reports/browser.json` }]],
   use: { ...baseline.use, baseURL, trace: 'off' },
   webServer: {
     ...baseline.webServer,

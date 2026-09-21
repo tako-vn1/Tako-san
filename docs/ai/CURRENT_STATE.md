@@ -4,6 +4,19 @@
 See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
 The safe-pause section is historical.
 
+### Source-led fix checkpoint
+
+Direct comparison now covers all 27 identities using the approved boards and
+their higher-priority written contracts. Localized fixes cover native recipe
+links, discovery grid, 640px shell/fixed-action alignment, Landing/Home wide
+composition, radio/group naming, Home empty-state heading, privacy sentence
+layout, and payment status announcements without countdown chatter. No domain
+authority changed. Targeted browser reruns: **43 passed / 5 intentional
+project skips**, then **18 passed** (strict dialog axe, discovery/privacy),
+then **1 passed** (639/640/767/1024 boundary). `pnpm typecheck` passed.
+Exact logs are preserved in `.hoplite/artifacts/t18c/fix-verification.zip`.
+Final all-suite certification and screenshot matrix remain pending.
+
 ## T18C — final redesign certification — SAFE PAUSE (2026-09-21)
 
 - Exact start gate passed at `b8447e85f099b800a9a8ebc6c4c137adc9e45a32`,

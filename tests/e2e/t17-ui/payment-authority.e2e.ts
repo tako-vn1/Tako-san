@@ -1,3 +1,5 @@
+import { writeFile } from 'node:fs/promises';
+import AxeBuilder from '@axe-core/playwright';
 import { test, expect, reset } from '../t13b/fixtures';
 import type { Page } from '@playwright/test';
 import { spaCsp } from '../../../src/worker/config/csp';
@@ -225,13 +227,25 @@ test('pending payment stays manual and closing it grants nothing', async ({ page
   expect(await page.evaluate(() => localStorage.getItem('frigo_is_plus'))).not.toBe('true');
 });
 
-test('T18C payment dialog traps keyboard focus and Escape returns focus without granting Plus', async ({ page }) => {
+test('T18C payment dialog traps keyboard focus and Escape returns focus without granting Plus', async ({ page }, info) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   const state = await openPlus(page);
   const trigger = page.getByRole('button', { name: /Nâng cấp ngay với/ });
   await trigger.click();
   const dialog = page.getByRole('dialog', { name: 'Thanh toán VietQR' });
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAttribute('aria-modal', 'true');
+  await expect(dialog).toHaveAccessibleName('Thanh toán VietQR');
+  expect(await dialog.evaluate((element) => element.getAnimations({ subtree: true }).filter((animation) => animation.playState === 'running').length)).toBe(0);
+  await expect(page.locator('body')).toHaveCSS('overflow', 'hidden');
+  const countdown = dialog.getByText(/^\d+:\d{2}$/);
+  await expect(countdown).toBeVisible();
+  expect(await countdown.evaluate((element) => element.closest('[aria-live="polite"], [role="status"], [role="alert"]'))).toBeNull();
+  await expect(dialog.getByRole('status')).toContainText('Đang chờ thanh toán');
+  const axe = await new AxeBuilder({ page }).include('[role="dialog"]')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice']).analyze();
+  await writeFile(info.outputPath('payment-a11y.json'), JSON.stringify({ violations: axe.violations, incomplete: axe.incomplete }, null, 2));
+  expect(axe.violations.map(({ id, impact }) => ({ id, impact }))).toEqual([]);
   await expect(dialog.getByRole('button', { name: 'Đóng', exact: true })).toBeFocused();
   for (const key of ['Shift+Tab', ...Array<string>(12).fill('Tab')]) {
     await page.keyboard.press(key);
@@ -239,6 +253,7 @@ test('T18C payment dialog traps keyboard focus and Escape returns focus without 
   }
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
+  await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
   await expect(trigger).toBeFocused();
   expect(state.entitled).toBe(false);
   await expect(page.getByText('Bạn là hội viên Plus', { exact: true })).toHaveCount(0);

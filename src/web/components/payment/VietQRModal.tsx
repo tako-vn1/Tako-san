@@ -195,7 +195,7 @@ export const VietQRModal: React.FC<VietQRModalProps> = ({ isOpen, onClose, onSuc
             <div className="w-8 h-8 rounded-lg bg-semantic-action-primary flex items-center justify-center text-white"><QrCode className="w-4 h-4" /></div>
             <div>
               <h2 id={titleId} className="font-heading font-bold text-sm leading-tight text-white">Thanh toán VietQR</h2>
-              <p className="text-[11px] text-slate-200">{statusLabel(visibleStatus)}</p>
+              <p role="status" aria-live="polite" aria-atomic="true" className="text-[11px] text-slate-200">{statusLabel(visibleStatus)}</p>
             </div>
           </div>
           <button ref={closeRef} type="button" onClick={onClose} className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center tap-target transition-colors" aria-label="Đóng">
@@ -203,18 +203,18 @@ export const VietQRModal: React.FC<VietQRModalProps> = ({ isOpen, onClose, onSuc
           </button>
         </div>
 
-        <div className="p-4 overflow-y-auto space-y-3.5 text-slate-900 bg-slate-50/50" aria-live="polite">
+        <div className="p-4 overflow-y-auto space-y-3.5 text-slate-900 bg-slate-50/50">
           {renderSessionInvalid ? (
-            <div className="py-8 text-center space-y-3"><AlertCircle className="w-10 h-10 mx-auto text-rose-600" /><p className="font-semibold">Phiên tài khoản đã thay đổi. Lệnh này đã được ẩn.</p></div>
+            <div role="alert" className="py-8 text-center space-y-3"><AlertCircle className="w-10 h-10 mx-auto text-rose-600" /><p className="font-semibold">Phiên tài khoản đã thay đổi. Lệnh này đã được ẩn.</p></div>
           ) : visibleStatus === 'paid' && entitlementState === 'confirmed' ? (
-            <div className="py-8 text-center space-y-3 animate-fade-in">
+            <div role="status" className="py-8 text-center space-y-3 animate-fade-in">
               <div className="w-16 h-16 rounded-full bg-semantic-success-soft text-semantic-success border border-semantic-action-primary/30 flex items-center justify-center mx-auto shadow-xs"><CheckCircle2 className="w-10 h-10" /></div>
               <div><h3 className="font-heading font-bold text-lg text-slate-900">Thanh toán thành công</h3><p className="text-xs text-slate-600 mt-1">Máy chủ đã xác nhận khoản thanh toán và quyền lợi Plus của tài khoản này.</p></div>
             </div>
           ) : visibleStatus === 'paid' && entitlementState === 'checking' ? (
-            <div className="py-8 text-center space-y-3"><Clock className="w-10 h-10 mx-auto text-amber-600" /><h3 className="font-heading font-bold text-lg">Đã nhận thanh toán; đang kiểm tra quyền lợi</h3><p className="text-xs text-slate-600">Chưa thể xác nhận kích hoạt Plus cho đến khi máy chủ tải lại quyền lợi tài khoản.</p></div>
+            <div role="status" className="py-8 text-center space-y-3"><Clock className="w-10 h-10 mx-auto text-amber-600" /><h3 className="font-heading font-bold text-lg">Đã nhận thanh toán; đang kiểm tra quyền lợi</h3><p className="text-xs text-slate-600">Chưa thể xác nhận kích hoạt Plus cho đến khi máy chủ tải lại quyền lợi tài khoản.</p></div>
           ) : visibleStatus === 'paid' ? (
-            <div className="py-8 text-center space-y-3"><AlertCircle className="w-10 h-10 mx-auto text-amber-600" /><h3 className="font-heading font-bold text-lg">Đã nhận thanh toán</h3><p className="text-xs text-slate-600">Máy chủ chưa xác nhận quyền lợi Plus cho tài khoản này. Vui lòng kiểm tra lại sau.</p></div>
+            <div role="status" className="py-8 text-center space-y-3"><AlertCircle className="w-10 h-10 mx-auto text-amber-600" /><h3 className="font-heading font-bold text-lg">Đã nhận thanh toán</h3><p className="text-xs text-slate-600">Máy chủ chưa xác nhận quyền lợi Plus cho tài khoản này. Vui lòng kiểm tra lại sau.</p></div>
           ) : visibleStatus === 'pending' ? (
             <>
               <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-xs">

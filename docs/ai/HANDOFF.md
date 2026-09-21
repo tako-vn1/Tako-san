@@ -4,6 +4,24 @@
 See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
 The safe-pause section is historical.
 
+### Source-led fixes ready for final rerun
+
+- Source/fixed-tree checkpoint pushed: `147f1714a8c8c81e2e0d37785a614c0e4446f2be`.
+- All 27 boards/contracts directly compared; presentation corrections applied
+  without changing protected business authority. Targeted browser gates:
+  43 passed/5 intentional skips, 18 passed, boundary 1 passed; typecheck passed.
+- Failure ledger: initial gap diagnostic was 7 failed/1 skipped/6 passed.
+  RecipeCard was patched between its mobile red and desktop green cases, so
+  this is not a single pre-fix snapshot. The first 306-case pre-fix T17 run
+  was intentionally interrupted after 59 passes/1 planned screenshot skip
+  to apply verified source-led fixes; it is not final proof. Its interrupted
+  JSON is not a valid completion report. A supplemental boundary test then
+  hit the real authenticated landing redirect; clearing public-session state
+  corrected the fixture, and the unchanged layout assertions passed.
+- Next: freeze implementation, run complete T18C/T17 and fresh native gates,
+  inspect final screenshots, archive evidence, finish docs and review-only PR.
+  Human VoiceOver/NVDA remain NOT PERFORMED.
+
 ## T18C safe pause — certification handoff (2026-09-21)
 
 - **Task/status:** `T18C_PAUSED_SAFE`; overall `T18C_PARTIAL` with
