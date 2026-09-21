@@ -990,3 +990,44 @@ Email Service binding presence is not delivery evidence: release still requires
 sender-domain onboarding and a real recipient smoke test. Google release still
 requires the exact production origin in the OAuth client's authorized JavaScript
 origins. No production deployment is implied by this ADR.
+
+## ADR-029 — One server-authoritative Plus payment contract
+
+**Status:** Accepted for explicitly authorized T18B development, 2026-09-21.
+No deployment or real transaction is authorized.
+
+**Decision:** Preserve the existing operational prices (monthly 49000, annual
+499000, VND) in one Worker table. Authenticated read-only plan metadata and
+strict plan-identity intent creation consume that table. No client price,
+discount, destination bank, reference, success redirect or local entitlement
+cache is payment authority. Extra legacy request fields cannot override prices.
+
+The Worker creates a PayOS link using server-generated order/expiry and verifies
+the provider's signed response before returning instructions. PayOS can augment
+the transfer description; the verified returned description, bank fields and
+amount drive the server-built VietQR URL and UI together. They are bound to the
+server order by the response HMAC and explicit order/amount/currency checks,
+not by assuming request and response descriptions are identical.
+
+Only signed callback data may transition an owned stored intent. A D1 batch
+conditionally upserts entitlement while the intent is pending, then consumes
+the intent. Replays cannot extend a subscription; separate paid orders retain
+separate purchase value. Existing 31/366-day durations are unchanged. A shared
+provider transaction reference cannot pay two orders. Provider-creation errors
+mark the intent failed; late callbacks cannot grant it and require operator
+reconciliation/refund outside this task. Never retry such a grant automatically.
+
+**Compatibility:** No migration; existing payment rows and endpoints remain.
+The obsolete `/auth/plus/activate` is read-only/non-granting for old clients and
+rejects `grantCode` (410). Old shared-secret integrations must stop: retaining
+their orderless grants would bypass the new authority. Checkout uses the new
+owned status endpoint and fresh `/me` instead. Billing now uses the existing
+expected-owner HTTP headers; other authentication behavior is unchanged.
+
+**Consequences:** Provider configuration remains server-only and fail-closed.
+Metadata is not a price lock; the returned intent is the final payable offer.
+Refreshing or closing a modal does not cancel a provider order and never grants
+Plus. New explicit checkout attempts create independent intents; single-flight
+browser requests prevent double-click duplication. No cancel/refund automation
+or claim of live-provider certification is introduced. Operators must separately
+verify PayOS configuration/webhook delivery and approve deployment.

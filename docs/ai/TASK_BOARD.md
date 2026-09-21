@@ -1,5 +1,25 @@
 # Frigo / Takosan current task board — 2026-09-20
 
+## T18B — payment authority unification — `T18B_READY_FOR_REVIEW` (2026-09-21)
+
+- [done] Repository ID/main/clean tree/hosted CI/overlapping PR gates; branch
+  `feat/t18b-payment-authority` from `13ff3f22082fc0601a81b90c96edded4741194ac`.
+- [done] Audit and ADR-029; retained server prices 49000 monthly / 499000 annual
+  VND. One server contract now drives metadata, intent and verified PayOS QR.
+- [done] Atomic idempotent webhook grants, provider failure handling, owned
+  status reads, retired shared-secret grants and client/session anti-tampering.
+- [done] Checkpoints `2aba91a`, `c00ea9f`, `1cef30b`, `1aabd32` pushed;
+  PR #47 OPEN with CI/review auto-fix, auto-merge disabled.
+- [done] Focused 121/121, browser 48/48 plus final error-state 4/4, style/checkout 38/38;
+  lint/typecheck/migration smoke/build/diff check PASS. No remaining security findings.
+- [done] Full rerun **183 files / 4185 tests PASS**, after correcting the first
+  run's semantic-style failure in source without weakening coverage.
+- [limit] No real payment or live-provider certification. Provider setup and
+  callback delivery are separately authorized release prerequisites. No merge,
+  deploy, remote D1, new migration or unrelated protected-code change.
+- [next] Settle final-head hosted CI and obtain human review only; no local blocker.
+  See [T18B audit and evidence](T18B_PAYMENT_AUTHORITY_REPORT.md).
+
 ## T18A — auth resend expiry contract — `T18A_READY_FOR_REVIEW` (2026-09-21)
 
 - [done] Verified repository ID `1368281478`, exact main `51d0d3755d83b64185066228d98f44ab7bad5e3c`,

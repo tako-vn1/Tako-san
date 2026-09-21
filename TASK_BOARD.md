@@ -1,3 +1,22 @@
+## T18B — payment authority unification — `T18B_READY_FOR_REVIEW` (2026-09-21)
+
+- Repository `1368281478` / `omin-jp/Frigo-dev`; exact base/main
+  `13ff3f22082fc0601a81b90c96edded4741194ac`; branch
+  `feat/t18b-payment-authority`; review-only PR #47 OPEN, auto-fix enabled and
+  auto-merge disabled. No merge/deploy performed.
+- Server-owned prices retained: monthly 49000 / annual 499000 VND; plan-only
+  checkout, signed provider/QR contract, owned status and once-per-intent grants.
+  Legacy secret grants retired; fresh same-owner `/me` confirms Plus.
+- Pushed checkpoints `2aba91a`, `c00ea9f`, `1cef30b`, `1aabd32`; focused tests
+  121/121, browser 48/48 plus error-state rerun 4/4, lint/typecheck/migration smoke/
+  build PASS. First full run's single style failure was corrected in source;
+  regression 38/38 and complete rerun **183 files / 4185 tests PASS**.
+- Independent review: remaining P0/P1/P2/P3 all 0. Migrations 38/0 changes;
+  T18A OTP, Inventory Truth, OCR/AI, recipe/planner/Week and production config
+  unchanged. No real payment. Live provider setup requires separate authorization.
+- Next: final-head hosted CI and human review only; no local blocker.
+  [Exact authority maps, contract, commands and failures](docs/ai/T18B_PAYMENT_AUTHORITY_REPORT.md).
+
 ## T18A — auth resend expiry contract — `T18A_READY_FOR_REVIEW` (2026-09-21)
 
 - Repository ID `1368281478` now resolves to `omin-jp/Frigo-dev`; base/main

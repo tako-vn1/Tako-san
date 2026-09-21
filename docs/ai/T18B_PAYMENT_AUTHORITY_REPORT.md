@@ -92,7 +92,84 @@ provider produces 503/502 without bank instructions or entitlement.
 The old activation route still returns a non-granting pending compatibility
 response; submitting `grantCode` returns 410. No T18A handler changed.
 
-## Verification so far
+## Final authority graph and API contract
+
+```text
+Worker PLUS_PRICES -> authenticated /billing/plans -> plan-only selection
+  -> POST /billing/payment-intents { plan }
+  -> stored owner/order/price/currency/expiry -> signed PayOS create request
+  -> verified PayOS response -> server instructions/QR -> presentation-only modal
+  -> verified PayOS webhook -> atomic pending-to-paid + subscription grant
+  -> authenticated owned status read -> fresh same-owner /me -> UI entitlement
+```
+
+All routes use the existing `/api/v1` prefix. Plans/status responses are
+`Cache-Control: no-store`; billing requests now include the existing expected
+user/household headers so a cross-tab cookie switch cannot attach another
+account's newly created order. No payment operation is queued for offline replay.
+
+| Endpoint | Request | Successful response |
+| --- | --- | --- |
+| `GET /billing/plans` | authenticated session | `{ plans: [{ plan, amountVnd, currency }] }` from the Worker table |
+| `POST /billing/payment-intents` | `{ "plan": "monthly" \| "annual" }`; extra legacy monetary/identity fields ignored | 201 `{ success: true, payment: { id, orderCode, plan, amountVnd, currency, description, expiresAt, status, instructions } }` |
+| `GET /billing/payment-intents/:id` | authenticated owner | `{ success: true, payment: { id, orderCode, plan, amountVnd, currency, description, expiresAt, status } }`; foreign ID 404 |
+
+Instructions contain `bankBin`, `accountNumber`, `accountName`, `transferContent`
+and `qrImageUrl`. The QR query amount and description are built server-side from
+the verified provider result; the browser does not compute either. Integer VND
+values stay integers. Status is `pending`, `paid`, `failed`, `expired`, or
+`refunded`; unsupported cancellation/refund automation is not invented. Closing
+or refreshing the modal is not cancellation and never confirms receipt.
+
+Malformed/missing/unknown plans return 400. No provider configuration returns
+503 before order creation; provider failure returns 502 and marks the inserted
+intent failed. A timeout may still have created a remote PayOS link: such an
+order must be reviewed/refunded by the operator, not automatically granted by a
+late callback. There is no new manual-grant bypass. This task never calls that
+live provider or performs that reconciliation.
+
+The UI handles invalid contracts, stale metadata, delayed create/status results,
+network errors, expired/failed orders, account/household/generation changes and
+double clicks. A paid order may display receipt confirmation, but Plus success
+requires a fresh `/me` with the same user and `isPlus: true`. Failed entitlement
+reloads can be retried. A tampered local Plus cache does not initialize entitlement.
+
+## Idempotency and final security review
+
+- HMAC-SHA256 WebCrypto verification covers signed `data`; unsigned envelope
+  success/code cannot change the result. Official PayOS signature fixtures are
+  checked with independent test-side HMAC, not only the production signer.
+- Order, amount, VND currency, stored plan/price, expiry, status and reference are
+  checked. A paid duplicate with the same reference is acknowledged even after
+  expiry without changing entitlement. Failed/expired/refunded orders cannot grant.
+- Subscription UPSERT and intent consumption run in one D1 batch with the same
+  captured expiry cutoff. Missing subscription rows are inserted. Same-order
+  races grant once; separate paid orders extend existing active duration; a
+  reused transaction reference rolls back both writes.
+- The reusable legacy grant secret no longer writes subscriptions. The retired
+  binding remains a compatibility type/config warning only, never authority.
+- A pre-existing payment-specific expected-owner-header exemption was removed;
+  server cookie/CSRF/ownership enforcement itself is unchanged.
+- Review also caught premature Plus-success copy during `/me` loading and a
+  stale-plan loading lock; both were corrected with focused regressions.
+- An initial concern about differing PayOS request/response descriptions was
+  withdrawn after checking the official contract: a provider prefix is valid;
+  the HMAC and explicit order binding, not string equality, are authoritative.
+- Final independent review: **P0 0 / P1 0 / P2 0 / P3 0** remaining findings.
+  No secret or production credential was exposed or committed.
+
+## Checkpoints
+
+All were pushed immediately to `feat/t18b-payment-authority`:
+
+- A/server: `2aba91acceeefba74ea242c7a55cae3b7b6d1e40`.
+- B/frontend: `c00ea9fa132455f96aea31608b689ac87709d511`.
+- C/security + browser coverage: `1cef30b902435ee71b0fae60a92b36ed9c3ca268`.
+- C follow-up, semantic error tokens: `1aabd32562edc2c5c37b3db9d7d19e1938896084`.
+- D is the documentation commit containing this final report; its own hash is
+  intentionally not self-embedded. The publication receipt supplies final HEAD.
+
+## Verification
 
 - Audit baseline: `pnpm exec vitest run tests/unit/account-gates.test.tsx tests/integration/auth-me-quota.test.ts` — 20 passed.
 - `git diff --check` — PASS before implementation.
@@ -101,7 +178,87 @@ response; submitting `grantCode` returns 410. No T18A handler changed.
 - Initial `pnpm typecheck` failed because the new integration test directly
   imported the Worker into the DOM target. Reused the existing
   `tests/helpers/worker-fetch.mjs` bridge; no Worker/static-handler change.
-- Frontend implementation, final security review, browser evidence and full gates pending.
+- Final focused command:
+  `pnpm exec vitest run --maxWorkers=2 --minWorkers=2 tests/integration/payment-authority.test.ts tests/unit/payment-checkout.test.tsx tests/unit/billing-service.test.ts tests/unit/account-gates.test.tsx tests/unit/client-session.test.ts tests/integration/auth-me-quota.test.ts`
+  — **121 passed**: payment server 35, checkout 19, billing service 14,
+  account gates 3, existing client sessions 33, existing entitlement 17.
+- Checkpoint B rerun of checkout/billing/account-gates — **36 passed**.
+- `pnpm test --maxWorkers=2 --minWorkers=2` — **183 files / 4185 tests PASS**
+  on `1aabd32562edc2c5c37b3db9d7d19e1938896084`, no exclusions or skips.
+  Final log: `.hoplite/artifacts/t18b-full-vitest-final.log`.
+- `pnpm lint`, `pnpm typecheck`, `pnpm check:migrations`, `pnpm build` — PASS.
+- `pnpm exec vitest run tests/unit/takosan-brand.test.tsx tests/unit/payment-checkout.test.tsx`
+  — **38 passed**; `node scripts/t17/style-residuals.mjs` — **39 allowlisted,
+  0 unjustified**, with the existing modal palette allowlist unchanged.
+- `PORT=3100 PREVIEW_API_PORT=8790 pnpm exec playwright test tests/e2e/t17-ui/payment-authority.e2e.ts --config=playwright.t17.config.ts`
+  — **48 passed**, all six configured viewports.
+- `PORT=3100 PREVIEW_API_PORT=8790 pnpm exec playwright test tests/e2e/t17-ui/payment-authority.e2e.ts --config=playwright.t17.config.ts --project=mobile-390 --project=desktop-1440 --grep 'checkout does not fabricate' --output=.hoplite/artifacts/t18b-browser-error-results`
+  — **4 passed** after the final error-style fix.
+- Initial browser command:
+  `pnpm exec playwright test tests/e2e/t17-ui/payment-authority.e2e.ts --config=playwright.t17.config.ts --project=mobile-390 --project=desktop-1440`
+  — **16 passed**. QR-reference parity was then strengthened and its scoped
+  test reran **2 passed**. Images are synthetic, never payable provider QR codes.
+- Managed Preview was exercised with `agent-browser`: actual Worker metadata
+  displays 49000/499000 VND; missing provider configuration displays an error,
+  no payment dialog/QR, and no uncaught browser error.
 - No real payment, remote migration, merge or deployment performed.
+- Fresh mobile/desktop modal screenshots were pixel-inspected and retained at
+  `.hoplite/artifacts/t18b-payment-{mobile,desktop}.png`. The mobile synthetic
+  evidence is shared in PR #47; neither screenshot contains real payment details.
 
-Current status: `T18B_PARTIAL`.
+### Failures and recovery
+
+- First full Vitest: **4184 passed / 1 failed**. The existing brand gate caught
+  three raw palette tokens in the new checkout error alert. Changed the alert
+  to existing semantic tokens, kept the test/allowlist unchanged, and reran the
+  entire suite: **4185 passed**.
+- The unbounded-parallel six-file focused run had one 5-second cold-load timeout
+  in existing `client-session.test.ts`, followed by a pending-logout-state failure.
+  The identical six files passed 121/121 with two workers; no test was removed,
+  skipped, weakened, or given a longer timeout. Full Vitest uses two workers too.
+- A concurrent typecheck briefly read partially edited billing-service tests;
+  the final complete-file typecheck passes. Initial Worker/DOM import failure and
+  its existing-helper repair are recorded above.
+- An independent review build encountered a generated service-worker-token error;
+  a clean rebuild passed. The primary sequential `pnpm build` also passed without
+  source/build-configuration changes. No cause beyond the generated-output state
+  is asserted.
+- Managed Preview initially hard-coded PORT=5173 despite the platform's 3000
+  listener, allowing its readiness probe to hit a temporary Playwright server.
+  The project-only run override now respects injected PORT and retains isolated
+  API 8788: `PREVIEW_API_PORT=8788 node scripts/security-preview.mjs`.
+  Restarted Preview is ready on 3000 and the real unavailable-checkout flow was
+  rerun successfully. Browser tests use 3100/8790 to avoid interference.
+
+## Protected boundaries and release state
+
+- `git diff BASE -- src/worker/routes/auth.ts` is intentionally nonzero ONLY for
+  retiring `/auth/plus/activate`. A byte comparison of everything before that
+  endpoint passes; all T18A/OTP/login/logout behavior is unchanged.
+- Inventory Truth, OCR/AI, recipe authority, planner algorithms, Week behavior,
+  packages, migrations, production configs and workflows have **zero diff**.
+- Migration ledger: **38**, new/changed migrations **0**; no remote D1 action.
+- Final baseline check: main remains `13ff3f22082fc0601a81b90c96edded4741194ac`;
+  main CI #140 / `35550927573` SUCCESS; Deploy #51 / `35551180810` staging
+  SUCCESS, production job SKIPPED. T18B is not merged or deployed anywhere.
+- Release prerequisites (not silently performed): configure PayOS channel/server
+  secrets, verify callback delivery in an authorized environment, retire old
+  shared-secret callers, and obtain separate deployment approval. Mocked protocol
+  verification is not live-provider certification.
+
+## Publication and next action
+
+- [PR #47](https://github.com/omin-jp/Frigo-dev/pull/47) is OPEN against main,
+  review-only; CI/review auto-fix subscription **enabled**, auto-merge **disabled**.
+- Implementation-head hosted CI run `35554247707` was started for `1aabd32`;
+  the documentation head receives its own CI run. Final live check state and
+  exact remote HEAD are verified at publication, not assumed from a prior run.
+- No local implementation/verification blocker remains. Next is final-head
+  hosted CI and human review, never merge/deploy from this task. The auto-fix
+  subscription resumes the task when provider CI/review feedback settles.
+- Frontend monetary authority removed: **YES**. VietQR server-authoritative:
+  **YES**. Client amount tampering: **BLOCKED**. Entitlement server-authoritative:
+  **YES**. Webhook/provider verification: **PASS in deterministic protocol tests**,
+  live provider untested. Idempotency: **PASS**. Business-price decision: **not required**.
+
+Current status: `T18B_READY_FOR_REVIEW`.

@@ -1,5 +1,44 @@
 # Frigo / Takosan current handoff — 2026-09-20
 
+## T18B handoff — `T18B_READY_FOR_REVIEW` (2026-09-21)
+
+- **Identity/base:** `1368281478`, `omin-jp/Frigo-dev`; exact main/base
+  `13ff3f22082fc0601a81b90c96edded4741194ac`; branch
+  `feat/t18b-payment-authority`.
+- **Publication:** [PR #47](https://github.com/omin-jp/Frigo-dev/pull/47), OPEN;
+  CI/review auto-fix enabled, auto-merge disabled. Do not merge or deploy.
+- **Durable checkpoints:** A `2aba91acceeefba74ea242c7a55cae3b7b6d1e40`, B
+  `c00ea9fa132455f96aea31608b689ac87709d511`, C
+  `1cef30b902435ee71b0fae60a92b36ed9c3ca268`, style fix
+  `1aabd32562edc2c5c37b3db9d7d19e1938896084`; each pushed immediately.
+- **Implemented:** Worker-owned 49000/499000 VND; strict plan-only intents;
+  signed PayOS response and webhook verification; server-generated QR
+  instructions; owned status reads; atomic once-per-order entitlement; fresh
+  same-owner `/me`; stale request/session fences and honest unavailable states.
+- **Compatibility:** no schema change. Old activation cannot grant; `grantCode`
+  returns 410. Server-only PayOS client/API/checksum credentials and APP_URL are
+  required for checkout. Unknown/failed provider creation produces no instructions;
+  late paid callbacks for failed orders require operator reconciliation/refund.
+- **Verification:** focused payment/session/entitlement 121/121; browser 48/48
+  across six widths plus error-state rerun 4/4; brand/checkout follow-up 38/38;
+  full Vitest **183 files / 4185 tests PASS** using
+  `pnpm test --maxWorkers=2 --minWorkers=2` (no exclusions). Lint/typecheck/
+  migration smoke/build/diff check PASS. Independent final security review has
+  zero remaining P0/P1/P2/P3 findings.
+- **Failures/recovery:** first full suite 4184 pass/1 failure exposed raw error
+  colors; fixed semantic tokens without weakening coverage. Earlier focused
+  parallel cold-load timeout/state fallout passed with the same tests/two workers;
+  Worker-vs-DOM import fixed through the existing test bridge; transient edited-file
+  typecheck and generated SW build errors recovered and final gates passed.
+  Managed Preview's fixed port override was repaired; provider data is synthetic.
+- **Boundaries:** 38 migrations, 0 new/changed; all T18A code before the
+  payment-only legacy handler unchanged. Inventory, OCR/AI, recipe/planner, Week,
+  production infrastructure/workflows unchanged. No real payment, deployment,
+  remote mutation or merge. Main CI #140/staging #51 green, production skipped.
+- **Next action:** final-head hosted CI/human review only; no local blocker.
+  Auto-fix is enabled for follow-up, not
+  merge/deploy permission. See [exact report](T18B_PAYMENT_AUTHORITY_REPORT.md).
+
 ## T18A handoff — `T18A_READY_FOR_REVIEW` (2026-09-21)
 
 - **Identity/base:** `1368281478`, currently `omin-jp/Frigo-dev`; exact main
