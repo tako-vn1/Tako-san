@@ -1,5 +1,24 @@
 # Frigo / Takosan current handoff — 2026-09-21
 
+## T18D checkpoint A — in progress
+
+- **Task/base:** Human-style semantic hardening, not redesign; repository ID
+  `1368281478`, `vn-tako1/Frigo-dev`, exact base `07ace57241f8270b2458610979c709bb69b9a65a` verified.
+  Branch `feat/t18d-a11y-human-style-hardening` created and pushed.
+- **Changes:** Dedicated processing-stage status outside elapsed timer;
+  transition-only scan review lifecycle status, no duplicate failure alerts.
+- **Checks:** `pnpm exec vitest run tests/unit/scan-processing-state.test.tsx
+  tests/unit/t13b-fridge-review.test.tsx tests/unit/t13b-fridge-hardening.test.tsx`
+  **3 files / 57 PASS**; `git diff --check` PASS. Full/browser gates pending.
+- **Failures/environment:** Setup tool claim refused despite ready state.
+  Effective project overrides restore approved isolated Preview/setup; safe
+  commands applied locally, Preview HTTP ready on 5173. Existing settings-file
+  modification preserved, not part of commits.
+- **Boundaries/database:** No business/server/schema/workflow change; no remote
+  writes, merge or deploy. Historical CI #151 and staging #53 green; production
+  skipped. Actual VoiceOver/NVDA not performed.
+- **Next:** Checkpoints B/C/D, independent review, gates, review-only PR.
+
 ## T18C final handoff — `T18C_READY_FOR_REVIEW`
 
 - **Task:** Continue existing T18C, not a restart. Repository ID `1368281478`

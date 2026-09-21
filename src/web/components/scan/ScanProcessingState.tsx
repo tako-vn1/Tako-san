@@ -48,14 +48,15 @@ export const ScanProcessingState: React.FC<ScanProcessingStateProps> = ({
   const noun = kind === 'receipt' ? 'hóa đơn' : 'nguyên liệu';
   return (
     <div
-      role="status"
-      aria-live="polite"
       data-testid="scan-processing-state"
       className={clsx(
         'rounded-2xl border border-takosan-mint-deep/60 bg-white/95 text-semantic-text-primary shadow-lg',
         compact ? 'p-3' : 'p-4',
       )}
     >
+      <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {STAGES[currentIndex].label}.
+      </p>
       <div className="flex items-start gap-3">
         <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-takosan-mint text-takosan-green-deep">
           <ScanLine className="h-5 w-5" />

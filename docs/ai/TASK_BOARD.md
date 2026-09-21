@@ -1445,3 +1445,12 @@ rolling `qwen3.7-flash` alias is canary-only.
 - [in progress] Direct board comparison and source-led presentation findings;
   full T17 regressions, final fixes/evidence/gates/PR remain pending.
 - **T18C_PARTIAL**; no merge/deploy/T18D. VoiceOver/NVDA NOT PERFORMED.
+# T18D — human-style accessibility hardening (in progress)
+
+- [done] Exact stable-ID/base gate, CI #151/staging #53 success, production
+  skipped, no overlapping UI PR; requested new branch pushed.
+- [done] Checkpoint A scan live-region/lifecycle fixes; 3 files / 57 Vitest PASS.
+- [pending] B recipe tabs; C cooking dynamic semantics; D deterministic browser
+  regressions, 27-screen review, full validation, independent review, review PR.
+- No merge/deploy; preserve protected business boundaries and T18C composition.
+

@@ -1,5 +1,27 @@
 # Frigo / Takosan current authority — 2026-09-21
 
+## T18D — in progress
+
+Stable repository ID `1368281478` verified as `vn-tako1/Frigo-dev`;
+main/base `07ace57241f8270b2458610979c709bb69b9a65a`, CI #151 (`35584884792`) success,
+Deploy #53 (`35585265322`) staging success / production skipped. No open PR
+overlaps the four target UI surfaces. Branch
+`feat/t18d-a11y-human-style-hardening` created from that exact base and pushed.
+
+Checkpoint A separates scan stage announcements from elapsed ticks and adds
+transition-only review lifecycle status (ready/failed/confirmed), retaining
+poll retry alerts separately. `pnpm exec vitest run
+tests/unit/scan-processing-state.test.tsx tests/unit/t13b-fridge-review.test.tsx
+tests/unit/t13b-fridge-hardening.test.tsx`: **3 files / 57 tests PASS**;
+`git diff --check` PASS. Browser/full gates pending. No business/server changes.
+Next: recipe tabs, cooking announcements, browser and 27-screen semantic review.
+VoiceOver/NVDA not performed. Pre-existing `.hoplite/settings.json` modification
+preserved and excluded. Managed isolated Preview restored through project
+overrides; setup tool refused an idle-ready lease, safe setup commands run
+locally instead (frozen dependencies, Chromium, sqlite3). No deployment.
+
+## Previous T18C receipt (historical; PR #48 is now merged)
+
 **Current: T18C_READY_FOR_REVIEW.** Local certification is complete on
 application freeze `6f8f6f40bb2c47dacd33670ac7397b0528b469a8`. Repository ID
 `1368281478` resolves to `vn-tako/Frigo-dev`; existing branch
