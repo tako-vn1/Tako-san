@@ -4,6 +4,12 @@
 See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
 The safe-pause section is historical.
 
+- [done] Final combined run exposed Home 1024px/200%-text P2 (46px overflow):
+  **378 passed / 11 intentional skips / 1 failed**. Rem-based wrapping fix plus
+  unchanged zoom gate and new region-stacking check: **12/12 focused PASS**.
+- [in progress] Preserve failed run, regenerate all 390 cases in isolated
+  viewport groups and repeat full repository gates after the Home correction.
+
 - [done] Final unfiltered repository gates on `b024b0d`: **184 files / 4222
   tests**, lint/typecheck/migration smoke/build/diff-check; style 39/0,
   contrast 33/33. Evidence: `repository-gates.zip`.

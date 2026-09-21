@@ -4,6 +4,18 @@
 See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
 The safe-pause section is historical.
 
+### Text-zoom follow-up — final browser gate found one P2
+
+The complete 390-case run ended **378 passed / 11 intentional skips / 1
+failed**: Home overflowed 46px at 1024px with 200% text zoom. The fixed
+breakpoint grid kept two narrow columns after rem-scaled sidebar/text growth.
+Home now uses wrapping, rem-based flex regions, preserving the wider primary
+region at normal sizes. The original zoom gate and an added explicit Home
+stacking assertion pass at all six widths: **12/12**. No gate was weakened.
+The previous final artifacts will remain separate as `pre-zoom/`; regenerate
+all six projects against isolated per-run in-memory Preview servers and rerun
+all repository gates before final certification/PR.
+
 ### Final repository gates — PASS (application freeze `b024b0d`)
 
 Fresh unfiltered `pnpm test`: **184 files / 4222 tests PASS** (818.46s).

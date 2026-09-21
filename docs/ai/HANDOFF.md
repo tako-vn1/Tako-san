@@ -4,6 +4,21 @@
 See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
 The safe-pause section is historical.
 
+### Final browser failure / text-zoom correction
+
+- Complete run: **378 PASS / 11 intentional skips / 1 FAIL**. Home at 1024px
+  overflowed by 46px under 200% text zoom; this is a real P2, not a fixture issue.
+- Three Home layout classes now wrap by rem-based region width rather than
+  forcing two columns at a pixel breakpoint. Original zoom assertion unchanged;
+  new explicit stacked-region check added. Six-width focused follow-up:
+  **12/12 PASS** in 1.8 minutes.
+- Preserve the complete failed run separately as `pre-zoom/`; current board
+  reviews cover that freeze and must not silently certify new Home pixels.
+- Next: rerun all 390 cases in three isolated two-project groups (independent
+  frontend/API ports and process-local in-memory SQLite, one worker per group),
+  rerun complete repository gates, inspect regenerated images and archive.
+  This changes scheduling only, not tests, fixtures, retries, or assertions.
+
 ### Complete repository gate receipt
 
 - Application freeze `b024b0d41d13e07df253dad4f6a7d472ec1d7c11`.

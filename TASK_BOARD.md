@@ -2,6 +2,12 @@
 See the continuation checkpoint below and
 [provenance](docs/ai/T18C_SOURCE_PROVENANCE.md). The safe pause is historical.
 
+Final combined browser run: **378 passed / 11 intentional skips / 1 failed**.
+Home 1024px/200%-text overflow was a real P2; rem-based wrapping replaces the
+fixed two-column breakpoint. Original zoom gate plus explicit stacking check:
+**12/12 focused PASS**. Complete post-correction browser/repository reruns next;
+the failed run stays separate as `pre-zoom/`. No readiness/PR claim yet.
+
 **Repository gates PASS on application freeze `b024b0d`: 184 files / 4222
 tests**, lint/typecheck/migrations/build/diff, style 39/0 and contrast 33/33.
 Final browser matrix and post-fix visual review are running; review-only PR next.

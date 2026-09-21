@@ -222,6 +222,13 @@ None of these earlier attempts substitutes for the clean final gates:
 - The next full attempt failed the unchanged strict 44px-target gate on brand
   links and inventory titles. Explicit target bounds are the correction; the
   failed attempt and concurrent unit run are non-final, not hidden.
+- The complete 390-case run on `b024b0d` ended 378 passed / 11 intentional
+  skips / 1 failed. Home overflowed 46px at 1024px with 200% text zoom because
+  a fixed breakpoint forced two columns into the rem-expanded shell. Three
+  presentation classes now use wrapping, rem-based region widths. The unchanged
+  five-route zoom gate plus explicit Home stacking regression pass at all six
+  widths (12/12). The failed run is preserved as `pre-zoom/`; complete final
+  browser/repository regeneration is required after this correction.
 
 The browser runs use isolated local Preview and synthetic fixtures. No live
 payment/provider transaction, remote migration, production check, VoiceOver,

@@ -281,6 +281,15 @@ test('Home primary and recommendation regions stay bounded and distinct on wide 
     expect(primaryBox!.width).toBeGreaterThan(recommendationsBox!.width);
     await page.screenshot({ path: info.outputPath(`home-regions-${page.viewportSize()!.width}.png`), fullPage: true });
   }
+
+  await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
+  await expectNoHorizontalOverflow(page);
+  const [zoomedPrimary, zoomedRecommendations] = await Promise.all([
+    primary.boundingBox(), recommendations.boundingBox(),
+  ]);
+  expect(zoomedPrimary!.y + zoomedPrimary!.height).toBeLessThanOrEqual(zoomedRecommendations!.y + 1);
+  await page.screenshot({ path: info.outputPath(`home-text-zoom-${page.viewportSize()!.width}.png`), fullPage: true });
+  await page.evaluate(() => { document.documentElement.style.fontSize = ''; });
 });
 
 test('inventory detail and recipe recommendations are keyboard-navigable without merging row actions', async ({ page }, info) => {

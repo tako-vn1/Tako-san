@@ -136,8 +136,8 @@ export const HomePage: React.FC = () => {
         </button>
       </header>
 
-      <div className="px-4 pt-4 grid gap-5 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:items-start animate-fade-in">
-        <div data-testid="t18c-home-primary" className="min-w-0 space-y-5">
+      <div className="px-4 pt-4 flex flex-wrap items-start gap-5 animate-fade-in">
+        <div data-testid="t18c-home-primary" className="min-w-0 flex-[1.15_1_18rem] space-y-5">
         {/* HERO: today's meal from the live Week plan */}
         {weekPlanQuery.isPending ? (
           <SkeletonCard className="h-36 rounded-3xl" />
@@ -362,7 +362,7 @@ export const HomePage: React.FC = () => {
         </div>
 
         {/* SECTION 4: GỢI Ý MÓN NGON */}
-        <div data-testid="t18c-home-recommendations" className="min-w-0 space-y-3 pt-2">
+        <div data-testid="t18c-home-recommendations" className="min-w-0 flex-[1_1_16rem] space-y-3 pt-2">
           <div className="flex items-center justify-between">
             <h2 className="font-heading font-bold text-sm text-takosan-navy">
               Gợi ý cho bạn
