@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TopBar } from '../components/common/TopBar';
@@ -12,6 +12,29 @@ import { Clock, Users, ChefHat, Check, ShoppingBag, ArrowRight, SearchX } from '
 import { clsx } from 'clsx';
 import { resolveRecipeImage, recipeImageErrorHandler } from '../lib/recipe-media';
 
+type RecipeTabId = 'steps' | 'ingredients' | 'nutrition';
+
+const RECIPE_TABS: Array<{ id: RecipeTabId; label: string; tabId: string; panelId: string }> = [
+  {
+    id: 'steps',
+    label: 'Cách nấu',
+    tabId: 'recipe-detail-tab-steps',
+    panelId: 'recipe-detail-panel-steps',
+  },
+  {
+    id: 'ingredients',
+    label: 'Nguyên liệu',
+    tabId: 'recipe-detail-tab-ingredients',
+    panelId: 'recipe-detail-panel-ingredients',
+  },
+  {
+    id: 'nutrition',
+    label: 'Dinh dưỡng',
+    tabId: 'recipe-detail-tab-nutrition',
+    panelId: 'recipe-detail-panel-nutrition',
+  },
+];
+
 export const RecipeDetailPage: React.FC = () => {
   const { slug, id } = useParams<{ slug?: string; id?: string }>();
   const recipeKey = slug || id || '';
@@ -21,7 +44,12 @@ export const RecipeDetailPage: React.FC = () => {
   const startCooking = useCookingStore((s) => s.startCooking);
 
   const [addedToShop, setAddedToShop] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'steps' | 'ingredients' | 'nutrition'>('steps');
+  const [activeTab, setActiveTab] = useState<RecipeTabId>('steps');
+  const tabRefs = useRef<Record<RecipeTabId, HTMLButtonElement | null>>({
+    steps: null,
+    ingredients: null,
+    nutrition: null,
+  });
 
   const recipeQuery = useQuery({
     queryKey: queryKeys.recipe(recipeKey),
@@ -153,17 +181,34 @@ export const RecipeDetailPage: React.FC = () => {
 
       <div className="px-4 pt-4 space-y-4 animate-fade-in">
         {/* Tabs: Cách nấu | Nguyên liệu | Dinh dưỡng */}
+        {/* Arrow-key navigation uses automatic activation and follows focus. */}
         <div className="flex bg-semantic-border/70 p-1 rounded-xl" role="tablist" aria-label="Thông tin món ăn">
-          {[
-            { id: 'steps' as const, label: 'Cách nấu' },
-            { id: 'ingredients' as const, label: 'Nguyên liệu' },
-            { id: 'nutrition' as const, label: 'Dinh dưỡng' },
-          ].map((tab) => (
+          {RECIPE_TABS.map((tab, tabIndex) => (
             <button
               key={tab.id}
+              id={tab.tabId}
               role="tab"
               aria-selected={activeTab === tab.id}
+              aria-controls={tab.panelId}
+              tabIndex={activeTab === tab.id ? 0 : -1}
               onClick={() => setActiveTab(tab.id)}
+              onKeyDown={(event) => {
+                let nextIndex: number | undefined;
+                if (event.key === 'ArrowRight') nextIndex = (tabIndex + 1) % RECIPE_TABS.length;
+                if (event.key === 'ArrowLeft')
+                  nextIndex = (tabIndex - 1 + RECIPE_TABS.length) % RECIPE_TABS.length;
+                if (event.key === 'Home') nextIndex = 0;
+                if (event.key === 'End') nextIndex = RECIPE_TABS.length - 1;
+                if (nextIndex === undefined) return;
+
+                event.preventDefault();
+                const nextTab = RECIPE_TABS[nextIndex];
+                setActiveTab(nextTab.id);
+                tabRefs.current[nextTab.id]?.focus();
+              }}
+              ref={(element) => {
+                tabRefs.current[tab.id] = element;
+              }}
               className={clsx(
                 'flex-1 py-2 rounded-lg text-xs font-heading font-bold transition-tap tap-target',
                 activeTab === tab.id
@@ -177,40 +222,58 @@ export const RecipeDetailPage: React.FC = () => {
         </div>
 
         {/* Tab 1: Cách nấu */}
-        {activeTab === 'steps' && (
-          <div className="space-y-3 pt-1">
-            {recipe.steps.map((s: any, idx: number) => (
-              <div
-                key={s.stepNumber || idx}
-                className="bg-white rounded-2xl p-4 flex gap-3.5 border border-semantic-border shadow-xs"
-              >
-                <div className="w-7 h-7 rounded-full bg-takosan-green text-white font-heading font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
-                  {s.stepNumber || idx + 1}
+        <div
+          id="recipe-detail-panel-steps"
+          role="tabpanel"
+          aria-labelledby="recipe-detail-tab-steps"
+          tabIndex={0}
+          hidden={activeTab !== 'steps'}
+          className="space-y-3 pt-1"
+        >
+          {/* tabIndex provides a direct keyboard entry point for text-only panels. */}
+          {activeTab === 'steps' && (
+            <>
+              {recipe.steps.map((s: any, idx: number) => (
+                <div
+                  key={s.stepNumber || idx}
+                  className="bg-white rounded-2xl p-4 flex gap-3.5 border border-semantic-border shadow-xs"
+                >
+                  <div className="w-7 h-7 rounded-full bg-takosan-green text-white font-heading font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                    {s.stepNumber || idx + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {s.title && (
+                      <h4 className="font-heading font-bold text-sm text-semantic-text-primary mb-1">
+                        {s.title}
+                      </h4>
+                    )}
+                    <p className="text-xs text-semantic-text-secondary leading-relaxed">
+                      {s.instruction}
+                    </p>
+                    {s.timerMinutes && (
+                      <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-takosan-green-deep bg-takosan-mint px-2.5 py-1 rounded-lg mt-2 border border-takosan-mint-deep/60">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Hẹn giờ: {s.timerMinutes} phút</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  {s.title && (
-                    <h4 className="font-heading font-bold text-sm text-semantic-text-primary mb-1">
-                      {s.title}
-                    </h4>
-                  )}
-                  <p className="text-xs text-semantic-text-secondary leading-relaxed">
-                    {s.instruction}
-                  </p>
-                  {s.timerMinutes && (
-                    <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-takosan-green-deep bg-takosan-mint px-2.5 py-1 rounded-lg mt-2 border border-takosan-mint-deep/60">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>Hẹn giờ: {s.timerMinutes} phút</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </>
+          )}
+        </div>
 
         {/* Tab 2: Nguyên liệu */}
-        {activeTab === 'ingredients' && (
-          <div className="bg-white rounded-2xl p-4 border border-semantic-border shadow-xs space-y-3">
+        <div
+          id="recipe-detail-panel-ingredients"
+          role="tabpanel"
+          aria-labelledby="recipe-detail-tab-ingredients"
+          tabIndex={0}
+          hidden={activeTab !== 'ingredients'}
+          className="bg-white rounded-2xl p-4 border border-semantic-border shadow-xs space-y-3"
+        >
+          {activeTab === 'ingredients' && (
+            <>
             <div className="flex items-center justify-between border-b border-semantic-border/70 pb-2.5">
               <h3 className="font-heading font-bold text-sm text-semantic-text-primary">
                 Nguyên liệu ({recipe.ingredients.length} món)
@@ -292,39 +355,49 @@ export const RecipeDetailPage: React.FC = () => {
                 Chưa thêm được vào danh sách mua. Vui lòng thử lại.
               </p>
             )}
-          </div>
-        )}
+            </>
+          )}
+        </div>
 
         {/* Tab 3: Dinh dưỡng — only real data, no invented numbers */}
-        {activeTab === 'nutrition' && (
-          <div className="bg-white rounded-2xl p-4 border border-semantic-border shadow-xs space-y-3">
-            <h3 className="font-heading font-bold text-sm text-semantic-text-primary">
-              Dinh dưỡng mỗi khẩu phần
-            </h3>
-            {recipe.nutrition ? (
-              <div className="grid grid-cols-4 gap-2 pt-1 text-center">
-                {[
-                  { label: 'Calories', value: recipe.nutrition.calories, unit: 'kcal' },
-                  { label: 'Đạm', value: recipe.nutrition.proteinG, unit: 'g' },
-                  { label: 'Béo', value: recipe.nutrition.fatG, unit: 'g' },
-                  { label: 'Carb', value: recipe.nutrition.carbG, unit: 'g' },
-                ].map((cell) => (
-                  <div key={cell.label} className="bg-semantic-background-subtle p-2.5 rounded-xl border border-semantic-border/70">
-                    <p className="text-[10px] text-semantic-text-muted uppercase font-semibold">{cell.label}</p>
-                    <p className="font-heading font-bold text-base text-semantic-text-primary mt-1">
-                      {typeof cell.value === 'number' ? cell.value : '—'}
-                    </p>
-                    <p className="text-[10px] text-semantic-text-muted">{cell.unit}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-semantic-text-muted">
-                Món này chưa có thông tin dinh dưỡng.
-              </p>
-            )}
-          </div>
-        )}
+        <div
+          id="recipe-detail-panel-nutrition"
+          role="tabpanel"
+          aria-labelledby="recipe-detail-tab-nutrition"
+          tabIndex={0}
+          hidden={activeTab !== 'nutrition'}
+          className="bg-white rounded-2xl p-4 border border-semantic-border shadow-xs space-y-3"
+        >
+          {activeTab === 'nutrition' && (
+            <>
+              <h3 className="font-heading font-bold text-sm text-semantic-text-primary">
+                Dinh dưỡng mỗi khẩu phần
+              </h3>
+              {recipe.nutrition ? (
+                <div className="grid grid-cols-4 gap-2 pt-1 text-center">
+                  {[
+                    { label: 'Calories', value: recipe.nutrition.calories, unit: 'kcal' },
+                    { label: 'Đạm', value: recipe.nutrition.proteinG, unit: 'g' },
+                    { label: 'Béo', value: recipe.nutrition.fatG, unit: 'g' },
+                    { label: 'Carb', value: recipe.nutrition.carbG, unit: 'g' },
+                  ].map((cell) => (
+                    <div key={cell.label} className="bg-semantic-background-subtle p-2.5 rounded-xl border border-semantic-border/70">
+                      <p className="text-[10px] text-semantic-text-muted uppercase font-semibold">{cell.label}</p>
+                      <p className="font-heading font-bold text-base text-semantic-text-primary mt-1">
+                        {typeof cell.value === 'number' ? cell.value : '—'}
+                      </p>
+                      <p className="text-[10px] text-semantic-text-muted">{cell.unit}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-semantic-text-muted">
+                  Món này chưa có thông tin dinh dưỡng.
+                </p>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Sticky Bottom Start Cooking Button */}
