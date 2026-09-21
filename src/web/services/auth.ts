@@ -201,7 +201,12 @@ export const authApi = {
 
   resendOtp: async (email: string, purpose: string, turnstileToken?: string | null) => {
     try {
-      return await fetchJson<{ success: boolean; message: string; devOtp?: string }>(
+      return await fetchJson<{
+        success: boolean;
+        message: string;
+        expiresInMinutes: number;
+        devOtp?: string;
+      }>(
         '/auth/resend-otp',
         {
           method: 'POST',

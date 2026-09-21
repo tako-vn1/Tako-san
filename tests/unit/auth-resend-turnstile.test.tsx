@@ -50,7 +50,7 @@ describe('OTP resend Turnstile lifecycle', () => {
         }, { status: 503 });
       }
       if (path.endsWith('/resend-otp')) {
-        return Response.json({ success: true, message: 'Đã gửi lại mã OTP mới.' });
+        return Response.json({ success: true, message: 'Đã gửi lại mã OTP mới.', expiresInMinutes: 10 });
       }
       return Response.json({ error: 'unexpected request' }, { status: 500 });
     }));

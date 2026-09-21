@@ -586,18 +586,11 @@ export const AuthPage: React.FC = () => {
     try {
       const res = await api.resendOtp(email, otpPurpose, turnstileToken);
       if (res.success && canApply()) {
-        if (res.devOtp) setDevOtp(res.devOtp);
+        setDevOtp(res.devOtp || null);
         setResendCountdown(60);
         setTransferDeferred(false);
         if (otpPurpose === 'register') {
-          // The resend endpoint does not return fresh expiry metadata.
-          const context = writeVerifyContext({
-            email,
-            resendAvailableAt: Date.now() + 60_000,
-            expiresAt: null,
-            delivered: res.devOtp ? null : true,
-          });
-          setVerifyContext(context);
+          enterVerification(email, res.devOtp ? null : true, res.expiresInMinutes);
         }
         setSuccessMessage(res.message);
       }
