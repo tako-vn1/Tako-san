@@ -26,8 +26,12 @@ unchanged base `b8447e85f099b800a9a8ebc6c4c137adc9e45a32`.
   remain intact. VoiceOver and NVDA **NOT PERFORMED**; axe incomplete records
   remain visible. No live-provider transaction or remote migration.
 - Evidence/report: `T18C_VISUAL_CERTIFICATION.md` and
-  `.hoplite/artifacts/t18c/EVIDENCE.md`. Next: publish review-only PR and inspect
-  its CI/review feedback. No merge, deploy or T18D. Preserve uncommitted
+  `.hoplite/artifacts/t18c/EVIDENCE.md`; published checkpoint `321824d`.
+  [PR #48](https://github.com/vn-tako/Frigo-dev/pull/48) is OPEN against `main`,
+  auto-merge disabled, CI/review auto-fix enabled. Initial hosted check:
+  `validate` pending; no comments/reviews/unresolved threads; no merge conflict.
+  Next: inspect exact-head CI and feedback when the loop resumes this task.
+  No merge, deploy or T18D. Preserve uncommitted
   `.hoplite/settings.json` and extracted reference files as workspace state.
 
 ## Historical continuation checkpoints (superseded by the result above)

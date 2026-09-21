@@ -8,8 +8,11 @@
 - [done] Final lint/typecheck/full Vitest (**184 files / 4222 tests**), migration
   smoke/build, style (**39/0**), contrast (**33/33**) and diff checks PASS on
   the final implementation. Protected business/backend boundaries unchanged.
-- [pending] Publish review-only PR; inspect exact-head hosted checks/feedback.
-  Human VoiceOver/NVDA not performed. No merge, deployment or T18D.
+- [done] Review-only [PR #48](https://github.com/vn-tako/Frigo-dev/pull/48)
+  opened; CI/review auto-fix enabled, auto-merge disabled.
+- [pending] Exact-head hosted checks/feedback (`validate` initially pending);
+  the enabled loop resumes this task. Human VoiceOver/NVDA not performed.
+  No merge, deployment or T18D.
 
 Exact commands, failure ledger, evidence and next action:
 [certification](docs/ai/T18C_VISUAL_CERTIFICATION.md),

@@ -329,6 +329,12 @@ payment focus/ARIA/scroll-lock presentation do not change T18A auth, T18B
 idempotency, entitlement confirmation, Inventory Truth, OCR/AI, or Week logic.
 Two independent code reviews found no unresolved P0/P1/P2.
 
-Next: review-only PR against `main`, review its CI and feedback, and separately
-schedule human VoiceOver/NVDA checks. No merge, deploy, T18D, real provider
-transaction, or remote migration was performed or authorized.
+Published evidence checkpoint: `321824d`.
+[Review-only PR #48](https://github.com/vn-tako/Frigo-dev/pull/48) is OPEN
+against `main`; CI/review auto-fix is enabled and auto-merge is disabled.
+Initial check inspection: `validate` pending, no reviews/comments/unresolved
+threads, no merge conflict. Local readiness does not claim hosted CI has passed.
+The enabled loop resumes this task when CI/review settles; inspect its exact
+head and feedback then. Human VoiceOver/NVDA checks remain separate work.
+No merge, deploy, T18D, real provider transaction, or remote migration was
+performed or authorized.
