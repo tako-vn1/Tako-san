@@ -2,9 +2,13 @@ import { createHmac } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CreatedPaymentIntent, PaymentIntent } from '../../src/shared/payment';
 import type { Env } from '../../src/worker/types';
+import { isValidIssuedIntent, type PaymentRow } from '../../src/worker/payment/authority';
 import { SESSION_COOKIE, sha256Hex } from '../../src/worker/utils/session';
 import { SqliteD1 } from '../helpers/sqlite-d1';
 import { fetchWorker } from '../helpers/worker-fetch.mjs';
+
+const currentPrices = vi.hoisted(() => ({ monthly: 49000, annual: 499000 }));
+vi.mock('../../src/worker/payment/prices', () => ({ PLUS_PRICES: currentPrices }));
 
 const ORIGIN = 'http://localhost:8787';
 const PAYOS_URL = 'https://api-merchant.payos.vn/v2/payment-requests';
@@ -216,6 +220,8 @@ async function postWebhook(body: Json) {
 }
 
 beforeEach(async () => {
+  const catalog = await vi.importActual<typeof import('../../src/worker/payment/prices')>('../../src/worker/payment/prices');
+  Object.assign(currentPrices, catalog.PLUS_PRICES);
   vi.useFakeTimers({ toFake: ['Date'] });
   // The real app rate-limits payment creation per account. Advance each
   // isolated test into a fresh window without disabling that middleware.
@@ -315,6 +321,124 @@ describe('server payment authority', () => {
     expect(fields.amount).toBe(499000);
     expect(fields.orderCode).toBe(Number(payment.orderCode));
     expect(payment.expiresAt).toBe(new Date((Math.floor(testNow.getTime() / 1000) + 30 * 60) * 1000).toISOString());
+  });
+
+  it.each([
+    ['monthly', 49000, 59000],
+    ['annual', 499000, 599000],
+  ] as const)('issued payment intent keeps its server-approved amount after catalog price changes: %s', async (plan, oldPrice, newPrice) => {
+    const payment = await createIntent(plan);
+    expect(payment.amountVnd).toBe(oldPrice);
+    currentPrices[plan] = newPrice;
+    expect((await request('/billing/plans')).json.plans).toContainEqual({ plan, amountVnd: newPrice, currency: 'VND' });
+
+    const read = await request(`/billing/payment-intents/${payment.id}`);
+    expect(read.status).toBe(200);
+    expect(read.json.payment).toMatchObject({ amountVnd: oldPrice, status: 'pending' });
+    expect((await postWebhook(webhookFor(payment, { amount: newPrice }))).status).toBe(409);
+    expect(paymentRow(payment.id).status).toBe('pending');
+    expect(subscriptionRow()).toBeUndefined();
+
+    const body = webhookFor(payment);
+    const beforeGrant = db.query<{ now: string }>("SELECT datetime('now') AS now")[0].now;
+    const results = await Promise.all([postWebhook(body), postWebhook(body)]);
+    expect(results.map((result) => result.status)).toEqual([200, 200]);
+    const granted = subscriptionRow();
+    expect(granted).toMatchObject({ plan: 'plus', status: 'active' });
+    const sqlNow = db.query<{ now: string }>("SELECT datetime('now') AS now")[0].now;
+    const duration = (plan === 'annual' ? 366 : 31) * 24 * 60 * 60 * 1000;
+    expect(Date.parse(String(granted?.expires_at))).toBeGreaterThanOrEqual(Date.parse(`${beforeGrant}Z`) + duration);
+    expect(Date.parse(String(granted?.expires_at))).toBeLessThan(Date.parse(`${sqlNow}Z`) + duration + 1000);
+    expect(paymentRow(payment.id)).toMatchObject({ amount_vnd: oldPrice, status: 'paid' });
+    expect((await request(`/billing/payment-intents/${payment.id}`)).json.payment)
+      .toMatchObject({ amountVnd: oldPrice, status: 'paid' });
+    expect((await postWebhook(webhookFor(payment, { reference: 'different-transaction' }))).status).toBe(409);
+
+    const created = await request('/billing/payment-intents', {
+      method: 'POST', body: { plan, amount: oldPrice, amountVnd: 1, currency: 'USD' },
+    });
+    expect(created.status).toBe(201);
+    const next = created.json.payment as CreatedPaymentIntent;
+    expect(next).toMatchObject({ plan, amountVnd: newPrice, currency: 'VND' });
+    expect(paymentRow(next.id).amount_vnd).toBe(newPrice);
+    expect(providerCalls.at(-1)?.body.amount).toBe(newPrice);
+    expect(new URL(next.instructions.qrImageUrl).searchParams.get('amount')).toBe(String(newPrice));
+    expect((await postWebhook(webhookFor(next, { reference: (body.data as Json).reference }))).status).toBe(409);
+    expect(paymentRow(next.id).status).toBe('pending');
+
+    currentPrices[plan] += 10000;
+    vi.setSystemTime(new Date(Date.parse(payment.expiresAt) + 1));
+    expect((await postWebhook(body)).status).toBe(200);
+    expect((await postWebhook(webhookFor(payment, { amount: currentPrices[plan] }))).status).toBe(409);
+    expect(subscriptionRow()).toEqual(granted);
+  });
+
+  it('rejects the first payment of an expired old-price intent after a catalog change', async () => {
+    const payment = await createIntent();
+    currentPrices.monthly = 59000;
+    vi.setSystemTime(new Date(payment.expiresAt));
+    const read = await request(`/billing/payment-intents/${payment.id}`);
+    expect(read.status).toBe(200);
+    expect(read.json.payment).toMatchObject({ amountVnd: 49000, status: 'expired' });
+    expect((await postWebhook(webhookFor(payment))).status).toBe(409);
+    expect(subscriptionRow()).toBeUndefined();
+  });
+
+  it.each(['failed', 'refunded', 'expired', 'paid'] as const)('rejects a new payment of a consumed %s old-price intent after a catalog change', async (status) => {
+    const payment = await createIntent();
+    await db.prepare('UPDATE payment_intents SET status = ? WHERE id = ?').bind(status, payment.id).run();
+    currentPrices.monthly = 59000;
+    const read = await request(`/billing/payment-intents/${payment.id}`);
+    expect(read.status).toBe(200);
+    expect(read.json.payment).toMatchObject({ amountVnd: 49000, status });
+    expect((await postWebhook(webhookFor(payment))).status).toBe(409);
+    expect(subscriptionRow()).toBeUndefined();
+  });
+
+  it.each([
+    ['plan', 'forged'],
+    ['amount_vnd', 0],
+    ['amount_vnd', -1],
+    ['amount_vnd', 49000.5],
+    ['amount_vnd', Number.MAX_VALUE],
+    ['amount_vnd', 'invalid'],
+    ['currency', 'USD'],
+    ['order_code', '0'],
+    ['order_code', '-1'],
+    ['order_code', '001'],
+    ['order_code', '1.5'],
+    ['order_code', '1e3'],
+    ['order_code', String(Number.MAX_SAFE_INTEGER + 1)],
+    ['expires_at', 'invalid'],
+    ['expires_at', ''],
+    ['expires_at', '0'],
+    ['expires_at', '1'],
+    ['expires_at', '2025'],
+    ['expires_at', '2025-01-01'],
+    ['expires_at', '2099-02-30T00:00:00.000Z'],
+    ['status', 'forged'],
+  ] as const)('rejects structurally invalid persisted %s = %s on reads and callbacks', async (field, value) => {
+    const payment = await createIntent();
+    // Simulate corrupted storage even for values normally fenced by the DB.
+    db.seed('PRAGMA ignore_check_constraints = ON');
+    await db.prepare(`UPDATE payment_intents SET ${field} = ? WHERE id = ?`).bind(value, payment.id).run();
+    expect((await request(`/billing/payment-intents/${payment.id}`)).status).toBe(409);
+    expect((await postWebhook(webhookFor(payment))).status).toBe(409);
+    expect(subscriptionRow()).toBeUndefined();
+  });
+
+  it('rejects a signed amount that no longer matches the persisted intent', async () => {
+    const payment = await createIntent();
+    await db.prepare('UPDATE payment_intents SET amount_vnd = ? WHERE id = ?').bind(49001, payment.id).run();
+    expect((await postWebhook(webhookFor(payment))).status).toBe(409);
+    expect(subscriptionRow()).toBeUndefined();
+  });
+
+  it('enforces the safe-integer boundary on stored amounts without consulting catalog prices', async () => {
+    const payment = await createIntent();
+    const row = paymentRow(payment.id) as unknown as PaymentRow;
+    expect(isValidIssuedIntent({ ...row, amount_vnd: Number.MAX_SAFE_INTEGER })).toBe(true);
+    expect(isValidIssuedIntent({ ...row, amount_vnd: Number.MAX_SAFE_INTEGER + 1 })).toBe(false);
   });
 
   it('fails closed before DB/provider work when PayOS configuration is incomplete', async () => {

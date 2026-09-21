@@ -1,5 +1,13 @@
 ## T18B — payment authority unification — `T18B_READY_FOR_REVIEW` (2026-09-21)
 
+- Final review P1 fixed from expected `0926222` on the same branch/PR: price
+  table → new offers only; issued intent → immutable per-order authority;
+  signed callback → persisted-order match; entitlement → valid persisted paid
+  intent only. Operational 49000/499000 prices and all checkout fences retained.
+  Focused **151/151** (65 server payment), full **183 files / 4217 PASS**, browser
+  **48/48**, lint/typecheck/migration smoke/build/diff checks PASS. Exact commands,
+  failures/recovery and new-head CI boundary are in the report. No migration,
+  auth, inventory, OCR/planner or workflow change in this final fix.
 - Repository `1368281478` / `omin-jp/Frigo-dev`; exact base/main
   `13ff3f22082fc0601a81b90c96edded4741194ac`; branch
   `feat/t18b-payment-authority`; review-only PR #47 OPEN, auto-fix enabled and

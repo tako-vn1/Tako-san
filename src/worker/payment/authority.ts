@@ -1,9 +1,6 @@
 import type { PaymentIntent, PaymentStatus, PlusPlan, PlusPrice } from '../../shared/payment';
+import { PLUS_PRICES } from './prices';
 
-export const PLUS_PRICES: Readonly<Record<PlusPlan, number>> = Object.freeze({
-  monthly: 49000,
-  annual: 499000,
-});
 export const PAYMENT_CURRENCY = 'VND' as const;
 export const INTENT_TTL_SECONDS = 30 * 60;
 
@@ -20,9 +17,16 @@ export interface PaymentRow {
   provider_reference: string | null;
 }
 
-export function hasAuthoritativePrice(row: PaymentRow): boolean {
+export function isValidIssuedIntent(row: PaymentRow): boolean {
+  // Issuance fixes the offer; later catalog changes apply only to new orders.
+  const expiresAt = typeof row.expires_at === 'string' ? Date.parse(row.expires_at) : NaN;
   return (row.plan === 'monthly' || row.plan === 'annual') &&
-    row.amount_vnd === PLUS_PRICES[row.plan] && row.currency === PAYMENT_CURRENCY;
+    Number.isSafeInteger(row.amount_vnd) && row.amount_vnd > 0 &&
+    row.currency === PAYMENT_CURRENCY &&
+    typeof row.order_code === 'string' && /^[1-9]\d{0,15}$/.test(row.order_code) &&
+    Number.isSafeInteger(Number(row.order_code)) &&
+    Number.isFinite(expiresAt) && new Date(expiresAt).toISOString() === row.expires_at &&
+    ['pending', 'paid', 'failed', 'expired', 'refunded'].includes(row.status);
 }
 
 export function plusPrices(): PlusPrice[] {

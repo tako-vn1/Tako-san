@@ -3,9 +3,10 @@ import { z } from 'zod';
 import type { Env, AuthContext } from '../types';
 import { rateLimiter } from '../middleware/rate-limit';
 import {
-  hasAuthoritativePrice, INTENT_TTL_SECONDS, newOrderCode, PAYMENT_CURRENCY,
-  paymentView, PLUS_PRICES, plusPrices, type PaymentRow,
+  isValidIssuedIntent, INTENT_TTL_SECONDS, newOrderCode, PAYMENT_CURRENCY,
+  paymentView, plusPrices, type PaymentRow,
 } from '../payment/authority';
+import { PLUS_PRICES } from '../payment/prices';
 import { createPayosInstructions, payosConfigured, verifyPayosData } from '../payment/payos';
 
 export const billingRoutes = new Hono<{ Bindings: Env; Variables: { auth: AuthContext } }>();
@@ -66,7 +67,7 @@ billingRoutes.get('/billing/payment-intents/:id', async (c) => {
   const intent = await c.env.DB.prepare('SELECT * FROM payment_intents WHERE id = ? AND user_id = ?')
     .bind(c.req.param('id'), c.get('auth').userId).first<PaymentRow>();
   if (!intent) return c.json({ error: 'Không tìm thấy thanh toán', code: 'PAYMENT_NOT_FOUND' }, 404);
-  if (!hasAuthoritativePrice(intent)) return c.json({ error: 'Thanh toán không hợp lệ', code: 'PAYMENT_INVALID' }, 409);
+  if (!isValidIssuedIntent(intent)) return c.json({ error: 'Thanh toán không hợp lệ', code: 'PAYMENT_INVALID' }, 409);
   return c.json({ success: true, payment: paymentView(intent) });
 });
 
@@ -84,12 +85,12 @@ billingRoutes.post('/billing/payos/webhook', async (c) => {
   const payment = parsed.data;
   const intent = await c.env.DB.prepare('SELECT * FROM payment_intents WHERE order_code = ?')
     .bind(String(payment.orderCode)).first<PaymentRow>();
-  if (!intent || !hasAuthoritativePrice(intent) || payment.amount !== intent.amount_vnd || payment.currency !== intent.currency) {
+  if (!intent || !isValidIssuedIntent(intent) || payment.amount !== intent.amount_vnd || payment.currency !== intent.currency) {
     return c.json({ error: 'Payment reconciliation failed' }, 409);
   }
   const status = payment.code === '00' ? 'paid' : 'failed';
   if (intent.status === status && intent.provider_reference === payment.reference) return c.json({ success: true });
-  if (intent.status !== 'pending' || !Number.isFinite(Date.parse(intent.expires_at)) || Date.parse(intent.expires_at) <= Date.parse(receivedAt)) {
+  if (intent.status !== 'pending' || Date.parse(intent.expires_at) <= Date.parse(receivedAt)) {
     return c.json({ error: 'Payment is no longer pending' }, 409);
   }
   const days = intent.plan === 'annual' ? 366 : 31;

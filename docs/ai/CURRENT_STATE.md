@@ -2,13 +2,25 @@
 
 ## T18B — payment authority unification — `T18B_READY_FOR_REVIEW` (2026-09-21)
 
+- Final review P1 fix starts at verified local/remote `0926222` on the same
+  branch/PR. Issued monthly 49000/annual 499000 offers survive later catalog
+  changes; current-price callbacks for those old orders are rejected. Structural
+  validation, expiry/terminal-state rejection and replay/grant fences remain.
+  Focused **151/151** (65 server payment), with explicit catalog-change and
+  corrupted-row coverage; full `pnpm test` **183 files / 4217 PASS** and browser
+  **48/48** across six widths. Lint/typecheck/migration smoke/build/diff checks
+  PASS. Final commands, fixture/HMR recovery and publication boundary are in
+  the report; earlier checkpoint counts below are historical.
 - Repository `1368281478` / `omin-jp/Frigo-dev`; exact starting and currently
   verified main `13ff3f22082fc0601a81b90c96edded4741194ac`. Branch
   `feat/t18b-payment-authority`, review-only [PR #47](https://github.com/omin-jp/Frigo-dev/pull/47)
   OPEN, auto-fix CI/review subscription enabled, auto-merge disabled.
 - One Worker price table retains **49000 monthly / 499000 annual / VND**.
-  Paywall metadata, payment intent, signed PayOS instructions and displayed QR
-  now share that authority. No commercial price/discount decision was made.
+  It supplies metadata and new offers only. After issuance the persisted intent
+  is the immutable amount/plan/currency/order/expiry authority; signed PayOS
+  instructions, callbacks and displayed QR must match that offer, not today's
+  catalog. Only a valid persisted paid intent grants entitlement. No commercial
+  price/discount decision was made.
 - Signed callbacks bind order/amount/currency/plan/reference; transactional
   pending-only grants are idempotent and insert missing subscriptions. Provider
   errors fail closed. Legacy shared-secret grants are retired (410 for

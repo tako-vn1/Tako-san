@@ -24,7 +24,7 @@ is not a paid grant. No newer owner-approved commercial price authority was foun
 | --- | --- | --- |
 | `PlusPaywallPage` / plan | Browser selection; server silently defaults unknown plan | Browser selects identity; server strictly validates |
 | `PlusPaywallPage` / display price | Annual 599000 / monthly 79000; invented saving/equivalent-month copy | Read-only server plan metadata |
-| `billing.ts` / payable amount | Server annual 499000 / monthly 49000, but unused by checkout | One server price table feeding metadata and intents |
+| `billing.ts` / payable amount | Server annual 499000 / monthly 49000, but unused by checkout | Server price table for new offers; persisted amount for issued orders |
 | `billing.ts` / currency | VND, callback does not check it | Server VND checked against signed provider data |
 | `VietQRModal` / order/reference | Browser builds user-ID description, unrelated to stored order | Server-generated order and verified provider description |
 | `VietQRModal` / bank and QR | Browser constants, amount prop, locally constructed URL | Validated provider bank instructions and server-built QR URL |
@@ -95,13 +95,27 @@ response; submitting `grantCode` returns 410. No T18A handler changed.
 ## Final authority graph and API contract
 
 ```text
-Worker PLUS_PRICES -> authenticated /billing/plans -> plan-only selection
+Worker PLUS_PRICES (new offers only) -> authenticated /billing/plans -> plan-only selection
   -> POST /billing/payment-intents { plan }
-  -> stored owner/order/price/currency/expiry -> signed PayOS create request
+  -> immutable stored owner/order/plan/amount/currency/expiry -> signed PayOS create request
   -> verified PayOS response -> server instructions/QR -> presentation-only modal
-  -> verified PayOS webhook -> atomic pending-to-paid + subscription grant
+  -> signed PayOS webhook matching persisted order -> atomic pending-to-paid + subscription grant
   -> authenticated owned status read -> fresh same-owner /me -> UI entitlement
 ```
+
+Authority lifecycle:
+
+1. **PRICE TABLE:** `PLUS_PRICES` is authoritative for new checkout offers only.
+2. **ISSUED PAYMENT INTENT:** persisted `plan`, `amount_vnd`, `currency`,
+   `order_code` and `expires_at` define that individual immutable payable offer;
+   persisted `status` controls whether it can still be consumed. Today's catalog
+   must not reprice or invalidate an already-issued pending/historical order.
+3. **PAYOS SIGNED CALLBACK:** verified provider data must match the persisted
+   order, amount and currency, with reference replay protection. A new catalog
+   amount submitted against an old order is rejected.
+4. **ENTITLEMENT:** granted atomically only from a valid persisted paid intent
+   (the same transaction consumes a still-pending, unexpired offer). Exact
+   terminal replays may be acknowledged but never grant again.
 
 All routes use the existing `/api/v1` prefix. Plans/status responses are
 `Cache-Control: no-store`; billing requests now include the existing expected
@@ -139,8 +153,8 @@ reloads can be retried. A tampered local Plus cache does not initialize entitlem
 - HMAC-SHA256 WebCrypto verification covers signed `data`; unsigned envelope
   success/code cannot change the result. Official PayOS signature fixtures are
   checked with independent test-side HMAC, not only the production signer.
-- Order, amount, VND currency, stored plan/price, expiry, status and reference are
-  checked. A paid duplicate with the same reference is acknowledged even after
+- Order, stored positive safe-integer amount, VND currency, stored plan,
+  expiry, status and reference are checked. A paid duplicate with the same reference is acknowledged even after
   expiry without changing entitlement. Failed/expired/refunded orders cannot grant.
 - Subscription UPSERT and intent consumption run in one D1 batch with the same
   captured expiry cutoff. Missing subscription rows are inserted. Same-order
@@ -158,6 +172,91 @@ reloads can be retried. A tampered local Plus cache does not initialize entitlem
   the HMAC and explicit order binding, not string equality, are authoritative.
 - Final independent review: **P0 0 / P1 0 / P2 0 / P3 0** remaining findings.
   No secret or production credential was exposed or committed.
+
+## Final review fix — issued intent price immutability (2026-09-21)
+
+- Verified repository ID `1368281478`, existing PR #47/branch
+  `feat/t18b-payment-authority`, and exact starting local/remote HEAD
+  `0926222cfd875180f9146422253a093b2e999eff`. Reattached the existing branch from
+  the PR's detached checkout; no branch was created. No merge/deploy/payment.
+- Audited every `hasAuthoritativePrice`/`PLUS_PRICES` use and payment writer.
+  Replaced the two read/reconciliation guards with `isValidIssuedIntent`.
+  Replay acknowledgments and the transactional grant path are downstream of
+  persisted-order validation and have no current-catalog comparison.
+- The guard requires monthly/annual, positive safe-integer amount, VND,
+  canonical positive safe-integer order code, canonical valid UTC ISO expiry
+  and a known status. Expiry/status still fence first consumption; exact paid
+  replays remain harmless even after expiry. Canonical expiry matches both
+  the previous and current server issuance format.
+- Extracted unchanged **49000/499000** catalog constants to `payment/prices.ts`.
+  Only metadata and new-intent creation read them. This boundary lets tests
+  simulate a price change without mutating the persisted offer or introducing
+  a production price override. Fixtures reset from the actual production
+  constants, preserving operational-price regression coverage.
+- Added monthly **49000 → 59000** and annual **499000 → 599000** scenarios:
+  old-price owned GET and signed payment succeed; new-price callbacks for old
+  orders fail; new intents/provider requests/QR use new prices despite client
+  tampering. Concurrent callbacks grant one duration, reused references roll
+  back, changed-reference consumed-order callbacks fail, and exact replays
+  after another catalog change/expiry do not extend entitlement.
+- Added old-price expiry/terminal-status rejection and malformed persisted
+  plan, amount, currency, order, expiry and status checks, plus exact safe-integer
+  and stored/signed-amount mismatch coverage. Existing signature, ownership,
+  fresh `/me`, legacy retirement and QR parity coverage remains unchanged.
+- Red proof:
+  `pnpm exec vitest run tests/integration/payment-authority.test.ts -t 'issued payment intent keeps its server-approved amount after catalog price changes'`
+  failed **2/2** before the validator fix (owned GET returned 409 instead of
+  200). This ran with only the catalog extraction/test additions in place.
+- Final focused command:
+  `pnpm exec vitest run --maxWorkers=2 --minWorkers=2 tests/integration/payment-authority.test.ts tests/unit/payment-checkout.test.tsx tests/unit/billing-service.test.ts tests/unit/account-gates.test.tsx tests/unit/client-session.test.ts tests/integration/auth-me-quota.test.ts`
+  — **151 passed / 6 files**: 65 server payment, 19 checkout, 14 billing service,
+  3 account gate, 33 client session and 17 existing entitlement tests.
+- Failure/recovery: the first expanded focused run had **144 pass / 1 fail**:
+  `node:sqlite` throws `ERR_OUT_OF_RANGE` before returning the stored integer
+  `9007199254740992`, producing a fixture-level 500. The route test now uses an
+  unsafe finite REAL value SQLite can return; the helper separately tests
+  `MAX_SAFE_INTEGER` and `MAX_SAFE_INTEGER + 1`. No assertion was relaxed and
+  no DB helper or migration changed. Preliminary full runs were stopped after
+  final-review expiry/fixture edits; only the completed final run counts below.
+- Final gates, on the completed runtime/test changes:
+  - `pnpm lint` — PASS.
+  - `pnpm typecheck` — PASS.
+  - `pnpm test` — **183 files / 4217 tests PASS**, no filters or exclusions.
+  - `pnpm check:migrations` — PASS (`migration-smoke=ok`).
+  - `pnpm build` — PASS (web and Worker).
+- Payment browser matrix:
+  `pnpm exec playwright test --config .hoplite/payment-final.playwright.config.ts payment-authority.e2e.ts`
+  — **48/48 PASS**, eight scenarios at widths **360, 390, 430, 768, 1024,
+  1440**. The local runner inherits the unchanged T17 projects, assertions and
+  timeouts, using `http://localhost:3100` consistently for browser/preview/HMR
+  and API port 8790; only runner/artifact paths and loopback origin differ.
+  Production image CSP, QR decode/amount/addInfo/accountName, terminal and
+  unavailable/offline states, and fresh `/me` confirmation all passed.
+- Browser recovery: the initial
+  `PORT=3100 PREVIEW_API_PORT=8790 pnpm exec playwright test tests/e2e/t17-ui/payment-authority.e2e.ts --config=playwright.t17.config.ts`
+  run was stopped because its 127.0.0.1 origin caused the strict isolation guard
+  to reject Vite's `ws://localhost:3100`. The first aligned retry found the owned
+  preview still listening; stopped that process, then the complete matrix
+  passed. No isolation assertion was relaxed. The temporary runner is locally
+  excluded, not a shipped config/workflow change. All provider data/QR images
+  are synthetic and external application requests remain blocked.
+- `git diff --check` and `git diff --check origin/main` — PASS.
+- Independent final code review found no remaining runtime/payment-authority
+  issue. Its expiry-format finding was fixed with strict round-trip validation
+  and five additional regressions before the final full run.
+- Scope verification against both the starting head and base: migrations **0**
+  changed (**38** existing), unrelated T18A auth **0**, Inventory/OCR/planner/
+  packages **0**, workflows and Wrangler unchanged. The final fix has zero
+  `auth.ts` diff; the complete branch differs only in the pre-existing payment
+  activation block. A byte comparison before that block confirms T18A parity
+  (the first comparison incorrectly included its changed payment-only comment;
+  comparing at the payment-block boundary passes).
+- This documentation is bundled with the final-review implementation commit,
+  so cannot name its own SHA. Publish to the same branch and verify the new
+  exact-head CI receipt on PR #47 before review readiness; previous successful
+  CI `35555602990` at `0926222` is not evidence for this fix. CI/review auto-fix
+  is enabled, auto-merge disabled. Next action is owner review after the new
+  head's CI settles, never merge/deploy or a real payment from this task.
 
 ## Checkpoints
 

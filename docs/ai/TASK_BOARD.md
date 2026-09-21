@@ -2,6 +2,15 @@
 
 ## T18B — payment authority unification — `T18B_READY_FOR_REVIEW` (2026-09-21)
 
+- [done] Final review P1 fixed from exact HEAD `0926222`: current price table
+  governs new offers only; persisted issued intent governs status, signed
+  callback matching, replay and entitlement. Operational prices unchanged.
+  Strict persisted structure/expiry/status, client amount isolation and atomic
+  once-per-order grants retained. New price-change/malformed-row regressions:
+  focused **151/151**, including **65** server payment tests; full `pnpm test`
+  **183 files / 4217 PASS**, browser six-width **48/48**, lint/typecheck/migration
+  smoke/build/diff checks PASS. Exact commands, failures/recovery and new-head
+  publication boundary are recorded in the T18B report.
 - [done] Repository ID/main/clean tree/hosted CI/overlapping PR gates; branch
   `feat/t18b-payment-authority` from `13ff3f22082fc0601a81b90c96edded4741194ac`.
 - [done] Audit and ADR-029; retained server prices 49000 monthly / 499000 annual

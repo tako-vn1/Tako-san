@@ -2,6 +2,15 @@
 
 ## T18B handoff — `T18B_READY_FOR_REVIEW` (2026-09-21)
 
+- **Final review fix:** verified expected start `0926222` on the existing
+  branch/PR; replaced current-price revalidation with strict issued-row
+  validation. Monthly/annual price-change, old-order payment, new-order price,
+  malformed-row, expiry, terminal-state and replay/grant tests pass: focused
+  **151/151**, including **65** server payment; full `pnpm test` **183 files /
+  4217 PASS**; six-width browser **48/48**; lint/typecheck/migration smoke/build/
+  diff checks PASS. SQLite fixture and local HMR-origin recovery are documented
+  in the report. Earlier counts below are historical. Verify new exact-head CI
+  on PR #47 before owner review; no merge/deploy/payment authorization.
 - **Identity/base:** `1368281478`, `omin-jp/Frigo-dev`; exact main/base
   `13ff3f22082fc0601a81b90c96edded4741194ac`; branch
   `feat/t18b-payment-authority`.
@@ -15,6 +24,10 @@
   signed PayOS response and webhook verification; server-generated QR
   instructions; owned status reads; atomic once-per-order entitlement; fresh
   same-owner `/me`; stale request/session fences and honest unavailable states.
+- **Authority lifecycle:** price table → new offers only; issued intent →
+  immutable per-order plan/amount/currency/order/expiry with persisted lifecycle
+  status; signed callback → match that persisted order, not current prices;
+  entitlement → atomic grant only from a valid persisted paid intent.
 - **Compatibility:** no schema change. Old activation cannot grant; `grantCode`
   returns 410. Server-only PayOS client/API/checksum credentials and APP_URL are
   required for checkout. Unknown/failed provider creation produces no instructions;

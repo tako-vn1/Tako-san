@@ -1026,6 +1026,10 @@ expected-owner HTTP headers; other authentication behavior is unchanged.
 
 **Consequences:** Provider configuration remains server-only and fail-closed.
 Metadata is not a price lock; the returned intent is the final payable offer.
+That persisted offer remains authoritative after catalog changes: issued-order
+reads, callback reconciliation, replay handling and entitlement grants validate
+its structure and lifecycle, never equality with today's price table. The table
+controls new offers only; signed callbacks must match the stored amount.
 Refreshing or closing a modal does not cancel a provider order and never grants
 Plus. New explicit checkout attempts create independent intents; single-flight
 browser requests prevent double-click duplication. No cancel/refund automation
