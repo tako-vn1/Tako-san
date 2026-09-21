@@ -1,194 +1,252 @@
-# T18C — Takosan final redesign certification baseline
+# T18C — Takosan redesign visual certification
 
-Status: **IN_PROGRESS**  
-Safe pause: **T18C_PAUSED_SAFE** — implementation halted by owner instruction.
-Resume plan, test ledger and artifact paths:
-[T18C_WIP_HANDOFF.md](T18C_WIP_HANDOFF.md).
-Checkpoint: **A — reference discovery, registry, and baseline gap report**  
-Base: `b8447e85f099b800a9a8ebc6c4c137adc9e45a32`  
+Status: **T18C_PARTIAL — FINAL_BROWSER_AND_VISUAL_REVIEW_PENDING**
 Branch: `feat/t18c-final-redesign-certification`
+Source-led implementation checkpoint: `5d831aa`; keyboard checkpoints:
+`592b386`, `ef5a619`. Final application freeze: `b024b0d`.
+Resume context: [T18C_WIP_HANDOFF.md](T18C_WIP_HANDOFF.md)
 
-This is a baseline record, not a visual-parity certification. The complete
-27-screen × six-viewport baseline captured **162 screenshots**. All 162
-route contracts and horizontal-overflow checks passed, but all six aggregate
-tests failed the new all-severity axe gate: **15 moderate rule instances on
-11 identities per viewport** (90 instances total). No finding was suppressed.
-The baseline is preserved in `.hoplite/artifacts/t18c/baseline.zip` (committed).
-Final dispositions below remain pending fixes and final regeneration.
+This document replaces the historical safe-pause baseline while retaining its
+failure history. Complete repository gates have passed; the fresh final
+browser matrix and post-fix pixel review are still running.
+The only dispositions used in the registry are `PASS`,
+`PASS_WITH_DOCUMENTED_DIFFERENCE`, `FAIL`, and
+`BLOCKED_REFERENCE_UNAVAILABLE`.
 
-## Start gate and scope
+## Authority and scope
 
-- Repository ID: `1368281478` (`omin-jp/Frigo-dev`).
-- Starting main: `b8447e85f099b800a9a8ebc6c4c137adc9e45a32`.
-- CI for the exact base: run `35559555318` / CI #145 — **SUCCESS**.
-- Staging Deploy #52: run `35559832493` — **SUCCESS**.
-- Production: **SKIPPED**; no production deployment was performed by T18C.
-- Open-PR overlap observed at the start gate: PR #7 is documentation-only;
-  PR #8 concerns unrelated recipe code; PR #4 concerns scan backend work. No
-  open PR was identified as modifying the Takosan redesign UI surfaces.
-- Protected scope: no PayOS, payment, billing, checkout, OTP, migration,
-  Inventory Truth, OCR/AI, planner-algorithm, or workflow redesign is part of
-  this baseline.
+- Protected scope remains unchanged: no PayOS, payment, billing, checkout,
+  migration, authentication-contract, Inventory Truth, OCR/AI, planner
+  algorithm, household-isolation, or Week compatibility redesign is certified
+  here.
+- Authority order is security/current domain truth, approved tokens and
+  primitives, approved per-screen contracts, responsive/accessibility/state
+  contracts, then schematic boards. Boards communicate composition, hierarchy,
+  and tone; they do not authorize fictional names, dates, counts, prices,
+  expiry values, inventory facts, provider states, or entitlements.
+- Canonical source registry: `.hoplite/extracted/t18c-approved/takosan-redesign-os-v2.0.0/screens/SCREEN_REGISTRY.json`.
+- Approved source root: `.hoplite/extracted/t18c-approved/takosan-redesign-os-v2.0.0`.
+- Approved source archive: `.hoplite/artifacts/t18c/approved-source.zip`,
+  8,257,059 bytes, SHA-256
+  `cbf5c32dd51ce9f068766cd20591c3cfd8a946ca6632aa2349725f4ef0d6492d`.
+  The extracted kit's `CHECKSUMS.sha256` validation passed for all entries;
+  the validation output is retained in
+  `.hoplite/artifacts/t18c/resume/reports/source-checksums.log`.
+- Direct boards are `references/board-01-entry-home-scan.png`,
+  `references/board-02-food-planner.png`, and
+  `references/board-03-account-settings.png`, each 1055 × 1491.
 
-## Authoritative source distinction
+The approved source is therefore available and checksum-validated for **27/27
+identities**. This supersedes the historical reference-unavailable condition;
+it does not erase the fact that the original baseline could not compare boards.
 
-### A. Direct reference source — unavailable
+## Preserved baseline and current evidence state
 
-The expected direct authority is the approved
-`takosan-redesign-os-v2.0.0.zip`, including its approved boards,
-`screens/*.md`, and `SCREEN_REGISTRY`. Historical T17 records say that it was
-previously extracted under `.hoplite/extracted/`, but that attachment and
-extraction are not present in this workspace. At discovery time,
-`.hoplite/artifacts/` was empty; the baseline is now running and uses
-`.hoplite/artifacts/t18c/` for current evidence. No matching ZIP, board image,
-PDF, design file, or alternate extraction was found in the available workspace
-locations. Direct board comparisons are therefore **0/27** and every registry row has
-`BLOCKED_REFERENCE_UNAVAILABLE` for reference availability.
+The historical baseline remains material evidence, not a current result:
 
-The older `frigo_frontend_prompt_kit_v1/` is not an approved Takosan OS source.
-It is a Frigo kit containing legacy Frigo masters/reference images and must not
-be used to claim Takosan board parity. The separate `takosan-brand-kit.zip`
-named by `docs/brand/TAKOSAN_MIGRATION.md` is also unavailable as an original
-source archive; only its installed runtime assets are present.
+- The baseline captured **162 screenshots** across 27 identities and six
+  viewports (360, 390, 430, 768, 1024, and 1440). All 162 route contracts and
+  horizontal-overflow checks passed.
+- The baseline aggregate axe gate failed on every viewport with **15 moderate
+  rule instances across 11 identities per viewport, 90 instances total**.
+  No finding was suppressed. The original archive is
+  `.hoplite/artifacts/t18c/baseline.zip`.
+- The preserved fixed-tree checkpoint at `2e770f8` later recorded six passed
+  matrix projects, 162 captures, zero strict axe violations, and zero overflow.
+  It is not the final current result: source-led fixes at `5d831aa` and the
+  current keyboard-row work require a fresh rerun.
+- Source-led presentation/accessibility work at `5d831aa` includes the
+  landing/home/app-shell/recipe/inventory/settings surfaces, reduced-motion
+  handling, modal focus behavior, deterministic local font evidence, and the
+  Board 3 privacy-row alignment fix. It does not change business or payment
+  authority.
+- Existing Board 2 captures predate the latest Recipes/Inventory presentation
+  fixes. They remain useful review evidence, but final post-fix screenshot
+  verification is **PENDING**.
 
-### B. Reconstructed requirements and installed runtime evidence
+Final status is intentionally still pending for:
 
-These are usable for deterministic certification, but are not equivalent to
-direct board inspection:
+1. Fresh `t18c-matrix.e2e.ts` screenshots and route/shell/overflow evidence
+   after the current working-tree fixes.
+2. Final automated axe result and complete state/typography/motion evidence.
 
-- `tests/e2e/t17-ui/screen-registry.ts` — current 27-entry reconstructed,
-  reviewer-verified route/contract registry.
-- `tests/e2e/t17-ui/t17-registry.e2e.ts` — registry route, state, and viewport
-  certification consumer.
-- `docs/ai/T17_UI_V2_AUDIT.md`, `docs/ai/T17_UI_V2_REPORT.md`,
-  `docs/ai/CURRENT_STATE.md`, and `docs/ai/HANDOFF.md` — historical contract,
-  evidence, and limitation records; they explicitly retain direct-board
-  comparison as pending.
-- `docs/brand/TAKOSAN_MIGRATION.md` — installed Takosan brand provenance and
-  compatibility classification.
-- `src/web/lib/takosan-brand.ts`, `src/web/styles/takosan-tokens.css`, and
-  `public/takosan/` — current runtime brand/token evidence, not board images.
-- `scripts/generate-takosan-icons.mjs` — deterministic derivation of selected
-  runtime PNGs from the unavailable brand-kit masters.
+Complete repository receipt on the application freeze: `pnpm lint`,
+`pnpm typecheck`, `pnpm test` (**184 files / 4222 tests**, unfiltered),
+`pnpm check:migrations`, `pnpm build`, and `git diff --check` PASS. Style:
+**39 allowlisted / 0 unjustified**. Contrast: **33/33 PASS**, one informational
+border pair. Logs are preserved in `repository-gates.zip`.
 
-Installed runtime inventory: `public/takosan/brand/` 8 files,
-`app-icons/` 15, `mascot/` 10 SVGs, and `ui-icons/` 14 SVGs (34 SVGs and 13
-PNGs total). These assets establish runtime branding provenance only; they do
-not establish direct comparison to the approved redesign boards.
+The preserved axe results also retain incomplete/manual-review limitations:
+zero strict axe violations is not a substitute for complete contrast review,
+state coverage, or human assistive-technology review. Human VoiceOver:
+**NOT PERFORMED**. Human NVDA: **NOT PERFORMED**.
 
-## Baseline findings
+## Canonical 27-screen registry
 
-- Matrix: `tests/e2e/t17-ui/t18c-matrix.e2e.ts`, all **27 × 6** canonical
-  screen/viewport combinations, **underway**. The six widths are 360, 390,
-  430, 768, 1024, and 1440.
-- Screenshots: fresh final evidence generation is **IN_PROGRESS**. Existing
-  historical T17/T17B captures are not being counted as final T18C evidence.
-- Automated accessibility baseline: **15 moderate axe rule instances** were
-  observed across **11 identities** at 360 and 390. The observed groups are
-  landmark findings on screens 01–03 and heading-order findings on screens 01,
-  07, 10, 11, 12, 15, 19, 23, and 25. The primary agent is coordinating
-  small fixes. This is an interim observation, not a completed accessibility
-  result.
-- Confirmed severity so far: **P0 = 0, P1 = 0**. The full matrix remains
-  incomplete; P2/P3 classification is pending direct comparison and complete
-  evidence.
-- Style residual baseline: **39 allowlisted / 0 unjustified**.
-- Contrast baseline: **33 pass**, including **1 informational** result.
-- Typography limitation: the current Preview strips external fonts, so final
-  typography evidence is not yet representative of the intended font loading
-  environment. Final font evidence is planned; fallback rendering must not be
-  mistaken for final board typography parity.
-- State matrix: planned coverage includes loading, empty, populated,
-  validation error, network error, success, disabled, offline, auth-required,
-  Plus-gated, modal/sheet open, confirmation, destructive-action, and pending
-  states where supported. Real provider-dependent states that cannot be safely
-  produced in this environment (including live payment/provider settlement or
-  real inbox/provider delivery) are **NOT APPLICABLE**, not fabricated.
+Shell vocabulary: `bottom nav` is the mobile shell, `navigation rail` is the
+tablet shell, `sidebar` is the desktop shell, and `none` is intentional for a
+public, onboarding, or immersive surface. The table records the source-led
+review disposition; final screenshot/gate verification remains pending.
 
-## Canonical 27-screen baseline registry
+| ID | Canonical route | Screen | Auth | Mobile shell | Tablet shell | Desktop shell | Board | Reference | Evidence status | Final disposition |
+|---:|---|---|---|---|---|---|---|---|---|---|
+| 01 | `/landing` | Landing | public | none | none | none | 01 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 02 | `/auth` | Auth | public | none | none | none | 01 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 03 | `/auth/verify` | OTP Verification | public | none | none | none | 01 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 04 | `/onboarding/household` | Onboarding Household | session | none | none | none | 01 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 05 | `/onboarding/preferences` | Onboarding Food Preferences | session | none | none | none | 01 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 06 | `/onboarding/goals` | Onboarding Goals | session | none | none | none | 01 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 07 | `/` | Home | session | bottom nav | navigation rail | sidebar | 01 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 08 | `/scan` | Scan Camera | session | none | none | none | 01 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 09 | `/scan/:scanId/review` | Scan Review | session | bottom nav | navigation rail | sidebar | 01 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 10 | `/fridge` | Inventory | session | bottom nav | navigation rail | sidebar | 02 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 11 | `/fridge/:id` | Ingredient Detail | session | bottom nav | navigation rail | sidebar | 02 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 12 | `/recipes` | Recipes | session | bottom nav | navigation rail | sidebar | 02 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 13 | `/recipes/:slug` | Recipe Detail | session | bottom nav | navigation rail | sidebar | 02 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 14 | `/cook/:slug` | Cooking Mode | session | none | none | none | 02 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 15 | `/shopping` | Shopping List | session | bottom nav | navigation rail | sidebar | 02 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 16 | `/planner` | Planner Overview | session | bottom nav | navigation rail | sidebar | 02 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 17 | `/planner/:planId/meal/:slotId` | Planner Meal Detail / Swap | session | bottom nav | navigation rail | sidebar | 02 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 18 | `/planner/:planId/shopping` | Planner Shopping Optimization | session | bottom nav | navigation rail | sidebar | 02 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 19 | `/me` | Profile Hub | session | bottom nav | navigation rail | sidebar | 03 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 20 | `/me/preferences` | Food Preferences | session | bottom nav | navigation rail | sidebar | 03 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 21 | `/me/household` | Household & Sharing | session | bottom nav | navigation rail | sidebar | 03 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 22 | `/settings/planning` | Planning Settings | session | bottom nav | navigation rail | sidebar | 03 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 23 | `/notifications` | Notifications Inbox | session | bottom nav | navigation rail | sidebar | 03 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 24 | `/settings/notifications` | Notification Preferences | session | bottom nav | navigation rail | sidebar | 03 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 25 | `/settings/app` | App Settings / PWA | session | bottom nav | navigation rail | sidebar | 03 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 26 | `/settings/privacy` | Privacy & Data | session | bottom nav | navigation rail | sidebar | 03 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
+| 27 | `/plus` | Takosan Plus | session | bottom nav | navigation rail | sidebar | 03 | AVAILABLE | PENDING final screenshot/gates | PASS_WITH_DOCUMENTED_DIFFERENCE |
 
-Shell terms: `bottom nav` is the mobile shell, `navigation rail` is the tablet
-shell, and `sidebar` is the desktop shell. `none` denotes a public or
-immersive surface where the primary navigation is intentionally hidden.
+Registry accounting: **27/27 identities**, **27/27 references available**,
+**27/27 direct source comparisons**, no identity missing. Compatibility routes
+in `src/web/App.tsx` (including `/inventory`, ingredient aliases, receipt
+review, `/week/*`, cooking-complete, family, and planner compatibility paths)
+remain regression scope and are not additional Takosan identities.
 
-Every row is intentionally incomplete at this checkpoint. All baseline status
-fields are **IN_PROGRESS**, except `Reference availability`, which is
-**BLOCKED_REFERENCE_UNAVAILABLE** for every row.
+## Reviewed differences and disposition rationale
 
-| ID | Canonical route | Screen name | Auth | Mobile shell | Tablet shell | Desktop shell | Reference availability | Screenshots | A11y | Visual parity | Issues | Final disposition |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 01 | `/landing` | landing | public | none | none | none | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | Moderate axe baseline: landmark + heading-order observations; no P0/P1 so far | IN_PROGRESS |
-| 02 | `/auth` | auth | public | none | none | none | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | Moderate axe baseline: landmark observation; no P0/P1 so far | IN_PROGRESS |
-| 03 | `/auth/verify` | otp | public | none | none | none | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | Moderate axe baseline: landmark observation; no P0/P1 so far | IN_PROGRESS |
-| 04 | `/onboarding/household` | onboarding-household | session | none | none | none | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | No P0/P1 observed so far; matrix pending | IN_PROGRESS |
-| 05 | `/onboarding/preferences` | onboarding-preferences | session | none | none | none | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | No P0/P1 observed so far; matrix pending | IN_PROGRESS |
-| 06 | `/onboarding/goals` | onboarding-goals | session | none | none | none | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | No P0/P1 observed so far; matrix pending | IN_PROGRESS |
-| 07 | `/` | home | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | Moderate axe baseline: heading-order observation; no P0/P1 so far | IN_PROGRESS |
-| 08 | `/scan` | scan | session | none | none | none | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | No P0/P1 observed so far; matrix pending | IN_PROGRESS |
-| 09 | `/scan/:id/review` | scan-review | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | No P0/P1 observed so far; matrix pending | IN_PROGRESS |
-| 10 | `/fridge` | fridge | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | Moderate axe baseline: heading-order observation; no P0/P1 so far | IN_PROGRESS |
-| 11 | `/fridge/:id` | fridge-detail | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | Moderate axe baseline: heading-order observation; no P0/P1 so far | IN_PROGRESS |
-| 12 | `/recipes` | recipes | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | Moderate axe baseline: heading-order observation; no P0/P1 so far | IN_PROGRESS |
-| 13 | `/recipes/:slug` | recipe-detail | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | No P0/P1 observed so far; matrix pending | IN_PROGRESS |
-| 14 | `/cook/:slug` | cook | session | none | none | none | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | No P0/P1 observed so far; matrix pending | IN_PROGRESS |
-| 15 | `/shopping` | shopping | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | Moderate axe baseline: heading-order observation; no P0/P1 so far | IN_PROGRESS |
-| 16 | `/planner` | planner | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | No P0/P1 observed so far; matrix pending | IN_PROGRESS |
-| 17 | `/planner/:planId/meal/:slotId` | planner-meal | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | No P0/P1 observed so far; matrix pending | IN_PROGRESS |
-| 18 | `/planner/:planId/shopping` | planner-shopping | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | No P0/P1 observed so far; matrix pending | IN_PROGRESS |
-| 19 | `/me` | profile | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | Moderate axe baseline: heading-order observation; no P0/P1 so far | IN_PROGRESS |
-| 20 | `/me/preferences` | preferences | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | No P0/P1 observed so far; matrix pending | IN_PROGRESS |
-| 21 | `/me/household` | household | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | No P0/P1 observed so far; matrix pending | IN_PROGRESS |
-| 22 | `/settings/planning` | planning-settings | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | No P0/P1 observed so far; matrix pending | IN_PROGRESS |
-| 23 | `/notifications` | notifications | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | Moderate axe baseline: heading-order observation; no P0/P1 so far | IN_PROGRESS |
-| 24 | `/settings/notifications` | notification-preferences | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | No P0/P1 observed so far; matrix pending | IN_PROGRESS |
-| 25 | `/settings/app` | app-settings | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | Moderate axe baseline: heading-order observation; no P0/P1 so far | IN_PROGRESS |
-| 26 | `/settings/privacy` | privacy | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | No P0/P1 observed so far; matrix pending | IN_PROGRESS |
-| 27 | `/plus` | plus | session | bottom nav | navigation rail | sidebar | BLOCKED_REFERENCE_UNAVAILABLE | IN_PROGRESS | IN_PROGRESS | IN_PROGRESS | No P0/P1 observed so far; provider-dependent live states are N/A | IN_PROGRESS |
+### Board 1 — screens 01–09
 
-### Registry accounting
+The parent comparison completed the nine entry/home/scan identities against
+Board 1 and their screen contracts. The accepted differences are source-safe:
+the current auth, OTP, guest, onboarding, scan, and review flows retain their
+real security, session, privacy, OCR, and confirmation behavior rather than
+copying board-only data or adding a duplicate auth gate. Public/onboarding and
+immersive scan surfaces intentionally use `none` navigation shells; Home and
+Scan Review use the canonical shell shown in the registry. Final screenshot
+verification after the current keyboard-row work is pending.
 
-- Screen identities accounted for: **27/27**.
-- Missing identities: **0**.
-- Direct board comparisons: **0/27**.
-- Reference-blocked identities: **27/27**.
-- Supplemental compatibility routes in `src/web/App.tsx` (for example
-  `/inventory`, `/ingredients/:id`, `/inventory/:id`, receipt review,
-  `/week/*`, cooking-complete, family, and planner compatibility paths) are
-  not additional Takosan screen identities. They remain in scope for
-  compatibility/regression checks and are not silently removed from the app.
+### Board 2 — screens 10–18
 
-## Business-truth guardrails for visual work
+The direct review is retained at
+`.hoplite/artifacts/t18c/resume/reports/board-02-review.md`.
 
-Visual alignment must not replace verified product truth:
+- Inventory's use-soon presentation uses the existing freshness query and
+  preserves `UNKNOWN ≠ ESTIMATED ≠ KNOWN`; it does not invent board expiry
+  counts/dates or duplicate quantity mutation.
+- Ingredient Detail exposes a real same-route editor and keeps canonical delete
+  ownership in the inventory list; a board tomato or always-open editor is not
+  product truth.
+- Recipes now use image-first feature/grid presentation and real recipe links;
+  current catalog names, availability, match values, and nutrition remain
+  authoritative rather than board examples.
+- Planner, cooking, shopping, and optimization surfaces retain their real
+  unavailable/empty/provider states and responsive workspace shells. Board-only
+  recipes, prices, stock, dates, and optimization outcomes are not fabricated.
 
-- T18A OTP expiry and resend state remain server-authoritative. Missing or
-  malformed expiry metadata is presented as unknown; no client lifetime is
-  fabricated.
-- T17B onboarding `primaryGoal` remains client-only (`today`, `week`, `both`);
-  `week` routes to `/week/setup`. Stored household values above five display as
-  `5+` without being silently clamped; an explicit `5+` choice uses the
-  established canonical behavior.
-- T18B payment presentation remains server-owned: monthly `49000 VND`, annual
-  `499000 VND`, immutable issued intent values, server-generated VietQR
-  instructions, and server-confirmed entitlement. Historical `79000`/`599000`
-  values are not valid redesign copy.
-- Existing household isolation, Inventory Truth, OCR/AI, recipes, planner
-  algorithms, Week compatibility, and protected deployment policy are outside
-  visual redesign scope.
+The inspected 390/768/1024/1440 evidence paths are recorded in the Board 2
+report. Those captures predate the latest Recipes/Inventory fixes, so final
+post-fix visual evidence is pending.
 
-## Next baseline actions
+### Board 3 — screens 19–27
 
-1. Complete `t18c-matrix.e2e.ts` across 27 identities and all six widths.
-2. Capture fresh screenshots from the current branch, organized by identity and
-   viewport; do not reuse historical T17 artifacts as final evidence.
-3. Coordinate small fixes for the observed axe findings, then rerun the
-   affected accessibility cases and full matrix.
-4. Produce representative shell, modal, motion/reduced-motion, state-matrix,
-   and typography evidence. Re-run typography evidence in an environment that
-   does not strip the intended external fonts.
-5. Obtain the approved Takosan Redesign OS board source before making any
-   direct parity claim or changing a layout solely to match a board.
+The direct review is retained at
+`.hoplite/artifacts/t18c/resume/reports/board-03-review.md`.
 
-This checkpoint intentionally does not update `CURRENT_STATE.md`,
-`TASK_BOARD.md`, or `HANDOFF.md`; those files are outside this baseline-doc
-creation request and will be updated by the parent task at a later checkpoint.
+- The account/settings family preserves the coherent Takosan shell and honest
+  unavailable collaboration/notification states instead of board-fabricated
+  identities, members, counts, rows, dates, or prices.
+- Screen 20's household/serving context is owned by `/me/preferences`.
+  Screen 22 has no serving field/default in its current contract; no serving
+  default is claimed here.
+- Screen 24 does not claim quiet-hours support because that capability is not
+  implemented. No business quiet-hours behavior is fabricated.
+- The screen 26 browser-permission row alignment P2 was fixed at `5d831aa` by
+  keeping the permission message as one inline, wrapping sentence. Final
+  screenshot confirmation is still pending.
+- Takosan Plus follows current server-owned product truth; the board's example
+  price or promotional copy is not copied into the application.
+
+## Evidence index and final handoff
+
+### Evidence-led corrections
+
+| Finding | Severity | Localized correction | Proof |
+|---|---|---|---|
+| Missing landmarks / heading order | P2 | Semantic markup; no data or navigation-policy change | Baseline 90 moderate instances; fixed-tree 162 strict audits clean |
+| Camera laser ignores reduced motion | P1 | `motion-safe` decoration | Red/green reduced-motion regression |
+| VietQR focus escapes / does not return | P1 | Existing shared focus hook, scroll lock, trigger ref | Focus/Escape/return and strict dialog axe checks; no payment authority change |
+| Click-only recipe and inventory detail actions | P1 | Native links/buttons with independent quantity/delete controls | Keyboard red/green at six widths; sibling mutation/delete checks |
+| 768px shell instead of approved 640px boundary | P2 | Shared shell and fixed-action class breakpoint | 639/640/767/1024 boundary and CTA-clearance assertions |
+| Landing/Home wide hierarchy; recipe discovery layout | P2 | Split hero / primary-secondary regions / feature and grid variants | Geometry and fresh source comparison |
+| Missing control names/state, broad countdown announcements | P2 | Native radio labels, named Plus group, narrow status regions, item-specific shopping checkbox | Focused browser assertions; unchanged handlers |
+| Privacy permission sentence split by flex layout | P2 | One wrapping inline text span | Sentence-layout regression and final pixels |
+| Legacy Week card/setup keyboard actions | P2 | Native state-labelled controls; no-op non-recipe titles remain inert | Five compatibility units; routed flag-off browser flow |
+| New title/brand targets lack explicit 44px bounds | P2 | Existing `tap-target` utility, no gate relaxation | Strict failure retained; focused rerun 14 PASS / 1 intentional project skip |
+
+### Failure and recovery ledger
+
+None of these earlier attempts substitutes for the clean final gates:
+
+- Original baseline: six aggregate failures, 90 moderate axe instances. Immutable
+  `baseline.zip` remains separate from fixed-tree and final evidence.
+- Resumed fixed-tree: six matrix tests passed, 162 screenshots/strict axe audits.
+- Source-led diagnostic: mixed 7 failures / 1 skip / 6 passes, because one
+  recipe-link edit was already present during the run; not a clean red baseline.
+- Initial 306-case T17 run and later final attempts were intentionally stopped
+  as additional evidenced corrections were made. Logs are retained, not called
+  passing suites.
+- Boundary fixture initially retained an authenticated session; clearing public
+  session state fixed the test without changing routing behavior.
+- Inventory keyboard and shopping semantics: two focused failures, then 12
+  passes. The sibling-action extension exposed a positional row locator after
+  refetch; stable item identity fixed that test (1 pass).
+- Native recipe Link exposed a missing export in an inventory unit-test router
+  mock: 25 failures / 12 passes. Mounting actual MemoryRouter/Link restored all
+  37 focused units with original inventory assertions intact. Two new fixture
+  type errors were corrected (`appendChild`, lowercase `dinner`).
+- Review found non-recipe Week title buttons whose existing caller has no
+  detail destination: two red cases, then five green cases after removing the
+  no-op actions. The real choose/change controls remain intact.
+- The next full attempt failed the unchanged strict 44px-target gate on brand
+  links and inventory titles. Explicit target bounds are the correction; the
+  failed attempt and concurrent unit run are non-final, not hidden.
+
+The browser runs use isolated local Preview and synthetic fixtures. No live
+payment/provider transaction, remote migration, production check, VoiceOver,
+or NVDA session is represented by these logs.
+
+- Source provenance and archive/checksum details:
+  `docs/ai/T18C_SOURCE_PROVENANCE.md`.
+- Historical safe handoff and preserved command ledger:
+  `docs/ai/T18C_WIP_HANDOFF.md`.
+- Baseline archive: `.hoplite/artifacts/t18c/baseline.zip`.
+- Preserved review captures: `.hoplite/artifacts/t18c/mobile-390/`,
+  `.hoplite/artifacts/t18c/tablet-768/`,
+  `.hoplite/artifacts/t18c/desktop-1024/`, and
+  `.hoplite/artifacts/t18c/desktop-1440/`.
+- Board review reports:
+  `.hoplite/artifacts/t18c/resume/reports/board-02-review.md` and
+  `.hoplite/artifacts/t18c/resume/reports/board-03-review.md`.
+- Fixed-tree matrix and gap evidence:
+  `.hoplite/artifacts/t18c/resume/reports/fixed-tree-matrix.log` and
+  `.hoplite/artifacts/t18c/resume/reports/gaps-after.log`.
+- The configured final evidence destination is `.hoplite/artifacts/t18c/final/`;
+  its fresh screenshot archive, final counts, and final gate results are
+  **PENDING** for the parent task.
+
+Before changing any disposition, the parent should rerun the complete matrix
+on the current tree, inspect fresh screenshots at all six widths, record the
+final automated/state/typography evidence, and fill the exact gate results.
+No merge, deployment, or production certification is implied by this draft.

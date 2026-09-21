@@ -4,6 +4,12 @@
 See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
 The safe-pause section is historical.
 
+- [done] Final unfiltered repository gates on `b024b0d`: **184 files / 4222
+  tests**, lint/typecheck/migration smoke/build/diff-check; style 39/0,
+  contrast 33/33. Evidence: `repository-gates.zip`.
+- [in progress] Finish final six-viewport browser run and post-fix visual review,
+  then publish review-only PR. No merge/deploy/T18D.
+
 - [done] Explicit 44px native target bounds; unchanged strict gate plus keyboard
   and flag-off checks: 14 PASS / 1 intentional project skip. Final rerun next.
 

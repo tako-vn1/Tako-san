@@ -2,6 +2,10 @@
 See the continuation checkpoint below and
 [provenance](docs/ai/T18C_SOURCE_PROVENANCE.md). The safe pause is historical.
 
+**Repository gates PASS on application freeze `b024b0d`: 184 files / 4222
+tests**, lint/typecheck/migrations/build/diff, style 39/0 and contrast 33/33.
+Final browser matrix and post-fix visual review are running; review-only PR next.
+
 Explicit native target bounds passed the unchanged strict accessibility gate
 and focused keyboard/Week flow: 14 PASS / 1 intentional project skip.
 

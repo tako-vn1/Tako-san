@@ -23,5 +23,5 @@ for (const [weight, id] of Object.entries(faces)) {
 }
 const license = await fetch('https://raw.githubusercontent.com/google/fonts/main/ofl/nunito/OFL.txt');
 if (!license.ok) throw new Error(`License download failed: ${license.status}`);
-await writeFile(`${root}/OFL.txt`, await license.text());
+await writeFile(`${root}/OFL.txt`, (await license.text()).replace(/[ \t]+$/gm, ''));
 await writeFile(`${root}/manifest.json`, `${JSON.stringify(manifest, null, 2)}\n`);

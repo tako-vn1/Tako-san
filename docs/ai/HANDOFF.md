@@ -4,6 +4,19 @@
 See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
 The safe-pause section is historical.
 
+### Complete repository gate receipt
+
+- Application freeze `b024b0d41d13e07df253dad4f6a7d472ec1d7c11`.
+- Fresh full `pnpm test`: **184 files / 4222 PASS**, 818.46s, finished
+  2026-09-21T06:49:59Z. Lint/typecheck/migration smoke/build/diff-check PASS.
+- Style **39 allowlisted / 0 unjustified**; contrast **33/33 PASS** (one
+  informational border pair). Full-diff review found imported license trailing
+  whitespace: normalized that line and its fetch script, without changing any
+  font byte/checksum. Script ESLint and `node --check` PASS; 5/5 font hashes PASS.
+- Evidence checkpoint: `.hoplite/artifacts/t18c/repository-gates.zip`.
+  Browser/visual final certification remains running; no final browser total
+  or PR claimed yet. Next: finish six-width run, archive matrix, finalize PR.
+
 ### Keyboard closure checkpoint
 
 - Strict target gate identified new brand/title elements without explicit

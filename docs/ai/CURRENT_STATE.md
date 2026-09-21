@@ -4,6 +4,16 @@
 See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
 The safe-pause section is historical.
 
+### Final repository gates — PASS (application freeze `b024b0d`)
+
+Fresh unfiltered `pnpm test`: **184 files / 4222 tests PASS** (818.46s).
+`pnpm lint`, `pnpm typecheck`, `pnpm check:migrations`, `pnpm build` and
+`git diff --check` PASS. Style audit: **39 allowlisted / 0 unjustified**;
+contrast: **33/33 PASS**, one informational border pair. The only post-freeze
+maintenance is license trailing-whitespace normalization and its regeneration
+script; all five font checksums remain unchanged. The final browser run and
+fresh visual review remain in progress; no PR/merge/deploy yet.
+
 ### Keyboard closure / final-gate checkpoint
 
 Strict T17 target-size follow-up: added existing `tap-target` bounds to new
