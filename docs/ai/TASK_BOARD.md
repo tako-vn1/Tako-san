@@ -17,9 +17,12 @@
 - [done] Review-only [PR #48](https://github.com/vn-tako/Frigo-dev/pull/48)
   opened from published checkpoint `321824d`; CI/review auto-fix enabled,
   auto-merge disabled. No merge conflict or initial review feedback.
-- [pending] Exact-head hosted CI (`validate` initially pending) and review;
-  the enabled loop will resume this task. Human VoiceOver/NVDA not performed.
-  No merge, deploy or T18D.
+- [done] Hosted `validate` SUCCESS on `289d80a`, run `35578662531`; no review
+  feedback/unresolved threads; `MERGEABLE` / `CLEAN`. Final release audit found
+  no introduced migration/configuration action. Style/contrast/diff rechecks PASS.
+- [pending] Owner merge permission after latest-head CI stays green; this
+  readiness receipt changes docs only. Human VoiceOver/NVDA not performed.
+  Auto-merge remains disabled. No merge, deploy or T18D.
 
 See `T18C_VISUAL_CERTIFICATION.md`, `HANDOFF.md`, and
 `.hoplite/artifacts/t18c/EVIDENCE.md` for exact checks, failures and next action.
