@@ -33,6 +33,7 @@ export const PlusPaywallPage: React.FC = () => {
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const creatingRef = useRef(false);
+  const checkoutTriggerRef = useRef<HTMLButtonElement | null>(null);
   const paymentOwnerRef = useRef('');
   const requestGenerationRef = useRef(0);
   const mountedRef = useRef(true);
@@ -231,7 +232,7 @@ export const PlusPaywallPage: React.FC = () => {
         </div>
 
         <div className="pt-2">
-          <Button fullWidth size="lg" disabled={!selectedPrice || isCreating} onClick={() => void handleCreateIntent()} className="flex items-center justify-center gap-2">
+          <Button fullWidth size="lg" disabled={!selectedPrice || isCreating} onClick={(event) => { checkoutTriggerRef.current = event.currentTarget; void handleCreateIntent(); }} className="flex items-center justify-center gap-2">
             <span>{isCreating ? 'Đang tạo lệnh thanh toán…' : isPlus ? 'Gia hạn hội viên' : selectedPrice ? `Nâng cấp ngay với ${formatPrice(selectedPrice)}` : 'Đang tải bảng giá…'}</span>
             <ArrowRight className="w-4 h-4 ml-1" />
           </Button>
@@ -244,6 +245,7 @@ export const PlusPaywallPage: React.FC = () => {
           onClose={() => { setIsQRModalOpen(false); setPaymentIntent(null); }}
           onSuccess={handlePaymentSuccess}
           intent={paymentIntent}
+          returnFocus={checkoutTriggerRef}
         />
       )}
     </div>

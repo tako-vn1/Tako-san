@@ -25,7 +25,7 @@ export const LandingPage: React.FC = () => {
   };
 
   return (
-    <div
+    <main
       data-testid="landing-page"
       className="min-h-screen bg-takosan-cream flex flex-col justify-between px-6 py-10 relative overflow-hidden"
     >
@@ -59,7 +59,7 @@ export const LandingPage: React.FC = () => {
               height={176}
             />
           </div>
-          <h3 className="font-heading font-bold text-base text-takosan-navy">Nhận diện nguyên liệu tức thì</h3>
+          <h2 className="font-heading font-bold text-base text-takosan-navy">Nhận diện nguyên liệu tức thì</h2>
           <p className="text-xs text-semantic-text-muted mt-1 max-w-xs mx-auto">
             Chỉ cần 1 bức ảnh chụp tủ lạnh, Takosan sẽ phân loại và tính toán món ăn tối ưu ngay cho bạn.
           </p>
@@ -86,6 +86,6 @@ export const LandingPage: React.FC = () => {
         </Button>
         <p className="pt-1 text-center text-[11px] leading-relaxed text-semantic-text-muted">Dùng thử không cần tài khoản. Đăng nhập khi bạn muốn đồng bộ giữa các thiết bị.</p>
       </div>
-    </div>
+    </main>
   );
 };

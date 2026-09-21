@@ -6,6 +6,7 @@ interface EmptyStateProps {
   type?: 'empty-fridge' | 'no-recipes' | 'shopping-ready' | 'delicious-meal' | 'error';
   title: string;
   description: string;
+  headingLevel?: 2 | 3;
   actionText?: string;
   onAction?: () => void;
   secondaryActionText?: string;
@@ -25,6 +26,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   type = 'empty-fridge',
   title,
   description,
+  headingLevel = 2,
   actionText,
   onAction,
   secondaryActionText,
@@ -32,6 +34,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   const pose = POSE_BY_TYPE[type] ?? 'fridge';
   const imgSrc = TAKOSAN_BRAND.mascot[pose];
+  const Heading = headingLevel === 3 ? 'h3' : 'h2';
 
   return (
     <div className="bg-white rounded-2xl p-6 text-center border border-takosan-cream-line shadow-xs my-4 animate-fade-in">
@@ -39,9 +42,9 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         <img src={imgSrc} alt="" aria-hidden="true" width={128} height={128} className="w-full h-full object-contain" data-mascot-pose={pose} />
       </div>
 
-      <h3 className="font-heading font-bold text-base text-takosan-navy">
+      <Heading className="font-heading font-bold text-base text-takosan-navy">
         {title}
-      </h3>
+      </Heading>
 
       <p className="text-xs text-semantic-text-muted mt-1 max-w-xs mx-auto leading-relaxed">
         {description}

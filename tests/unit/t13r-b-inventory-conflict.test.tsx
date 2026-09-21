@@ -61,7 +61,7 @@ async function mount() {
   await act(async () => root.render(<QueryClientProvider client={client}><InventoryPage /></QueryClientProvider>));
   await until(() => expect(container.textContent).toContain('Trứng gà'));
 }
-const quantityText = () => find('h4').parentElement!.parentElement!.textContent;
+const quantityText = () => find('h2').parentElement!.parentElement!.textContent;
 
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);

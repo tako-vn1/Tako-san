@@ -1,10 +1,13 @@
 # Frigo / Takosan current task board — 2026-09-20
 
-## T18C — final redesign certification (2026-09-21)
+## T18C — final redesign certification — SAFE PAUSE (2026-09-21)
 
-- **IN PROGRESS:** 27 explicit identities; fresh six-width screenshot and axe
-  matrix added. Exact base `b8447e85f099b800a9a8ebc6c4c137adc9e45a32` passed
-  identity/cleanliness/CI/staging gate; work remains on the dedicated branch.
+**STATUS: `T18C_PAUSED_SAFE`** — implementation halted by owner instruction;
+all valid work committed/pushed; resume per
+[T18C_WIP_HANDOFF.md](T18C_WIP_HANDOFF.md).
+
+- **IN PROGRESS:** 27/27 identities baselined at six widths (route/overflow/nav
+  162/162); 11 identities have applied semantic fixes awaiting the rerun.
 - **BLOCKED:** Direct approved Takosan OS source absent; 0/27 boards compared.
   Reconstructed registry and legacy Frigo kit cannot certify visual parity.
 - **Next:** Baseline checkpoint, evidence-led semantic corrections, final

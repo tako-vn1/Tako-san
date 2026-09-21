@@ -150,3 +150,10 @@ test('scan review: processing indicator and review list are still under reduced 
   await expect(page.getByRole('heading', { name: 'Kết quả nhận diện AI' })).toBeVisible();
   await expectStill(page, 'scan/review');
 });
+
+test('T18C camera decoration stops under reduced motion without blocking gallery input', async ({ page }) => {
+  await reset(page);
+  await page.goto('/scan');
+  await expect(page.getByRole('button', { name: 'Thư viện', exact: true })).toBeVisible();
+  await expectStill(page, 'scan/camera');
+});

@@ -225,6 +225,25 @@ test('pending payment stays manual and closing it grants nothing', async ({ page
   expect(await page.evaluate(() => localStorage.getItem('frigo_is_plus'))).not.toBe('true');
 });
 
+test('T18C payment dialog traps keyboard focus and Escape returns focus without granting Plus', async ({ page }) => {
+  const state = await openPlus(page);
+  const trigger = page.getByRole('button', { name: /Nâng cấp ngay với/ });
+  await trigger.click();
+  const dialog = page.getByRole('dialog', { name: 'Thanh toán VietQR' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute('aria-modal', 'true');
+  await expect(dialog.getByRole('button', { name: 'Đóng', exact: true })).toBeFocused();
+  for (const key of ['Shift+Tab', ...Array<string>(12).fill('Tab')]) {
+    await page.keyboard.press(key);
+    expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+  }
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+  expect(state.entitled).toBe(false);
+  await expect(page.getByText('Bạn là hội viên Plus', { exact: true })).toHaveCount(0);
+});
+
 for (const terminalStatus of ['failed', 'expired'] as const) {
   test(`${terminalStatus} payment has no QR or manual success path`, async ({ page }) => {
     await openPlus(page, { status: terminalStatus });

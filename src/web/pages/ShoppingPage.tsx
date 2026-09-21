@@ -123,14 +123,14 @@ export const ShoppingPage: React.FC = () => {
                   </button>
 
                   <div>
-                    <h4
+                    <h2
                       className={clsx(
                         'font-heading font-semibold text-sm text-semantic-text-primary',
                         item.isChecked && 'line-through text-semantic-text-muted'
                       )}
                     >
                       {item.name}
-                    </h4>
+                    </h2>
                     <p className="text-xs text-semantic-text-muted">
                       {item.quantity} {item.unit}
                       {item.sourceRecipeTitle && ` • Cần cho ${item.sourceRecipeTitle}`}

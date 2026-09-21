@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 import { test, expect, reset, control } from '../t13b/fixtures';
 import { SCREEN_REGISTRY, type RegisteredScreen } from './screen-registry';
+import { installNunito } from './font-fixture';
 
 const root = '.hoplite/artifacts/t18c';
 
@@ -30,6 +31,7 @@ test('T18C: all 27 identities have fresh screenshots, responsive and accessibili
     if (screen.contract.text) await expect(page.getByText(screen.contract.text).first()).toBeVisible();
     if (screen.contract.testId) await expect(page.getByTestId(screen.contract.testId)).toBeVisible();
     if (screen.id === '09') await expect(page.getByRole('button', { name: /Xác nhận nguyên liệu/ })).toBeEnabled();
+    await installNunito(page);
     await page.evaluate(() => document.fonts.ready);
     // Existing route entrances last up to 250 ms. Capture settled pixels.
     await page.waitForTimeout(350);
@@ -38,7 +40,7 @@ test('T18C: all 27 identities have fresh screenshots, responsive and accessibili
     if (screen.nav === 'visible') await expect(navigation).toBeVisible();
     const geometry = await page.evaluate(() => {
       const main = document.querySelector('main');
-      const nav = document.querySelector('nav[aria-label="Điều hướng chính"]');
+      const nav = [...document.querySelectorAll('nav[aria-label="Điều hướng chính"]')].find((element) => element.getBoundingClientRect().width > 0);
       const bounds = main?.getBoundingClientRect();
       const navBounds = nav?.getBoundingClientRect();
       const headings = Array.from(document.querySelectorAll('h1'));
@@ -50,6 +52,7 @@ test('T18C: all 27 identities have fresh screenshots, responsive and accessibili
         navigation: navBounds ? { x: navBounds.x, y: navBounds.y, width: navBounds.width, height: navBounds.height } : null,
         font: main ? getComputedStyle(main).fontFamily : null,
         imagesWithoutAlt: document.querySelectorAll('img:not([alt])').length,
+        fontFaces: [...document.fonts].map(({ family, weight, status }) => ({ family, weight, status })),
       };
     });
     const axe = await new AxeBuilder({ page })

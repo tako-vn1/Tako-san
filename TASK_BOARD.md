@@ -1,11 +1,12 @@
-## T18C — final redesign certification (2026-09-21)
+## T18C — final redesign certification — SAFE PAUSE (2026-09-21)
 
-- In progress on `feat/t18c-final-redesign-certification`, exact base
-  `b8447e85f099b800a9a8ebc6c4c137adc9e45a32`; start gate passed.
-- 27-screen/six-width baseline underway. Approved OS boards unavailable:
-  **DIRECT_BOARD_COMPARISON_PENDING**, not a board-parity pass.
-- Scope is evidence-led frontend semantics, test coverage and documentation.
-  [Current report](docs/ai/T18C_VISUAL_CERTIFICATION.md). No merge or deployment.
+**STATUS: `T18C_PAUSED_SAFE`** — implementation halted by owner instruction.
+- Branch `feat/t18c-final-redesign-certification` from exact base
+  `b8447e85f099b800a9a8ebc6c4c137adc9e45a32`; checkpoint A `ac4d90e` pushed
+  (162-screenshot baseline). Approved OS boards unavailable:
+  **DIRECT_BOARD_COMPARISON_PENDING**; 0/27 board comparisons.
+- Evidence-led semantic fixes applied; final rerun pending. Resume:
+  [T18C_WIP_HANDOFF.md](docs/ai/T18C_WIP_HANDOFF.md). No merge or deployment.
 
 ## T18B — payment authority unification — `T18B_READY_FOR_REVIEW` (2026-09-21)
 

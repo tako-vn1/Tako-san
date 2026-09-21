@@ -55,9 +55,9 @@ export const ProfilePage: React.FC = () => {
             )}
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="font-heading font-bold text-base text-semantic-text-primary leading-tight truncate">
+                <h2 className="font-heading font-bold text-base text-semantic-text-primary leading-tight truncate">
                   {displayName || 'Khách'}
-                </h3>
+                </h2>
               </div>
               <p className="text-xs text-semantic-text-muted mt-0.5 truncate">
                 {email || 'Chưa liên kết email'}

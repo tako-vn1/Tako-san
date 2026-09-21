@@ -13,12 +13,13 @@ export function useModalFocus(
   container: RefObject<HTMLElement>,
   onDismiss: () => void,
   initialFocus?: RefObject<HTMLElement>,
+  returnFocus?: RefObject<HTMLElement>,
 ) {
   const dismissRef = useRef(onDismiss);
   dismissRef.current = onDismiss;
   useEffect(() => {
     if (!open) return;
-    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const trigger = returnFocus?.current ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     const focusables = () => [...(container.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [])];
     (initialFocus?.current ?? focusables()[0])?.focus();
 
@@ -57,5 +58,5 @@ export function useModalFocus(
       document.removeEventListener('focusin', keepInside);
       if (trigger?.isConnected) trigger.focus();
     };
-  }, [open, container, initialFocus]);
+  }, [open, container, initialFocus, returnFocus]);
 }

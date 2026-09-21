@@ -47,7 +47,7 @@ function find<T = HTMLElement>(selector: string): T {
   return element as T;
 }
 function headerText() {
-  return find('h3').parentElement!.textContent;
+  return find('h2').parentElement!.textContent;
 }
 function button(label: string) {
   const element = [...container.querySelectorAll('button')].find((entry) => entry.textContent?.trim() === label);
@@ -286,7 +286,7 @@ describe('T13B U7 existing-lot metadata editing', () => {
       name: 'Cà chua đã kiểm tra', unit: 'kg', category: 'other', storage: 'freezer',
       expiryDate: '2026-10-01', expiryEstimated: false,
     }, 7);
-    expect(find('h3').textContent).toBe('Cà chua đã kiểm tra');
+    expect(find('h2').textContent).toBe('Cà chua đã kiểm tra');
     expect(container.textContent).toContain('0.5 kg');
     expect(find('[data-testid="lot-expiry"]').textContent).toBe('Hạn dùng 2026-10-01');
     expect(mocks.invalidate).toHaveBeenCalledOnce();

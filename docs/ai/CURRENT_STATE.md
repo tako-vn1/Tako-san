@@ -1,6 +1,6 @@
 # Frigo / Takosan current authority — 2026-09-20
 
-## T18C — final redesign certification — baseline in progress (2026-09-21)
+## T18C — final redesign certification — SAFE PAUSE (2026-09-21)
 
 - Exact start gate passed at `b8447e85f099b800a9a8ebc6c4c137adc9e45a32`,
   repository `1368281478` / `omin-jp/Frigo-dev`; clean tree, CI #145 green,
@@ -8,13 +8,18 @@
 - New branch: `feat/t18c-final-redesign-certification`. No merge/deployment.
 - Approved Takosan OS boards/ZIP are unavailable: **DIRECT_BOARD_COMPARISON_PENDING**.
   Reconstructed requirements and older Frigo boards are not direct authority.
-- Added a 27-identity × six-width screenshot/axe harness. Baseline is running;
-  moderate landmark/heading-order issues are recorded, not waived. Style audit:
-  39 allowlisted / 0 unjustified; configured contrast audit: 33/33 pass.
-- Next: finish baseline, push checkpoint A, correct evidenced semantics, rerun
-  full matrix/gates and persist safe screenshots. Details:
-  [T18C certification](T18C_VISUAL_CERTIFICATION.md). Historical results below
-  remain unchanged and are not current T18C evidence.
+- Checkpoint A `ac4d90e` pushed with the 162-screenshot baseline archive.
+  Baseline: route/overflow/nav 162/162; 15 moderate axe instances/viewport on
+  11 identities. Evidence-led presentation fixes applied (landmarks, heading
+  order, camera reduced-motion, VietQR dialog focus trap/return) with
+  red/green targeted regressions; payment/OTP authority untouched.
+- Style audit 39 allowlisted / 0 unjustified; contrast 33/33. Full Vitest
+  183 files / 4217 PASS applies only to the `ac4d90e`-era tree, not the pause
+  edits; final matrix/gate rerun is the next action.
+- Next: rerun matrix + gates on the fixed tree, finalize
+  [T18C certification](T18C_VISUAL_CERTIFICATION.md) and the resume plan in
+  [T18C WIP handoff](T18C_WIP_HANDOFF.md). Historical results below remain
+  unchanged and are not current T18C evidence.
 
 ## T18B — payment authority unification — `T18B_READY_FOR_REVIEW` (2026-09-21)
 

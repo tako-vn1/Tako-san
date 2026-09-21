@@ -7,11 +7,13 @@ interface RecipeCardProps {
   matchResult: RecipeMatchResult;
   onClick: () => void;
   compact?: boolean;
+  headingLevel?: 2 | 3;
 }
 
-export const RecipeCard: React.FC<RecipeCardProps> = ({ matchResult, onClick, compact = false }) => {
+export const RecipeCard: React.FC<RecipeCardProps> = ({ matchResult, onClick, compact = false, headingLevel = 2 }) => {
   const { recipe, matchPercentage, canCookWithoutBuying, missingRequiredIngredients } = matchResult;
   const image = resolveRecipeImage(recipe);
+  const Heading = headingLevel === 3 ? 'h3' : 'h2';
 
   const cuisineFlags: Record<string, string> = {
     vietnamese: '🇻🇳',
@@ -54,9 +56,9 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ matchResult, onClick, co
         </div>
 
         <div className="p-3 flex-1 flex flex-col justify-between gap-2">
-          <h4 className="font-heading font-bold text-[13px] text-semantic-text-primary line-clamp-2 leading-snug min-h-[2.2em]">
+          <Heading className="font-heading font-bold text-[13px] text-semantic-text-primary line-clamp-2 leading-snug min-h-[2.2em]">
             {recipe.title}
-          </h4>
+          </Heading>
           <div className="flex items-center justify-between text-[11px] text-semantic-text-secondary">
             <span className="flex items-center gap-1 font-semibold">
               <Clock className="w-3.5 h-3.5 text-takosan-green" />
@@ -108,9 +110,9 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ matchResult, onClick, co
           </span>
         </div>
 
-        <h4 className="font-heading font-bold text-[15px] text-semantic-text-primary leading-snug truncate">
+        <Heading className="font-heading font-bold text-[15px] text-semantic-text-primary leading-snug truncate">
           {recipe.title}
-        </h4>
+        </Heading>
 
         <p className="text-xs text-semantic-text-muted line-clamp-1 mt-0.5 leading-relaxed">
           {recipe.description}

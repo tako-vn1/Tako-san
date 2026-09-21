@@ -153,9 +153,9 @@ export const HomePage: React.FC = () => {
                   <Flame className="w-3 h-3 text-takosan-yellow" />
                   {SLOT_LABELS[todayMeal.slotType]}
                 </span>
-                <h3 className="font-heading font-extrabold text-xl text-white leading-snug">
+                <h2 className="font-heading font-extrabold text-xl text-white leading-snug">
                   {todayMeal.recipe.title}
-                </h3>
+                </h2>
                 <div className="flex items-center gap-3 text-[11px] font-medium text-white">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5" /> {todayMeal.recipe.cookTimeMinutes} phút
@@ -197,9 +197,9 @@ export const HomePage: React.FC = () => {
                 <CalendarDays className="w-3 h-3 text-takosan-yellow" />
                 Hôm nay
               </span>
-              <h3 className="font-heading font-extrabold text-lg text-white leading-snug">
+              <h2 className="font-heading font-extrabold text-lg text-white leading-snug">
                 {weekPlan ? 'Không có bữa cần nấu tiếp hôm nay' : 'Chưa có thực đơn tuần này'}
-              </h3>
+              </h2>
               <p className="text-xs text-white">
                 {weekPlan
                   ? 'Xem lại các bữa đã lên lịch hoặc thêm món trong thực đơn tuần.'
@@ -228,9 +228,9 @@ export const HomePage: React.FC = () => {
                 <span className="text-[10px] font-heading font-bold uppercase tracking-wider text-semantic-text-muted block">
                   TUẦN NÀY
                 </span>
-                <h3 className="font-heading font-bold text-base text-takosan-navy">
+                <h2 className="font-heading font-bold text-base text-takosan-navy">
                   {planned}/{total} bữa đã lên thực đơn
-                </h3>
+                </h2>
                 <div
                   className="w-full max-w-[180px] h-2 rounded-full bg-semantic-border/60 overflow-hidden"
                   role="progressbar"
@@ -268,9 +268,9 @@ export const HomePage: React.FC = () => {
         {/* SECTION 3: NÊN DÙNG SỚM — real expiring items from inventory */}
         <div className="space-y-2 pt-1">
           <div className="flex items-center justify-between">
-            <h4 className="font-heading font-bold text-xs text-semantic-text-primary uppercase tracking-wider">
+            <h2 className="font-heading font-bold text-xs text-semantic-text-primary uppercase tracking-wider">
               NÊN DÙNG SỚM
-            </h4>
+            </h2>
             <button
               onClick={() => navigate('/fridge')}
               className="text-[11px] font-semibold text-takosan-green hover:text-takosan-green-deep flex items-center tap-target"
@@ -361,9 +361,9 @@ export const HomePage: React.FC = () => {
         {/* SECTION 4: GỢI Ý MÓN NGON */}
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between">
-            <h4 className="font-heading font-bold text-sm text-takosan-navy">
+            <h2 className="font-heading font-bold text-sm text-takosan-navy">
               Gợi ý cho bạn
-            </h4>
+            </h2>
 
             <button
               onClick={() => setNoBuyOnly(!noBuyOnly)}
@@ -425,9 +425,10 @@ export const HomePage: React.FC = () => {
             ) : (
               (recommendationsQuery.data ?? []).slice(0, 5).map((match) => (
                 <RecipeCard
-                  key={match.recipe.id}
-                  matchResult={match}
-                  onClick={() => navigate(`/recipes/${match.recipe.slug}`)}
+                key={match.recipe.id}
+                matchResult={match}
+                headingLevel={3}
+                onClick={() => navigate(`/recipes/${match.recipe.slug}`)}
                 />
               ))
             )}

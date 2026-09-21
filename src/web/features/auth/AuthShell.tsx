@@ -36,7 +36,7 @@ export const AuthShell: React.FC<AuthShellProps> = ({
   onModeChange,
   children,
 }) => (
-  <div className="min-h-screen bg-takosan-cream px-6 py-8 flex flex-col justify-between text-takosan-navy animate-fade-in mx-auto w-full max-w-md md:max-w-[28rem]">
+  <main className="min-h-screen bg-takosan-cream px-6 py-8 flex flex-col justify-between text-takosan-navy animate-fade-in mx-auto w-full max-w-md md:max-w-[28rem]">
     <div>
       <div className="flex items-center justify-between">
         <button
@@ -144,5 +144,5 @@ export const AuthShell: React.FC<AuthShellProps> = ({
         <span>Bảo mật dữ liệu thực phẩm & Tôn trọng quyền riêng tư</span>
       </div>
     </div>
-  </div>
+  </main>
 );

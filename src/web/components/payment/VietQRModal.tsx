@@ -4,6 +4,7 @@ import { api } from '../../services/api';
 import { capturePrivateSession, onPrivateSessionReset } from '../../lib/private-session';
 import type { CreatedPaymentIntent, PaymentIntent, PaymentStatus } from '../../../shared/payment';
 import { Button } from '../common/Button';
+import { useModalFocus } from '../../design-system/use-modal-focus';
 import { X, Copy, Check, CheckCircle2, ShieldCheck, Clock, QrCode, Sparkles, AlertCircle } from 'lucide-react';
 
 interface VietQRModalProps {
@@ -11,6 +12,7 @@ interface VietQRModalProps {
   onClose: () => void;
   onSuccess: () => void;
   intent: CreatedPaymentIntent;
+  returnFocus?: React.RefObject<HTMLElement>;
 }
 
 function statusLabel(status: PaymentStatus): string {
@@ -40,11 +42,13 @@ function matchesIntent(payment: PaymentIntent, intent: CreatedPaymentIntent): bo
     payment.currency === intent.currency;
 }
 
-export const VietQRModal: React.FC<VietQRModalProps> = ({ isOpen, onClose, onSuccess, intent }) => {
+export const VietQRModal: React.FC<VietQRModalProps> = ({ isOpen, onClose, onSuccess, intent, returnFocus }) => {
   const userId = useAuthStore((s) => s.userId);
   const householdId = useAuthStore((s) => s.householdId);
   const setPlusFromServer = useAuthStore((s) => s.setPlusFromServer);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalFocus(isOpen, dialogRef, onClose, closeRef, returnFocus);
   const checkRef = useRef<(() => Promise<void>) | null>(null);
   const checkingRef = useRef(false);
   const entitlementCheckedRef = useRef(false);
@@ -81,8 +85,10 @@ export const VietQRModal: React.FC<VietQRModalProps> = ({ isOpen, onClose, onSuc
 
   useEffect(() => {
     if (!isOpen) return;
-    closeRef.current?.focus();
-  }, [isOpen, intent.id]);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || !userId || !householdId || intent.id !== payment.id) return;
@@ -178,6 +184,7 @@ export const VietQRModal: React.FC<VietQRModalProps> = ({ isOpen, onClose, onSuc
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm animate-fade-in">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

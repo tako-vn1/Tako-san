@@ -138,7 +138,7 @@ test('empty inbox states a real empty, not an error', async ({ page }, info) => 
   // state; a fabricated promotional alert must never appear.
   await expect(page.getByText(/Khuyến mãi từ Takosan/i)).toHaveCount(0);
   await expect(
-    page.getByText(/Chưa có thông báo mới/).or(page.getByRole('heading', { level: 4 }).first()),
+    page.getByText(/Chưa có thông báo mới/).or(page.getByRole('heading', { level: 2 }).first()),
   ).toBeVisible();
   await page.screenshot({ path: info.outputPath('notifications.png'), fullPage: true });
 });

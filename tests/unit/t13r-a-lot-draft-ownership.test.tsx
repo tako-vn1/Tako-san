@@ -101,7 +101,7 @@ async function mount(route = '/ingredients/projection-chicken') {
     </QueryClientProvider>,
   ));
 }
-const heading = () => find('h3').textContent;
+const heading = () => find('h2').textContent;
 const editing = () => container.querySelector('#lot-name-input') !== null;
 
 beforeEach(() => {
