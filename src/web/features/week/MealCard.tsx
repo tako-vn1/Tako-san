@@ -139,7 +139,7 @@ export const MealCard: React.FC<MealCardProps> = ({ slot, onClick, onSwapClick }
           </div>
 
           <h4 className="font-heading font-bold text-sm text-semantic-text-primary truncate leading-tight">
-            <button type="button" onClick={onClick} className="text-left after:absolute after:inset-0 after:rounded-xl">
+            <button type="button" onClick={onClick} className="tap-target text-left after:absolute after:inset-0 after:rounded-xl">
               {recipe.title}
             </button>
           </h4>

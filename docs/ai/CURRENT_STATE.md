@@ -6,6 +6,12 @@ The safe-pause section is historical.
 
 ### Keyboard closure / final-gate checkpoint
 
+Strict T17 target-size follow-up: added existing `tap-target` bounds to new
+native brand/title controls; no target assertion was relaxed. Focused
+mobile-360 accessibility + gap + flag-off Week run: **14 passed / 1 intentional
+boundary-project skip**. The failed full attempt is retained separately;
+final clean gate/matrix regeneration restarts after this bounded correction.
+
 Review follow-up: non-recipe legacy Week cards have no detail destination;
 their new title buttons were removed rather than advertising a no-op. Existing
 choose/change controls remain. Regression **2 red → 5/5 green**; flag-off

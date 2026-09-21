@@ -4,6 +4,9 @@
 See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
 The safe-pause section is historical.
 
+- [done] Explicit 44px native target bounds; unchanged strict gate plus keyboard
+  and flag-off checks: 14 PASS / 1 intentional project skip. Final rerun next.
+
 - [done] Independent review P2: remove inert non-recipe Week title buttons;
   regression 2 red → 5 green, flag-off routed browser 1 PASS, re-review clear.
 - [in progress] Restart final gates and 390 browser cases after that correction;

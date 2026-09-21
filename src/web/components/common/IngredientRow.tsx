@@ -64,7 +64,7 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
           <div className="flex min-w-0 items-center gap-2 mb-1">
             <h2 className="min-w-0 font-heading font-bold text-[15px] text-semantic-text-primary truncate">
               {onClick ? (
-                <button type="button" onClick={onClick} className="text-left after:absolute after:inset-0 after:rounded-2xl">
+                <button type="button" onClick={onClick} className="tap-target text-left after:absolute after:inset-0 after:rounded-2xl">
                   {name}
                 </button>
               ) : name}

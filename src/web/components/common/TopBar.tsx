@@ -47,7 +47,7 @@ export const TopBar: React.FC<TopBarProps> = ({ showBack = false, title, subtitl
             {subtitle && <p className="text-xs text-semantic-text-muted mt-0.5">{subtitle}</p>}
           </div>
         ) : (
-          <Link to="/" className="flex items-center gap-2 active:opacity-80 transition-opacity">
+          <Link to="/" className="tap-target flex items-center gap-2 active:opacity-80 transition-opacity">
             <img
               src={TAKOSAN_BRAND.logos.horizontal}
               alt="Takosan"

@@ -2,6 +2,9 @@
 See the continuation checkpoint below and
 [provenance](docs/ai/T18C_SOURCE_PROVENANCE.md). The safe pause is historical.
 
+Explicit native target bounds passed the unchanged strict accessibility gate
+and focused keyboard/Week flow: 14 PASS / 1 intentional project skip.
+
 Review correction: removed no-op non-recipe Week title actions; unit red/green
 and flag-off route test pass. Independent re-review is clear. Fresh full gates
 and 390 browser cases replace the intentionally interrupted 384-case attempt.

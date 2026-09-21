@@ -6,6 +6,12 @@ The safe-pause section is historical.
 
 ### Keyboard closure checkpoint
 
+- Strict target gate identified new brand/title elements without explicit
+  44px bounds. Existing `tap-target` utility now supplies them; gate unchanged.
+  Focused mobile-360 a11y/gaps/flag-off run **14 PASS / 1 intentional skip**.
+  Preserve failed attempt at `resume/target-bounds-final-attempt`; final run
+  restarts on the explicit-bound implementation, not on `ef5a619`.
+
 - Review follow-up found P2 no-op title buttons on non-recipe legacy Week
   slots. Removed those title actions/affordances; preserved real choose/change
   buttons. Two targeted red cases, then five units PASS and real routed
