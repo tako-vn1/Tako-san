@@ -1,8 +1,36 @@
-# Frigo / Takosan current authority — 2026-09-20
+# Frigo / Takosan current authority — 2026-09-21
 
-**Current: T18C_PARTIAL, resumed 2026-09-21.** Approved source is now available.
-See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
-The safe-pause section is historical.
+**Current: T18C_READY_FOR_REVIEW.** Local certification is complete on
+application freeze `6f8f6f40bb2c47dacd33670ac7397b0528b469a8`. Repository ID
+`1368281478` resolves to `vn-tako/Frigo-dev`; existing branch
+`feat/t18c-final-redesign-certification` retains the correct upstream and
+unchanged base `b8447e85f099b800a9a8ebc6c4c137adc9e45a32`.
+
+- Approved ZIP checksum verified; **27/27 direct board/contract comparisons**,
+  fresh at 360/390/430/768/1024/1440. Final dispositions: **2 PASS / 25
+  PASS_WITH_DOCUMENTED_DIFFERENCE**; no blocked/failed screen or unresolved
+  P0/P1/P2. Baseline and pre-fix evidence remain separate and unchanged.
+- Browser manifest: **379 PASS / 11 intentional skips / 390 unique cases**,
+  162 canonical + 449 regression screenshot files, zero strict axe violations
+  and zero horizontal overflow. Three outer-command timeouts required five
+  recovery passes; this was not one uninterrupted green runner exit.
+- Serial final gates: `pnpm lint`, `pnpm typecheck`, `pnpm test` (**184 files /
+  4222 PASS**, 554.62s), `pnpm check:migrations`, `pnpm build`,
+  `node scripts/t17/style-residuals.mjs` (39/0),
+  `node scripts/t17/contrast-audit.mjs` (33/33), `git diff --check`, and
+  `git diff --check origin/main...HEAD` PASS. Completed 08:23:33 UTC.
+- Failure history retained: genuine Home 200%-text P2 fixed at the freeze,
+  12/12 focused rerun, interrupted resource-contended CLI-timeout attempt,
+  and exact five-case outer-timeout recovery. No coverage or timeout weakened.
+- Protected auth/payment/domain/backend/schema/workflow/production boundaries
+  remain intact. VoiceOver and NVDA **NOT PERFORMED**; axe incomplete records
+  remain visible. No live-provider transaction or remote migration.
+- Evidence/report: `T18C_VISUAL_CERTIFICATION.md` and
+  `.hoplite/artifacts/t18c/EVIDENCE.md`. Next: publish review-only PR and inspect
+  its CI/review feedback. No merge, deploy or T18D. Preserve uncommitted
+  `.hoplite/settings.json` and extracted reference files as workspace state.
+
+## Historical continuation checkpoints (superseded by the result above)
 
 ### Text-zoom follow-up — final browser gate found one P2
 

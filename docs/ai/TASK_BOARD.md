@@ -1,8 +1,26 @@
-# Frigo / Takosan current task board — 2026-09-20
+# Frigo / Takosan current task board — 2026-09-21
 
-**Current: T18C_PARTIAL, resumed 2026-09-21.** Approved source is now available.
-See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
-The safe-pause section is historical.
+**Current: T18C_READY_FOR_REVIEW**, application freeze `6f8f6f4`.
+
+- [done] Existing branch/repository ID `1368281478` preserved; matching upstream,
+  unchanged base, pre-existing workspace settings excluded.
+- [done] Supplied source verified; 27/27 direct comparisons with fresh six-width
+  evidence. **2 PASS / 25 PASS_WITH_DOCUMENTED_DIFFERENCE**, no unresolved P0/P1/P2.
+- [done] Browser **379 PASS / 11 intentional skips / 390 unique**; 162 canonical
+  + 449 regression screenshot files; zero strict axe violations or overflow.
+  Five unfinished cases recovered after outer timeouts; full manifest reconciled.
+- [done] Serial final `pnpm lint`, `pnpm typecheck`, `pnpm test` (**184/4222**),
+  `pnpm check:migrations`, `pnpm build`, style residuals (**39/0**), contrast
+  (**33/33**), worktree and base-to-HEAD `git diff --check` PASS.
+- [done] Preserve baseline, failed Home zoom run, interrupted contention logs
+  and final evidence separately. No test timeout/coverage weakening.
+- [pending] Review-only PR publication and exact-head hosted CI/review feedback.
+  Human VoiceOver/NVDA not performed. No merge, deploy or T18D.
+
+See `T18C_VISUAL_CERTIFICATION.md`, `HANDOFF.md`, and
+`.hoplite/artifacts/t18c/EVIDENCE.md` for exact checks, failures and next action.
+
+## Historical continuation checkpoints (superseded)
 
 - [done] Final combined run exposed Home 1024px/200%-text P2 (46px overflow):
   **378 passed / 11 intentional skips / 1 failed**. Rem-based wrapping fix plus

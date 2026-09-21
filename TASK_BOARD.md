@@ -1,6 +1,22 @@
-**Current: T18C_PARTIAL, resumed 2026-09-21.** Approved source is now available.
-See the continuation checkpoint below and
-[provenance](docs/ai/T18C_SOURCE_PROVENANCE.md). The safe pause is historical.
+**Current: T18C_READY_FOR_REVIEW**, application freeze `6f8f6f4`.
+
+- [done] 27/27 source-backed direct comparisons at all six widths: **2 PASS /
+  25 PASS_WITH_DOCUMENTED_DIFFERENCE**, zero unresolved P0/P1/P2.
+- [done] Browser **379 PASS / 11 intentional skips / 390 unique cases**;
+  162 canonical + 449 regression screenshot files, zero strict axe/overflow.
+  Five outer-timeout cases recovered; prior failures retained, not hidden.
+- [done] Final lint/typecheck/full Vitest (**184 files / 4222 tests**), migration
+  smoke/build, style (**39/0**), contrast (**33/33**) and diff checks PASS on
+  the final implementation. Protected business/backend boundaries unchanged.
+- [pending] Publish review-only PR; inspect exact-head hosted checks/feedback.
+  Human VoiceOver/NVDA not performed. No merge, deployment or T18D.
+
+Exact commands, failure ledger, evidence and next action:
+[certification](docs/ai/T18C_VISUAL_CERTIFICATION.md),
+[handoff](docs/ai/HANDOFF.md),
+[evidence index](.hoplite/artifacts/t18c/EVIDENCE.md).
+
+## Historical continuation checkpoints (superseded)
 
 Final combined browser run: **378 passed / 11 intentional skips / 1 failed**.
 Home 1024px/200%-text overflow was a real P2; rem-based wrapping replaces the

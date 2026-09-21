@@ -1,5 +1,15 @@
 # T18C SAFE HANDOFF
 
+## Final continuation result — 2026-09-21
+
+This historical pause/resume packet is superseded by
+[T18C_VISUAL_CERTIFICATION.md](T18C_VISUAL_CERTIFICATION.md) and the current
+[HANDOFF.md](HANDOFF.md). Local status: **T18C_READY_FOR_REVIEW**, application
+freeze `6f8f6f4`; 27/27 direct six-width comparisons, 379 browser passes / 11
+intentional skips / 390 unique cases, 184 files / 4222 unit/integration tests,
+all repository gates PASS. Recovery history and immutable evidence are retained.
+No merge, deploy, T18D, or human VoiceOver/NVDA verification occurred.
+
 ## RESUMED addendum — 2026-09-21
 
 The historical pause below is preserved. Continuation resumed at `2e770f8`

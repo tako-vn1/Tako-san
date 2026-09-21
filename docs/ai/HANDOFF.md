@@ -1,8 +1,47 @@
-# Frigo / Takosan current handoff — 2026-09-20
+# Frigo / Takosan current handoff — 2026-09-21
 
-**Current: T18C_PARTIAL, resumed 2026-09-21.** Approved source is now available.
-See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
-The safe-pause section is historical.
+## T18C final handoff — `T18C_READY_FOR_REVIEW`
+
+- **Task:** Continue existing T18C, not a restart. Repository ID `1368281478`
+  is `vn-tako/Frigo-dev`; branch `feat/t18c-final-redesign-certification`,
+  correct matching upstream, unchanged main/base `b8447e85`. Verified
+  implementation freeze: `6f8f6f40bb2c47dacd33670ac7397b0528b469a8`.
+- **Changes:** Evidence-led semantic, keyboard/focus, target, responsive and
+  source-composition corrections only. Latest Home fix wraps rem-based regions
+  under 200% text zoom without changing normal primary dominance. All 27
+  identities compared to supplied boards/contracts at all six widths; final
+  dispositions **2 PASS / 25 PASS_WITH_DOCUMENTED_DIFFERENCE**. No unresolved
+  P0/P1/P2. Detailed differences are explicit in `T18C_VISUAL_CERTIFICATION.md`.
+- **Checks:** `pnpm lint`, `pnpm typecheck`, full `pnpm test` (**184 files /
+  4222 PASS**, 554.62s), `pnpm check:migrations`, `pnpm build`,
+  `node scripts/t17/style-residuals.mjs` (**39/0**),
+  `node scripts/t17/contrast-audit.mjs` (**33/33**), `git diff --check` and
+  `git diff --check origin/main...HEAD` PASS. Final gates ended 08:23:33 UTC.
+  Six-project T17/T18C browser suite: **379 PASS / 11 intentional skips / 390
+  unique cases**, zero strict axe violations or horizontal overflow across
+  162 canonical captures. Exact shard/recovery commands: `final/reports/commands.md`.
+- **Failures/recovery:** Pre-fix 378/11/1 run found genuine Home zoom P2;
+  original assertion preserved and focused follow-up 12/12 PASS. Concurrent
+  Vitest hit unchanged CLI timeout under browser contention, was interrupted,
+  and then passed serially. Three 40-minute outer wrappers left five unfinished
+  browser cases; exact recovery 4/4 + 1/1 PASS and manifest reconciliation prove
+  zero missing/duplicate cases. Do not call it one uninterrupted green run.
+- **Evidence:** Separate final matrix, raw shards/recovery, 449 regression
+  screenshot files, Board 1/2/3 six-width reviews, gate logs, and preserved
+  failed-run archives indexed in `.hoplite/artifacts/t18c/EVIDENCE.md`.
+  Original baseline and approved-source hashes are unchanged.
+- **Boundaries/database:** No backend/shared/packages/migration/workflow/Wrangler
+  change. T18A auth, T18B 49000/499000 VND and issued-intent/webhook/entitlement
+  authority, Inventory Truth, OCR/AI, planner and Week logic unchanged.
+  Synthetic local SQLite fixtures only; no remote D1 change or real payment.
+- **Limitations:** Human VoiceOver and NVDA **NOT PERFORMED**; incomplete axe
+  records retained. Hardware/provider/production certification is not claimed.
+- **Next:** Push certification/evidence checkpoint, open review-only PR to
+  `main`, subscribe to CI/review auto-fix, inspect exact remote head/checks and
+  feedback. No merge, deploy, T18D or speculative redesign. Keep pre-existing
+  `.hoplite/settings.json` and `.hoplite/extracted/` uncommitted.
+
+## Historical continuation checkpoints (superseded)
 
 ### Final browser failure / text-zoom correction
 
