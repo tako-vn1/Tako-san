@@ -14,6 +14,8 @@ import { sendEmail, buildOtpEmail } from '../services/email';
 import { shouldConsumeOtpOnVerify } from '../utils/otp';
 import { getScanQuota } from '../services/scan-quota';
 
+const OTP_TTL_MINUTES = 10;
+
 // Persist digests before delivery; reset email latency stays outside the response path.
 async function issueAndSendOtp(
   db: any,
@@ -25,7 +27,7 @@ async function issueAndSendOtp(
 ): Promise<{ code: string; emailSent: boolean; provider: string; deliveryError?: string }> {
   const otpCode = generateOtp();
   const otpId = `otp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000).toISOString();
 
   const otpSecret = env.OTP_HASH_SECRET;
   if (!otpSecret) throw new Error('OTP_HASH_SECRET is not configured');
@@ -83,6 +85,7 @@ async function requestPasswordReset(db: Env['DB'], env: Env, email: string, sche
   return {
     success: true,
     message: 'Nếu email này có tài khoản Frigo, hướng dẫn đặt lại mật khẩu sẽ được gửi đến email của bạn.',
+    expiresInMinutes: OTP_TTL_MINUTES,
     ...(env.ENVIRONMENT === 'development' ? { devOtp } : {}),
   };
 }
@@ -349,7 +352,7 @@ authRoutes.post('/auth/register', async (c) => {
       ).bind(`list_hh_${userId}`, `hh_${userId}`, 'Danh sách mua sắm'),
     ]);
 
-    // Generate 6-digit OTP code valid for 10 minutes + deliver via email
+    // Generate 6-digit OTP code and deliver via email.
     const { code: otpCode, emailSent } = await issueAndSendOtp(db, c.env, normalizedEmail, 'register');
 
     const isProduction = c.env.ENVIRONMENT === 'production';
@@ -362,7 +365,7 @@ authRoutes.post('/auth/register', async (c) => {
           ? 'Tài khoản đã được lưu nhưng email OTP chưa gửi được. Hãy bấm gửi lại mã.'
           : 'Email chưa được cấu hình; dùng mã OTP thử nghiệm bên dưới.',
       email: normalizedEmail,
-      expiresInMinutes: 10,
+      expiresInMinutes: OTP_TTL_MINUTES,
     };
 
     // SEC-02 FIX: NEVER leak devOtp in production responses
@@ -598,7 +601,7 @@ authRoutes.post('/auth/resend-otp', async (c) => {
       if (c.env.CACHE) await c.env.CACHE.delete(cooldownKey).catch(() => {});
       return c.json({ ...responseData, code: 'OTP_DELIVERY_UNAVAILABLE' }, 503);
     }
-    return c.json(responseData);
+    return c.json({ ...responseData, expiresInMinutes: OTP_TTL_MINUTES });
   } catch {
     if (c.env.CACHE) await c.env.CACHE.delete(cooldownKey).catch(() => {});
     console.error(JSON.stringify({ event: 'otp_resend_failed' }));
