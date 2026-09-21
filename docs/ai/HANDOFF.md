@@ -4,6 +4,22 @@
 See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
 The safe-pause section is historical.
 
+### Keyboard closure checkpoint
+
+- Native inventory/recipe navigation, item-named shopping checkbox state, shell
+  brand links, and legacy Week card/setup controls preserve existing handlers.
+- Focused browser red 2/2, green 12/12; sibling-action follow-up 1/1 after a
+  test-only fix for row ordering after refetch. New real-Link rendering exposed
+  an incomplete router mock (25 failures); MemoryRouter restored it without
+  removing assertions. Final focused units 3 files / 37 PASS; typecheck,
+  targeted ESLint and diff-check PASS. The new test's two type errors were
+  corrected in its fixture (`appendChild`, lowercase `dinner`).
+- Full gates and unfiltered 384-case browser run now in progress. Neither the
+  earlier interrupted final attempts nor historical 4217 results are current
+  proof. Logs remain under `resume/reports/interrupted-final` and
+  `resume/reports/keyboard`; final evidence is separately under `final/`.
+- Next: finish final gates, inspect fresh matrix, archive and publish review PR.
+
 ### Source-led fixes ready for final rerun
 
 - Source/fixed-tree checkpoint pushed: `147f1714a8c8c81e2e0d37785a614c0e4446f2be`.

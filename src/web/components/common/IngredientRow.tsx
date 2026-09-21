@@ -46,10 +46,9 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
 
   return (
     <div
-      onClick={onClick}
       data-testid="inventory-row"
       data-item-id={id}
-      className="bg-white rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-y-1 border border-semantic-border shadow-card hover:border-takosan-green/40 hover:shadow-elevated active:scale-[0.99] transition-tap cursor-pointer"
+      className="relative bg-white rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-y-1 border border-semantic-border shadow-card hover:border-takosan-green/40 hover:shadow-elevated active:scale-[0.99] transition-tap cursor-pointer"
     >
       <div className="flex items-center gap-3.5 min-w-0">
         <div className="w-14 h-14 rounded-xl bg-semantic-background-subtle border border-semantic-border/70 flex items-center justify-center shrink-0 p-2 overflow-hidden">
@@ -64,7 +63,11 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2 mb-1">
             <h2 className="min-w-0 font-heading font-bold text-[15px] text-semantic-text-primary truncate">
-              {name}
+              {onClick ? (
+                <button type="button" onClick={onClick} className="text-left after:absolute after:inset-0 after:rounded-2xl">
+                  {name}
+                </button>
+              ) : name}
             </h2>
             <StatusChip status={expiry.tone === 'unknown' ? 'unknown'
               : expiry.tone === 'estimated' ? 'estimated' : freshness} />
@@ -85,7 +88,7 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
 
       {/* Wraps under the identity block at 200% text zoom instead of
           forcing document-level horizontal overflow. */}
-      <div className="flex flex-wrap items-center justify-end gap-1.5 ml-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="relative z-10 flex flex-wrap items-center justify-end gap-1.5 ml-auto" onClick={(e) => e.stopPropagation()}>
         {onUpdateQuantity && (
           <QuantityStepper
             quantity={quantity}

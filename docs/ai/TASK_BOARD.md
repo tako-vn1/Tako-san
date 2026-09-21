@@ -4,6 +4,12 @@
 See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
 The safe-pause section is historical.
 
+- [done] Close evidenced keyboard/checked-state gaps in inventory, recipes,
+  shopping, shell and legacy Week controls; focused units 37/37, browser
+  12/12 plus sibling-action follow-up 1/1, typecheck/ESLint/diff PASS.
+- [in progress] Fresh full gates and unfiltered 384-case browser certification;
+  final artifacts remain separate from the immutable baseline.
+
 - [done] Direct approved-source comparison of 27 identities and evidence-led
   keyboard, semantic and responsive corrections; no protected business change.
 - [done] Focused browser gates 43 passed/5 intentional skips, 18 passed,

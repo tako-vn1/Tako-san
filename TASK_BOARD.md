@@ -2,6 +2,11 @@
 See the continuation checkpoint below and
 [provenance](docs/ai/T18C_SOURCE_PROVENANCE.md). The safe pause is historical.
 
+Keyboard closure checkpoint: native row/shell/Week actions and shopping
+checked-state semantics verified by 37 focused unit tests and 12+1 browser
+passes. Full gates and the unfiltered 384-case browser run are underway;
+failure history remains in the handoff. No merge/deploy/T18D.
+
 All 27 identities have now been compared directly. Localized source-led fixes
 passed targeted browser gates (43 + 18 + 1 passes; five intentional project
 skips) and typecheck. Full final certification is next; see the current

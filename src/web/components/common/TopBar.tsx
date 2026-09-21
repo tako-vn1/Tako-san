@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { TAKOSAN_BRAND } from '../../lib/takosan-brand';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { Bell, User, ArrowLeft, Settings } from 'lucide-react';
@@ -32,20 +32,28 @@ export const TopBar: React.FC<TopBarProps> = ({ showBack = false, title, subtitl
             </button>
             {title && (
               <div>
-                <h1 className="font-heading font-bold text-base text-semantic-text-primary leading-tight">{title}</h1>
+                <h1 className="font-heading font-bold text-base text-semantic-text-primary leading-tight">
+                  {title}
+                </h1>
                 {subtitle && <p className="text-xs text-semantic-text-muted mt-0.5">{subtitle}</p>}
               </div>
             )}
           </div>
         ) : title ? (
           <div>
-            <h1 className="font-heading font-bold text-lg text-semantic-text-primary leading-tight tracking-tight">{title}</h1>
+            <h1 className="font-heading font-bold text-lg text-semantic-text-primary leading-tight tracking-tight">
+              {title}
+            </h1>
             {subtitle && <p className="text-xs text-semantic-text-muted mt-0.5">{subtitle}</p>}
           </div>
         ) : (
-          <div className="flex items-center gap-2 cursor-pointer active:opacity-80 transition-opacity" onClick={() => navigate('/')}>
-            <img src={TAKOSAN_BRAND.logos.horizontal} alt="Takosan" className="h-8 w-auto object-contain" />
-          </div>
+          <Link to="/" className="flex items-center gap-2 active:opacity-80 transition-opacity">
+            <img
+              src={TAKOSAN_BRAND.logos.horizontal}
+              alt="Takosan"
+              className="h-8 w-auto object-contain"
+            />
+          </Link>
         )}
 
         <div className="flex items-center gap-2">

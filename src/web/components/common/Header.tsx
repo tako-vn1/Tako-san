@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Bell, User } from 'lucide-react';
 import { TAKOSAN_BRAND } from '../../lib/takosan-brand';
 
@@ -23,20 +23,27 @@ export const Header: React.FC<HeaderProps> = ({ showBack = false, title, subtitl
               aria-label="Quay lại"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
             </button>
             {title && (
               <div>
-                <h1 className="font-heading font-bold text-base text-semantic-text-primary leading-tight">{title}</h1>
+                <h1 className="font-heading font-bold text-base text-semantic-text-primary leading-tight">
+                  {title}
+                </h1>
                 {subtitle && <p className="text-xs text-semantic-text-muted">{subtitle}</p>}
               </div>
             )}
           </div>
         ) : (
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+          <Link to="/" className="flex items-center gap-2">
             <img src={TAKOSAN_BRAND.logos.horizontal} alt="Takosan" className="h-8 w-auto" />
-          </div>
+          </Link>
         )}
 
         <div className="flex items-center gap-2">

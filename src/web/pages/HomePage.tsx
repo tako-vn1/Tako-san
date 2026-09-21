@@ -429,10 +429,10 @@ export const HomePage: React.FC = () => {
             ) : (
               (recommendationsQuery.data ?? []).slice(0, 5).map((match) => (
                 <RecipeCard
-                key={match.recipe.id}
-                matchResult={match}
-                headingLevel={3}
-                onClick={() => navigate(`/recipes/${match.recipe.slug}`)}
+                  key={match.recipe.id}
+                  matchResult={match}
+                  headingLevel={3}
+                  onClick={() => navigate(`/recipes/${match.recipe.slug}`)}
                 />
               ))
             )}

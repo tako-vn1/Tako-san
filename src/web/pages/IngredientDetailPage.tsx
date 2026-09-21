@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { TopBar } from '../components/common/TopBar';
 import { StatusChip } from '../components/common/StatusChip';
@@ -381,9 +381,10 @@ const LotDetail: React.FC<{ routeId: string }> = ({ routeId }) => {
 
           <div className="space-y-2.5">
             {matchingRecipes.map((recipe) => (
-              <div
+              <Link
                 key={recipe.id}
-                onClick={() => navigate(`/recipes/${recipe.slug}`)}
+                to={`/recipes/${recipe.slug}`}
+                aria-label={recipe.title}
                 className="bg-white rounded-xl p-3 flex items-center gap-3.5 border border-semantic-border shadow-xs cursor-pointer hover:border-takosan-green/40 active:scale-[0.99] transition-tap"
               >
                 <img src={resolveRecipeImage(recipe).src} alt={recipe.title} className="w-14 h-14 rounded-lg object-cover shrink-0 border border-semantic-border/70" loading="lazy" onError={recipeImageErrorHandler(resolveRecipeImage(recipe).fallbackSrc)} />
@@ -398,7 +399,7 @@ const LotDetail: React.FC<{ routeId: string }> = ({ routeId }) => {
                   </span>
                 </div>
                 <ArrowRight className="w-4 h-4 text-semantic-text-muted" />
-              </div>
+              </Link>
             ))}
           </div>
         </div>

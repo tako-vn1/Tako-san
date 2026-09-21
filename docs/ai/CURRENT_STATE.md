@@ -4,6 +4,20 @@
 See the continuation checkpoint below and `T18C_SOURCE_PROVENANCE.md`.
 The safe-pause section is historical.
 
+### Keyboard closure / final-gate checkpoint
+
+Inventory detail and recipe recommendations now expose native controls;
+shopping exposes item-specific checkbox state; shell brand links are native.
+Legacy Week card/setup controls retain their existing handlers and draft
+contract with native, state-labelled buttons. Two focused pre-fix browser
+failures became **12/12 PASS** across six widths. An added sibling-action test
+initially failed because an API refetch reordered rows; fixing its locator to
+the stable item ID passed (1/1). Router fixtures now mount real Links via
+MemoryRouter instead of omitting the newly used export: **37/37 focused unit
+tests PASS**, typecheck/targeted ESLint/diff-check PASS. No assertion was removed.
+Final complete gates and the unfiltered **384-case** browser run are underway;
+interrupted earlier runs are retained as non-final evidence.
+
 ### Source-led fix checkpoint
 
 Direct comparison now covers all 27 identities using the approved boards and

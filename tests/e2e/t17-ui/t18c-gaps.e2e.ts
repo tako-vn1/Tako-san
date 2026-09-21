@@ -282,3 +282,152 @@ test('Home primary and recommendation regions stay bounded and distinct on wide 
     await page.screenshot({ path: info.outputPath(`home-regions-${page.viewportSize()!.width}.png`), fullPage: true });
   }
 });
+
+test('inventory detail and recipe recommendations are keyboard-navigable without merging row actions', async ({ page }, info) => {
+  await reset(page);
+  await page.goto('/fridge');
+
+  const firstRow = page.getByTestId('inventory-row').first();
+  await expect(firstRow).toBeVisible();
+  const itemId = await firstRow.getAttribute('data-item-id');
+  expect(itemId).toBeTruthy();
+  const row = page.locator(`[data-testid="inventory-row"][data-item-id="${itemId}"]`);
+  const heading = row.getByRole('heading').first();
+  const ingredientName = (await heading.innerText()).trim();
+  const ingredientButton = row.getByRole('button', { name: ingredientName, exact: true });
+  await expect(ingredientButton).toBeVisible();
+  await expect(heading).toContainText(ingredientName);
+
+  const quantityButtons = row.getByRole('button', { name: /^(Tăng số lượng|Giảm số lượng)$/ });
+  const deleteButton = row.getByRole('button', { name: 'Xóa nguyên liệu', exact: true });
+  await expect(quantityButtons).toHaveCount(2);
+  await expect(quantityButtons.first()).toBeVisible();
+  await expect(deleteButton).toBeVisible();
+  expect(await ingredientButton.locator('button').count()).toBe(0);
+
+  const update = page.waitForResponse((response) =>
+    response.request().method() === 'PATCH' && response.url().endsWith(`/inventory/${itemId}`),
+  );
+  await row.getByRole('button', { name: 'Tăng số lượng', exact: true }).click();
+  expect((await update).status()).toBe(200);
+  await expect(page).toHaveURL(/\/fridge$/);
+  await deleteButton.click();
+  const confirmation = page.getByRole('alertdialog', { name: 'Xóa nguyên liệu?' });
+  await expect(confirmation).toBeVisible();
+  await expect(page).toHaveURL(/\/fridge$/);
+  await confirmation.getByRole('button', { name: 'Hủy', exact: true }).click();
+  await expect(confirmation).toBeHidden();
+  await page.screenshot({ path: info.outputPath('inventory-keyboard-controls.png'), fullPage: true });
+
+  let reachedByTab = false;
+  for (let index = 0; index < 40; index += 1) {
+    await page.keyboard.press('Tab');
+    if (await ingredientButton.evaluate((element) => element === document.activeElement)) {
+      reachedByTab = true;
+      break;
+    }
+  }
+  expect(reachedByTab, 'ingredient detail control is reachable with Tab').toBe(true);
+  await expect(ingredientButton).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(new RegExp(`/(?:ingredients|fridge)/${escapeRegExp(itemId!)}$`));
+
+  const recipeLink = page.locator('a[href^="/recipes/"]').first();
+  await expect(recipeLink).toBeVisible();
+  let recipeReachedByTab = false;
+  for (let index = 0; index < 60; index += 1) {
+    await page.keyboard.press('Tab');
+    if (await recipeLink.evaluate((element) => element === document.activeElement)) {
+      recipeReachedByTab = true;
+      break;
+    }
+  }
+  expect(recipeReachedByTab, 'recipe recommendation is reachable with Tab').toBe(true);
+  await expect(recipeLink).toBeFocused();
+  const recipeHref = await recipeLink.getAttribute('href');
+  expect(recipeHref).toMatch(/^\/recipes\/[^/]+$/);
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(new RegExp(`${escapeRegExp(recipeHref!)}$`));
+
+  await page.screenshot({ path: info.outputPath('inventory-detail-recipe-keyboard.png'), fullPage: true });
+});
+
+test('shopping item checkbox toggles with Space through the existing API mutation', async ({ page }, info) => {
+  await reset(page);
+
+  const item = {
+    id: 't18c-keyboard-shopping-item',
+    name: 'Hành tím kiểm thử',
+    quantity: 2,
+    unit: 'piece',
+    isChecked: false,
+    sourceRecipeTitle: '',
+  };
+  let patchCount = 0;
+  let serverChecked = item.isChecked;
+
+  await page.route('**/api/v1/shopping-list', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ items: [{ ...item, isChecked: serverChecked }] }),
+    });
+  });
+  await page.route('**/api/v1/shopping-list/items/t18c-keyboard-shopping-item', async (route) => {
+    if (route.request().method() !== 'PATCH') {
+      await route.continue();
+      return;
+    }
+    patchCount += 1;
+    const body = route.request().postDataJSON() as { isChecked?: boolean };
+    expect(body).toEqual({ isChecked: true });
+    serverChecked = body.isChecked === true;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        item: { ...item, isChecked: serverChecked },
+      }),
+    });
+  });
+
+  await page.goto('/shopping');
+  const checkbox = page.getByRole('checkbox', { name: `Đánh dấu đã mua: ${item.name}`, exact: true });
+  await expect(checkbox).toBeVisible();
+  await expect(checkbox).toHaveAttribute('aria-checked', 'false');
+
+  const mutation = page.waitForResponse((response) =>
+    response.request().method() === 'PATCH' &&
+    response.url().endsWith(`/shopping-list/items/${item.id}`),
+  );
+  await checkbox.press('Space');
+  const mutationResponse = await mutation;
+  expect(mutationResponse.status()).toBe(200);
+  const mutationBody = await mutationResponse.json();
+  expect(mutationBody).toMatchObject({
+    success: true,
+    item: { id: item.id, name: item.name, isChecked: true },
+  });
+  const checkedItem = page.getByRole('checkbox', { name: `Bỏ đánh dấu đã mua: ${item.name}`, exact: true });
+  await expect(checkedItem).toHaveAttribute('aria-checked', 'true');
+  await expect(checkedItem).toBeVisible();
+  expect(patchCount).toBe(1);
+
+  await page.screenshot({ path: info.outputPath('shopping-keyboard-checkbox.png'), fullPage: true });
+});
+
+test('the shell brand is a native keyboard link back to Home', async ({ page }) => {
+  await reset(page);
+  await completeOnboarding(page);
+  await page.goto('/fridge');
+  const brand = page.getByRole('link', { name: 'Takosan', exact: true }).first();
+  await expect(brand).toHaveAttribute('href', '/');
+  await brand.press('Enter');
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('heading', { name: /Xin chào/ })).toBeVisible();
+});

@@ -151,9 +151,8 @@ export const WeekSetupPage: React.FC = () => {
               ].map((opt) => (
                 <div
                   key={opt.id}
-                  onClick={() => setMealPreset(opt.id as any)}
                   className={clsx(
-                    'p-4 rounded-xl border cursor-pointer transition-tap active:scale-[0.99] flex items-center justify-between',
+                    'relative p-4 rounded-xl border cursor-pointer transition-tap active:scale-[0.99] flex items-center justify-between',
                     mealPreset === opt.id
                       ? 'bg-white border-takosan-green shadow-xs ring-1 ring-takosan-green'
                       : 'bg-white border-semantic-border hover:border-semantic-border-strong'
@@ -171,16 +170,21 @@ export const WeekSetupPage: React.FC = () => {
                     <p className="text-xs text-semantic-text-muted">{opt.desc}</p>
                   </div>
 
-                  <div
+                  <button
+                    type="button"
+                    aria-label={`Chọn ${opt.title}`}
+                    aria-pressed={mealPreset === opt.id}
+                    onClick={() => setMealPreset(opt.id as any)}
                     className={clsx(
                       'w-5 h-5 rounded-full flex items-center justify-center border shrink-0',
+                      'after:absolute after:inset-0 after:rounded-xl',
                       mealPreset === opt.id
                         ? 'bg-takosan-green border-takosan-green text-white'
                         : 'border-semantic-border-strong'
                     )}
                   >
                     {mealPreset === opt.id && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
-                  </div>
+                  </button>
                 </div>
               ))}
             </div>
@@ -231,13 +235,8 @@ export const WeekSetupPage: React.FC = () => {
 
             {/* Unlimited Option */}
             <div
-              onClick={() => {
-                setIsUnlimitedBudget(!isUnlimitedBudget);
-                if (!isUnlimitedBudget) setBudgetVnd(null);
-                else setBudgetVnd(750000);
-              }}
               className={clsx(
-                'p-4 rounded-xl border cursor-pointer transition-tap flex items-center justify-between',
+                'relative p-4 rounded-xl border cursor-pointer transition-tap flex items-center justify-between',
                 isUnlimitedBudget
                   ? 'bg-white border-takosan-green ring-1 ring-takosan-green shadow-xs'
                   : 'bg-white border-semantic-border hover:border-semantic-border-strong'
@@ -252,16 +251,26 @@ export const WeekSetupPage: React.FC = () => {
                 </p>
               </div>
 
-              <div
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={isUnlimitedBudget}
+                aria-label="Không giới hạn ngân sách"
+                onClick={() => {
+                  setIsUnlimitedBudget(!isUnlimitedBudget);
+                  if (!isUnlimitedBudget) setBudgetVnd(null);
+                  else setBudgetVnd(750000);
+                }}
                 className={clsx(
                   'w-5 h-5 rounded-full flex items-center justify-center border shrink-0',
+                  'after:absolute after:inset-0 after:rounded-xl',
                   isUnlimitedBudget
                     ? 'bg-takosan-green border-takosan-green text-white'
                     : 'border-semantic-border-strong'
                 )}
               >
                 {isUnlimitedBudget && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
-              </div>
+              </button>
             </div>
           </div>
         )}
@@ -358,9 +367,8 @@ export const WeekSetupPage: React.FC = () => {
                 return (
                   <div
                     key={opt.id}
-                    onClick={() => togglePriority(opt.id)}
                     className={clsx(
-                      'p-3.5 rounded-xl border cursor-pointer transition-tap flex flex-col justify-between h-24 select-none active:scale-[0.98]',
+                      'relative p-3.5 rounded-xl border cursor-pointer transition-tap flex flex-col justify-between h-24 select-none active:scale-[0.98]',
                       isSelected
                         ? 'bg-white border-takosan-green shadow-xs ring-1 ring-takosan-green'
                         : 'bg-white border-semantic-border hover:border-semantic-border-strong'
@@ -368,16 +376,21 @@ export const WeekSetupPage: React.FC = () => {
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xl">{opt.icon}</span>
-                      <div
+                      <button
+                        type="button"
+                        aria-label={`Ưu tiên: ${opt.label}`}
+                        aria-pressed={isSelected}
+                        onClick={() => togglePriority(opt.id)}
                         className={clsx(
                           'w-4 h-4 rounded-full flex items-center justify-center border',
+                          'after:absolute after:inset-0 after:rounded-xl',
                           isSelected
                             ? 'bg-takosan-green border-takosan-green text-white'
                             : 'border-semantic-border-strong'
                         )}
                       >
                         {isSelected && <Check className="w-2.5 h-2.5 stroke-[2.5]" />}
-                      </div>
+                      </button>
                     </div>
                     <span className="font-heading font-semibold text-xs text-semantic-text-primary leading-snug">
                       {opt.label}
@@ -429,9 +442,8 @@ export const WeekSetupPage: React.FC = () => {
               ].map((opt) => (
                 <div
                   key={opt.id}
-                  onClick={() => setFrequency(opt.id as ShoppingFrequency)}
                   className={clsx(
-                    'p-4 rounded-xl border cursor-pointer transition-tap active:scale-[0.99] flex items-center justify-between',
+                    'relative p-4 rounded-xl border cursor-pointer transition-tap active:scale-[0.99] flex items-center justify-between',
                     frequency === opt.id
                       ? 'bg-white border-takosan-green shadow-xs ring-1 ring-takosan-green'
                       : 'bg-white border-semantic-border hover:border-semantic-border-strong'
@@ -444,16 +456,21 @@ export const WeekSetupPage: React.FC = () => {
                     <p className="text-xs text-semantic-text-muted mt-0.5">{opt.desc}</p>
                   </div>
 
-                  <div
+                  <button
+                    type="button"
+                    aria-label={`Chọn ${opt.title}`}
+                    aria-pressed={frequency === opt.id}
+                    onClick={() => setFrequency(opt.id as ShoppingFrequency)}
                     className={clsx(
                       'w-5 h-5 rounded-full flex items-center justify-center border shrink-0',
+                      'after:absolute after:inset-0 after:rounded-xl',
                       frequency === opt.id
                         ? 'bg-takosan-green border-takosan-green text-white'
                         : 'border-semantic-border-strong'
                     )}
                   >
                     {frequency === opt.id && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
-                  </div>
+                  </button>
                 </div>
               ))}
             </div>

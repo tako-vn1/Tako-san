@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IngredientDetailPage } from '../../src/web/pages/IngredientDetailPage';
@@ -16,7 +17,10 @@ vi.mock('../../src/web/services/api', async () => ({
 }));
 vi.mock('../../src/web/lib/query-invalidation', () => ({ invalidateInventoryDependents: mocks.invalidate }));
 vi.mock('../../src/web/components/common/TopBar', () => ({ TopBar: () => <h1>Chi tiết nguyên liệu</h1> }));
-vi.mock('react-router-dom', () => ({ useParams: () => ({ id: 'lot-1' }), useNavigate: () => mocks.navigate }));
+vi.mock('react-router-dom', async (importOriginal) => ({
+  ...await importOriginal<typeof import('react-router-dom')>(),
+  useParams: () => ({ id: 'lot-1' }), useNavigate: () => mocks.navigate,
+}));
 
 const NOW = Date.parse('2026-09-13T00:00:00Z');
 const lot = (changes: Partial<InventoryLotDetail> = {}): InventoryLotDetail => ({
@@ -77,7 +81,7 @@ async function select(selector: string, value: string) {
 }
 async function mount(value = lot()) {
   mocks.getLot.mockResolvedValue(value);
-  await act(async () => root.render(<QueryClientProvider client={client}><IngredientDetailPage /></QueryClientProvider>));
+  await act(async () => root.render(<MemoryRouter><QueryClientProvider client={client}><IngredientDetailPage /></QueryClientProvider></MemoryRouter>));
   await until(() => expect(container.querySelector('[data-testid="lot-expiry"]')).not.toBeNull());
 }
 
