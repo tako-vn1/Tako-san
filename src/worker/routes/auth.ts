@@ -1143,59 +1143,27 @@ authRoutes.post('/auth/logout', async (c) => {
   return c.json({ success: true, message: 'Đăng xuất thành công' });
 });
 
-// 11. POST /auth/plus/activate — server-authoritative Frigo Plus entitlement.
-// The client can NEVER grant Plus to itself. A real payment is only confirmed once
-// a server-held secret (PLUS_GRANT_SECRET, e.g. from a verified NAPAS callback or
-// an ops back-office action) is presented; otherwise the request records intent and
-// returns pending_verification without unlocking anything.
+// Legacy clients may check here, but only verified payment intents can grant Plus.
 authRoutes.post('/auth/plus/activate', async (c) => {
   const auth = c.get('auth');
   const db = c.env.DB;
   const rawBody = await c.req.json().catch(() => ({}));
-  const cycle = rawBody?.cycle === 'annual' ? 'annual' : 'monthly';
 
   if (auth?.isGuest) {
     return c.json({ error: 'Vui lòng đăng nhập để kích hoạt Frigo Plus.' }, 401);
   }
 
-  // Entitlement changes are durable; do not report a pending/active result
-  // when the authoritative subscription store is unavailable.
   if (!db) {
     return c.json({ error: 'Database service unavailable', code: 'DATABASE_UNAVAILABLE' }, 503);
   }
 
-  const grantSecret = c.env.PLUS_GRANT_SECRET;
-  const provided = typeof rawBody?.grantCode === 'string' ? rawBody.grantCode : '';
-  const manualGrant = Boolean(grantSecret) && provided.length > 0 && provided === grantSecret;
-
-  try {
-    if (manualGrant) {
-      const expiresAt = new Date(
-        Date.now() + (cycle === 'annual' ? 366 : 31) * 86400 * 1000
-      ).toISOString();
-      await db
-        .prepare(
-          `INSERT INTO subscriptions (id, user_id, plan, status, expires_at)
-           VALUES (?, ?, 'plus', 'active', ?)
-           ON CONFLICT(user_id) DO UPDATE SET
-             plan = 'plus', status = 'active', expires_at = excluded.expires_at,
-             updated_at = datetime('now')`
-        )
-        .bind(`sub_${auth.userId}`, auth.userId, expiresAt)
-        .run();
-      return c.json({ success: true, granted: true, status: 'active', expiresAt });
-    }
-
-    // No verifiable payment yet — do not unlock. Client will reflect server state.
-    return c.json({
-      success: true,
-      granted: false,
-      status: 'pending_verification',
-      message:
-        'Giao dịch đang được đối soát. Frigo Plus sẽ tự động kích hoạt khi thanh toán của bạn được xác minh.',
-    });
-  } catch (err: any) {
-    console.error('Plus activate error:', err);
-    return c.json({ error: err?.message || 'Không thể xử lý yêu cầu Plus' }, 500);
+  if (rawBody && Object.prototype.hasOwnProperty.call(rawBody, 'grantCode')) {
+    return c.json({ error: 'Kích hoạt bằng mã dùng chung không còn được hỗ trợ', code: 'LEGACY_GRANT_DISABLED' }, 410);
   }
+  return c.json({
+    success: true,
+    granted: false,
+    status: 'pending_verification',
+    message: 'Chưa xác nhận thanh toán. Vui lòng kiểm tra lệnh thanh toán trong Takosan Plus.',
+  });
 });

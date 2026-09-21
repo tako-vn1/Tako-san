@@ -101,11 +101,11 @@ export interface Env {
   JWT_SECRET?: string;
   OTP_HASH_SECRET?: string;
   RESEND_API_KEY?: string;
-  // S2: server-held code required to manually/back-office grant Frigo Plus.
-  // Never exposed to the client; acts as the payment-verification hook until a
-  // real NAPAS callback reconciles transfers.
+  // Legacy deployment binding; no longer authorizes a subscription grant.
   PLUS_GRANT_SECRET?: string;
   PAYOS_CHECKSUM_KEY?: string;
+  PAYOS_CLIENT_ID?: string;
+  PAYOS_API_KEY?: string;
 }
 
 export interface AuthContext {

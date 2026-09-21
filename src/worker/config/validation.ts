@@ -286,15 +286,6 @@ export function validateEnvironment(env: Env): ConfigValidationResult {
     );
   }
 
-  if (!env.PLUS_GRANT_SECRET) {
-    warnings.push(
-      warning(
-        'CONFIG_PLUS_GRANT_SECRET_MISSING',
-        'PLUS_GRANT_SECRET is absent; the manual Frigo Plus grant flow is disabled.'
-      )
-    );
-  }
-
   return {
     environment,
     ok: fatalIssues.length === 0,

@@ -88,7 +88,7 @@ export async function fetchJson<T>(path: string, options?: RequestInit): Promise
     if (existingKey) delete headers[existingKey];
     headers[key] = value;
   }
-  if (!path.startsWith('/auth/') && !path.startsWith('/billing/') &&
+  if (!path.startsWith('/auth/') &&
     pathname !== '/config' && pathname !== '/health' && (!publicRead || (scope.userId && scope.householdId))) {
     // Recipe reads can include a personalized inventory match, so fence them too.
     headers['X-Frigo-Expected-User-Id'] = scope.userId;

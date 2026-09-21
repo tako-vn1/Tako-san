@@ -1,5 +1,62 @@
 # Frigo / Takosan current authority — 2026-09-20
 
+## T18B — payment authority unification — `T18B_READY_FOR_REVIEW` (2026-09-21)
+
+- Final review P1 fix starts at verified local/remote `0926222` on the same
+  branch/PR. Issued monthly 49000/annual 499000 offers survive later catalog
+  changes; current-price callbacks for those old orders are rejected. Structural
+  validation, expiry/terminal-state rejection and replay/grant fences remain.
+  Focused **151/151** (65 server payment), with explicit catalog-change and
+  corrupted-row coverage; full `pnpm test` **183 files / 4217 PASS** and browser
+  **48/48** across six widths. Lint/typecheck/migration smoke/build/diff checks
+  PASS. Final commands, fixture/HMR recovery and publication boundary are in
+  the report; earlier checkpoint counts below are historical.
+- Repository `1368281478` / `omin-jp/Frigo-dev`; exact starting and currently
+  verified main `13ff3f22082fc0601a81b90c96edded4741194ac`. Branch
+  `feat/t18b-payment-authority`, review-only [PR #47](https://github.com/omin-jp/Frigo-dev/pull/47)
+  OPEN, auto-fix CI/review subscription enabled, auto-merge disabled.
+- One Worker price table retains **49000 monthly / 499000 annual / VND**.
+  It supplies metadata and new offers only. After issuance the persisted intent
+  is the immutable amount/plan/currency/order/expiry authority; signed PayOS
+  instructions, callbacks and displayed QR must match that offer, not today's
+  catalog. Only a valid persisted paid intent grants entitlement. No commercial
+  price/discount decision was made.
+- Signed callbacks bind order/amount/currency/plan/reference; transactional
+  pending-only grants are idempotent and insert missing subscriptions. Provider
+  errors fail closed. Legacy shared-secret grants are retired (410 for
+  `grantCode`), normal old activation calls remain non-granting compatibility.
+- Client checkout/status and fresh `/me` entitlement are identity/generation
+  fenced; billing's expected-owner-header exemption is removed. Local cache,
+  redirects and modal closure cannot establish Plus. All T18A code preceding
+  the legacy Plus endpoint is byte-identical to base.
+- Checkpoints A `2aba91a`, B `c00ea9f`, C `1cef30b`, semantic-error fix
+  `1aabd32562edc2c5c37b3db9d7d19e1938896084` pushed. Focused 121/121;
+  browser six-width 48/48 plus error-state rerun 4/4; implementation full Vitest **183 files /
+  4185 tests PASS**; lint/typecheck/migration smoke/build PASS. First full run's
+  single style-token failure was corrected in source, with brand/checkout 38/38
+  and the complete rerun green. Security review: remaining P0/P1/P2/P3 = 0.
+- Merge-readiness follow-up: exact-head CI `35554499704` passed at `2d6ff5a`,
+  no review threads. Fixed deployed CSP blocking VietQR (exact image origin in
+  both policies), retired the obsolete grant-secret warning, and removed one
+  trailing blank line. New regression failed before the CSP fix, then passed:
+  104 focused tests and 48/48 browser tests under the real image policy.
+  Lint/typecheck/migration smoke/build/full-diff whitespace and built-header
+  parity PASS; exact commands/failures are in the report. New-head CI is checked
+  separately on the PR before readiness, not inferred from the prior run.
+- No migration (38 existing), Inventory Truth, OCR/AI, recipe/planner/Week,
+  Wrangler binding, infrastructure or workflow changes. Application-config
+  adjustments are only the QR CSP and retired payment warning. No real payment, merge, remote D1 or
+  deployment. Baseline main CI #140 and staging Deploy #51 passed; production
+  job skipped. T18B is not deployed.
+- Managed isolated Preview is ready after removing a hard-coded run-script port
+  override; actual metadata and missing-provider checkout were exercised. UI
+  provider evidence is synthetic, not live payment certification.
+- Next: owner review/merge permission once final-head CI is green; no local blocker.
+  Provider channel/secrets and live callback delivery need separately authorized
+  operator verification before any release. Exact audit, contract, failures,
+  evidence and boundaries: [T18B report](T18B_PAYMENT_AUTHORITY_REPORT.md).
+  T17/T18A sections below are historical and unchanged.
+
 ## T18A — auth resend expiry contract — `T18A_READY_FOR_REVIEW` (2026-09-21)
 
 - Repository ID `1368281478` currently resolves to `omin-jp/Frigo-dev` (supplied

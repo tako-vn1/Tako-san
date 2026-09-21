@@ -217,13 +217,15 @@ describe('validateEnvironment', () => {
     expect(result.fatal.map((i) => i.code)).toEqual(expect.arrayContaining(['CONFIG_TURNSTILE_MISSING_SECRET', 'CONFIG_TURNSTILE_MISSING_SITE_KEY']));
   });
 
-  it('treats absent optional providers as warnings only (no secret required when disabled)', () => {
+  it('warns about missing email delivery but ignores the retired Plus grant secret', () => {
     const result = validateEnvironment(productionEnv({ RESEND_API_KEY: undefined, PLUS_GRANT_SECRET: undefined }));
     expect(result.ok).toBe(true);
     const codes = result.warnings.map((i) => i.code);
     expect(codes).toContain('CONFIG_EMAIL_DELIVERY_UNAVAILABLE');
-    expect(codes).toContain('CONFIG_PLUS_GRANT_SECRET_MISSING');
+    expect(codes).not.toContain('CONFIG_PLUS_GRANT_SECRET_MISSING');
     expect(result.fatal).toEqual([]);
+    expect(validateEnvironment(productionEnv({ PLUS_GRANT_SECRET: 'retired-test-secret' })).warnings)
+      .toEqual(result.warnings);
   });
 
   it('never embeds secret values in diagnostics', () => {

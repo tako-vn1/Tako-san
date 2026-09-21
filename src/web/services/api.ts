@@ -10,6 +10,7 @@ import { recipesApi } from './recipes';
 import { shoppingApi } from './shopping';
 import { weekApi } from './week';
 import { notificationsApi } from './notifications';
+import { billingApi } from './billing';
 import { invalidateReplayedQueries } from '../lib/query-invalidation';
 
 export { ApiError, isOffline, clearTenantCaches } from './http';
@@ -24,22 +25,7 @@ export const api = {
   ...shoppingApi,
   ...weekApi,
   ...notificationsApi,
-
-  confirmPlusPayment: async (
-    cycle: 'monthly' | 'annual'
-  ): Promise<{ success: boolean; granted: boolean; status: string; message?: string }> => {
-    return fetchJson('/auth/plus/activate', {
-      method: 'POST',
-      body: JSON.stringify({ cycle }),
-    });
-  },
-
-  createPaymentIntent: async (plan: 'monthly' | 'annual') => {
-    return fetchJson<{ success: boolean; payment: { id: string; orderCode: string; amountVnd: number; currency: string; plan: string; description: string; expiresAt: string } }>('/billing/payment-intents', {
-      method: 'POST',
-      body: JSON.stringify({ plan }),
-    });
-  },
+  ...billingApi,
 
   retryPendingWrites: async (): Promise<{ attempted: number; remaining: number }> => {
     const scope = getCurrentScope();

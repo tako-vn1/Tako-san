@@ -3,6 +3,8 @@ import { StaticRouter } from 'react-router-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const authState = {
+  userId: 'account-user',
+  householdId: 'account-household',
   displayName: 'Khách ghé thăm',
   email: '',
   isGuest: true,
@@ -46,11 +48,12 @@ describe('guest account gates', () => {
     expect(html).toContain('href="/auth?mode=login&amp;returnTo=%2Fplus"');
   });
 
-  it('keeps the existing pricing flow visible to authenticated accounts', () => {
+  it('keeps the authenticated Plus shell free of client-owned prices', () => {
     authState.isGuest = false;
     const html = render(<PlusPaywallPage />, '/plus');
-    expect(html).toContain('Gói 1 Năm');
-    expect(html).toContain('599.000đ');
+    expect(html).toContain('Nâng cấp Takosan Plus');
+    expect(html).not.toContain('599.000đ');
+    expect(html).not.toContain('79.000đ');
     expect(html).not.toContain('Đăng nhập trước khi chọn gói Plus');
   });
 });
