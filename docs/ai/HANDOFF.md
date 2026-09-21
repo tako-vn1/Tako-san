@@ -1,5 +1,29 @@
 # Frigo / Takosan current handoff — 2026-09-20
 
+## T18C checkpoint A — baseline in progress (2026-09-21)
+
+- **Task/status:** Final visual certification; `T18C_PARTIAL`, with
+  `DIRECT_BOARD_COMPARISON_PENDING`. No direct Takosan boards available.
+- **Branch/base:** `feat/t18c-final-redesign-certification` from exact main
+  `b8447e85f099b800a9a8ebc6c4c137adc9e45a32` in repository `1368281478` /
+  `omin-jp/Frigo-dev`. Initial tree clean; main CI #145 and staging Deploy #52
+  successful; production skipped; no overlapping redesign PR.
+- **Changes:** New six-width 27-screen screenshot/axe harness and explicit
+  registry/report. Baseline moderate semantic defects are not suppressed.
+- **Checks:** `node scripts/t17/style-residuals.mjs` PASS (39 allowlisted,
+  0 unjustified); `node scripts/t17/contrast-audit.mjs` PASS (33 configured
+  pairs, including one informational decorative border). Browser matrix and
+  full validation are underway, not yet certified. Initial config composed two
+  web servers and refused the occupied preview port; corrected to replace the
+  inherited config and reuse the managed isolated Preview.
+- **Evidence:** `.hoplite/artifacts/t18c/`; no historical screenshot reused.
+  Baseline preview uses system-font fallback; final typography coverage pending.
+- **Boundaries:** No backend/schema/workflow changes, real payment, remote D1,
+  merge, staging or production deployment. No T18D work.
+- **Next:** Complete/push baseline, fix evidenced frontend semantics, rerun and
+  preserve final evidence in Git. Owner must provide approved OS source before
+  direct board parity can be certified. See `T18C_VISUAL_CERTIFICATION.md`.
+
 ## T18B handoff — `T18B_READY_FOR_REVIEW` (2026-09-21)
 
 - **Final review fix:** verified expected start `0926222` on the existing

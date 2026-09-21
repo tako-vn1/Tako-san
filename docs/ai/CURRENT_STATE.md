@@ -1,5 +1,21 @@
 # Frigo / Takosan current authority — 2026-09-20
 
+## T18C — final redesign certification — baseline in progress (2026-09-21)
+
+- Exact start gate passed at `b8447e85f099b800a9a8ebc6c4c137adc9e45a32`,
+  repository `1368281478` / `omin-jp/Frigo-dev`; clean tree, CI #145 green,
+  Deploy #52 staging green and production skipped. No overlapping redesign PR.
+- New branch: `feat/t18c-final-redesign-certification`. No merge/deployment.
+- Approved Takosan OS boards/ZIP are unavailable: **DIRECT_BOARD_COMPARISON_PENDING**.
+  Reconstructed requirements and older Frigo boards are not direct authority.
+- Added a 27-identity × six-width screenshot/axe harness. Baseline is running;
+  moderate landmark/heading-order issues are recorded, not waived. Style audit:
+  39 allowlisted / 0 unjustified; configured contrast audit: 33/33 pass.
+- Next: finish baseline, push checkpoint A, correct evidenced semantics, rerun
+  full matrix/gates and persist safe screenshots. Details:
+  [T18C certification](T18C_VISUAL_CERTIFICATION.md). Historical results below
+  remain unchanged and are not current T18C evidence.
+
 ## T18B — payment authority unification — `T18B_READY_FOR_REVIEW` (2026-09-21)
 
 - Final review P1 fix starts at verified local/remote `0926222` on the same

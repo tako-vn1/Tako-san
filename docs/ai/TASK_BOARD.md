@@ -1,5 +1,16 @@
 # Frigo / Takosan current task board — 2026-09-20
 
+## T18C — final redesign certification (2026-09-21)
+
+- **IN PROGRESS:** 27 explicit identities; fresh six-width screenshot and axe
+  matrix added. Exact base `b8447e85f099b800a9a8ebc6c4c137adc9e45a32` passed
+  identity/cleanliness/CI/staging gate; work remains on the dedicated branch.
+- **BLOCKED:** Direct approved Takosan OS source absent; 0/27 boards compared.
+  Reconstructed registry and legacy Frigo kit cannot certify visual parity.
+- **Next:** Baseline checkpoint, evidence-led semantic corrections, final
+  responsive/state/a11y/gate runs and durable screenshot/report publication.
+  [Registry and findings](T18C_VISUAL_CERTIFICATION.md). No merge/deploy/T18D.
+
 ## T18B — payment authority unification — `T18B_READY_FOR_REVIEW` (2026-09-21)
 
 - [done] Final review P1 fixed from exact HEAD `0926222`: current price table

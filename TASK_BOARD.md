@@ -1,3 +1,12 @@
+## T18C — final redesign certification (2026-09-21)
+
+- In progress on `feat/t18c-final-redesign-certification`, exact base
+  `b8447e85f099b800a9a8ebc6c4c137adc9e45a32`; start gate passed.
+- 27-screen/six-width baseline underway. Approved OS boards unavailable:
+  **DIRECT_BOARD_COMPARISON_PENDING**, not a board-parity pass.
+- Scope is evidence-led frontend semantics, test coverage and documentation.
+  [Current report](docs/ai/T18C_VISUAL_CERTIFICATION.md). No merge or deployment.
+
 ## T18B — payment authority unification — `T18B_READY_FOR_REVIEW` (2026-09-21)
 
 - Final review P1 fixed from expected `0926222` on the same branch/PR: price
