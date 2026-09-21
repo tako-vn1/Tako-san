@@ -88,7 +88,38 @@ function cookieFrom(response: Response): string {
 }
 
 function otp(purpose = 'register'): OtpRow {
-  return db.query<OtpRow>('SELECT * FROM auth_otps WHERE email = ? AND purpose = ?', EMAIL, purpose)[0];
+  return db.query<OtpRow>(
+    'SELECT * FROM auth_otps WHERE email = ? AND purpose = ? ORDER BY rowid DESC LIMIT 1',
+    EMAIL,
+    purpose,
+  )[0];
+}
+
+function expectOtpTtl(expiresInMinutes: number, startedAt: number, purpose = 'register') {
+  const expiresAt = Date.parse(otp(purpose).expires_at);
+  const durationMs = expiresInMinutes * 60 * 1000;
+  expect(expiresAt).toBeGreaterThanOrEqual(startedAt + durationMs);
+  expect(expiresAt).toBeLessThanOrEqual(Date.now() + durationMs);
+}
+
+function resendCache() {
+  const records = new Map<string, string>();
+  return {
+    get: vi.fn(async (key: string, type?: string) => {
+      const value = records.get(key) ?? null;
+      return value && type === 'json' ? JSON.parse(value) : value;
+    }),
+    put: vi.fn(async (key: string, value: string) => { records.set(key, value); }),
+    delete: vi.fn(async (key: string) => { records.delete(key); }),
+  };
+}
+
+function nextOtpDiffersFrom(code: string) {
+  vi.spyOn(crypto, 'getRandomValues').mockImplementationOnce((array) => {
+    if (!(array instanceof Uint32Array)) throw new Error('Expected OTP randomness');
+    array.fill(code === '100000' ? 1 : 0);
+    return array;
+  });
 }
 
 function sessionCount(): number {
@@ -531,6 +562,106 @@ describe('expected-owner fencing across cookie changes', () => {
 });
 
 describe('D1-authoritative OTP verification', () => {
+  it('returns registration expiry metadata matching the persisted OTP TTL and ignores client TTL input', async () => {
+    const startedAt = Date.now();
+    const result = await request('/auth/register', {
+      body: { name: 'Auth Test', email: EMAIL, password: PASSWORD, expiresInMinutes: 1 },
+    });
+    expect(result.status).toBe(200);
+    expect(result.json.expiresInMinutes).toBe(10);
+    expect(Object.keys(result.json).sort()).toEqual(['email', 'expiresInMinutes', 'message', 'success']);
+    expectOtpTtl(result.json.expiresInMinutes, startedAt);
+  });
+
+  it('returns authoritative expiry for register resend and preserves replacement semantics', async () => {
+    const initial = await register();
+    const oldOtpId = otp().id;
+    nextOtpDiffersFrom(initial.code);
+    const startedAt = Date.now();
+    const resend = await request('/auth/resend-otp', {
+      body: { email: EMAIL, purpose: 'register', expiresInMinutes: 1 },
+    });
+    expect(resend.status).toBe(200);
+    expect(resend.json).toMatchObject({ success: true, expiresInMinutes: 10 });
+    expect(Object.keys(resend.json).sort()).toEqual(['expiresInMinutes', 'message', 'success']);
+    expectOtpTtl(resend.json.expiresInMinutes, startedAt);
+    expect(otp().id).not.toBe(oldOtpId);
+    expect(db.query<{ used: number }>('SELECT used FROM auth_otps WHERE id = ?', oldOtpId)[0].used).toBe(1);
+    expect(otp().used).toBe(0);
+
+    expect((await verify(initial.code)).status).toBe(400);
+    const replacement = deliveredCode();
+    expect((await verify(replacement)).status).toBe(200);
+  });
+
+  it('returns authoritative expiry for login resend without crossing OTP purposes', async () => {
+    await register();
+    const startedAt = Date.now();
+    const resend = await request('/auth/resend-otp', {
+      body: { email: EMAIL, purpose: 'login', expiresInMinutes: 1 },
+    });
+    expect(resend.status).toBe(200);
+    expect(resend.json).toMatchObject({ success: true, expiresInMinutes: 10 });
+    expect(Object.keys(resend.json).sort()).toEqual(['expiresInMinutes', 'message', 'success']);
+    expectOtpTtl(resend.json.expiresInMinutes, startedAt, 'login');
+    const loginCode = deliveredCode();
+    expect((await verify(loginCode, 'login')).status).toBe(200);
+    expect(otp('register').used).toBe(0);
+  });
+
+  it('returns the same policy expiry for forgot-password request and resend', async () => {
+    await signup();
+    const initialStartedAt = Date.now();
+    const initial = await request('/auth/forgot-password', { body: { email: EMAIL } });
+    expect(initial.status).toBe(200);
+    expect(initial.json.expiresInMinutes).toBe(10);
+    expectOtpTtl(initial.json.expiresInMinutes, initialStartedAt, 'forgot_password');
+    const oldCode = deliveredCode();
+    const oldOtpId = otp('forgot_password').id;
+    nextOtpDiffersFrom(oldCode);
+
+    const resendStartedAt = Date.now();
+    const resend = await request('/auth/resend-otp', {
+      body: { email: EMAIL, purpose: 'forgot_password', expiresInMinutes: 1 },
+    });
+    expect(resend.status).toBe(200);
+    expect(resend.json).toMatchObject({ success: true, expiresInMinutes: 10 });
+    expectOtpTtl(resend.json.expiresInMinutes, resendStartedAt, 'forgot_password');
+    expect(otp('forgot_password').id).not.toBe(oldOtpId);
+    expect(db.query<{ used: number }>('SELECT used FROM auth_otps WHERE id = ?', oldOtpId)[0].used).toBe(1);
+    const replacement = deliveredCode();
+    expect((await verify(oldCode, 'forgot_password')).status).toBe(400);
+    expect((await verify(replacement, 'forgot_password')).status).toBe(200);
+    expect(otp('forgot_password').used).toBe(0);
+  });
+
+  it('keeps the existing development OTP response valid', async () => {
+    const result = await request('/auth/register', {
+      env: { ENVIRONMENT: 'development' },
+      body: { name: 'Auth Test', email: EMAIL, password: PASSWORD },
+    });
+    expect(result.status).toBe(200);
+    expect(result.json.devOtp).toMatch(/^\d{6}$/);
+    const verified = await request('/auth/verify-otp', {
+      env: { ENVIRONMENT: 'development' },
+      body: { email: EMAIL, code: result.json.devOtp, purpose: 'register' },
+    });
+    expect(verified.status).toBe(200);
+
+    const devLoginResend = await request('/auth/resend-otp', {
+      env: { ENVIRONMENT: 'development' },
+      body: { email: EMAIL, purpose: 'login' },
+    });
+    expect(devLoginResend.status).toBe(200);
+    expect(devLoginResend.json).toMatchObject({ success: true, expiresInMinutes: 10 });
+    expect(devLoginResend.json.devOtp).toMatch(/^\d{6}$/);
+    const devLoginVerified = await request('/auth/verify-otp', {
+      env: { ENVIRONMENT: 'development' },
+      body: { email: EMAIL, code: devLoginResend.json.devOtp, purpose: 'login' },
+    });
+    expect(devLoginVerified.status).toBe(200);
+  });
+
   it('fails registration honestly and invalidates the challenge when no provider accepts the OTP', async () => {
     vi.mocked(sendEmail).mockResolvedValueOnce({ sent: false, provider: 'workers-email', error: 'sender_not_verified' } as any);
     const result = await request('/auth/register', {
@@ -552,12 +683,67 @@ describe('D1-authoritative OTP verification', () => {
 
   it('fails resend honestly and leaves the newly generated challenge unusable', async () => {
     await register();
+    const cache = resendCache();
+    env.CACHE = cache as unknown as Env['CACHE'];
     vi.mocked(sendEmail).mockResolvedValueOnce({ sent: false, provider: 'workers-email', error: 'provider_unavailable' } as any);
     const result = await request('/auth/resend-otp', { body: { email: EMAIL, purpose: 'register' } });
     expect(result.status).toBe(503);
     expect(result.json).toMatchObject({ success: false, code: 'OTP_DELIVERY_UNAVAILABLE' });
     expect(result.json.message).not.toContain('Đã gửi');
+    expect(result.json).not.toHaveProperty('expiresInMinutes');
     expect(otp().used).toBe(1);
+    expect(cache.delete).toHaveBeenCalledWith(`otp_resend_${EMAIL}_register`);
+    const retry = await request('/auth/resend-otp', { body: { email: EMAIL, purpose: 'register' } });
+    expect(retry.status).toBe(200);
+    expect(retry.json.expiresInMinutes).toBe(10);
+  });
+
+  it.each(['register', 'forgot_password'])('retains the 60-second %s resend cooldown without replacing a blocked OTP', async (purpose) => {
+    await register();
+    const cache = resendCache();
+    env.CACHE = cache as unknown as Env['CACHE'];
+    const body = { email: `  ${EMAIL.toUpperCase()}  `, purpose };
+    expect((await request('/auth/resend-otp', { body })).status).toBe(200);
+    const before = db.query('SELECT * FROM auth_otps');
+    const mailCount = vi.mocked(sendEmail).mock.calls.length;
+    const blocked = await request('/auth/resend-otp', { body });
+    expect(blocked.status).toBe(429);
+    expect(blocked.response.headers.get('Retry-After')).toBe('60');
+    expect(blocked.json.retryAfterSeconds).toBe(60);
+    expect(blocked.json).not.toHaveProperty('expiresInMinutes');
+    expect(cache.put).toHaveBeenCalledWith(`otp_resend_${EMAIL}_${purpose}`, '1', { expirationTtl: 60 });
+    expect(db.query('SELECT * FROM auth_otps')).toEqual(before);
+    expect(sendEmail).toHaveBeenCalledTimes(mailCount);
+  });
+
+  it('retains route-level rate limiting before resend issuance', async () => {
+    await register();
+    const cache = resendCache();
+    await cache.put(`rl_auth:198.51.100.${fixtureNumber}:/auth/resend-otp`, JSON.stringify({
+      count: 15, resetTime: Math.floor(Date.now() / 1000) + 60,
+    }));
+    env.CACHE = cache as unknown as Env['CACHE'];
+    const before = db.query('SELECT * FROM auth_otps');
+    const blocked = await request('/auth/resend-otp', { body: { email: EMAIL, purpose: 'register' } });
+    expect(blocked.status).toBe(429);
+    expect(blocked.json.code).toBe('RATE_LIMIT_EXCEEDED');
+    expect(Number(blocked.response.headers.get('Retry-After'))).toBeGreaterThan(0);
+    expect(blocked.json).not.toHaveProperty('expiresInMinutes');
+    expect(db.query('SELECT * FROM auth_otps')).toEqual(before);
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['register', 'forgot_password'])('requires Turnstile before replacing a %s OTP', async (purpose) => {
+    await register();
+    const before = db.query('SELECT * FROM auth_otps');
+    const blocked = await request('/auth/resend-otp', {
+      body: { email: EMAIL, purpose }, withoutTurnstile: true,
+    });
+    expect(blocked.status).toBe(403);
+    expect(blocked.json.code).toBe('TURNSTILE_FAILED');
+    expect(blocked.json).not.toHaveProperty('expiresInMinutes');
+    expect(db.query('SELECT * FROM auth_otps')).toEqual(before);
+    expect(sendEmail).toHaveBeenCalledTimes(1);
   });
 
   it('keeps resend available when the optional KV cooldown store is unavailable', async () => {
@@ -874,7 +1060,11 @@ describe('final auth hardening adversarial regressions', () => {
     expect(known.status).toBe(200);
     expect(unknown.status).toBe(known.status);
     expect(unknown.json).toEqual(known.json);
-    expect(known.json).toEqual({ success: true, message: expect.stringContaining('Nếu email này có tài khoản Frigo') });
+    expect(known.json).toEqual({
+      success: true,
+      message: expect.stringContaining('Nếu email này có tài khoản Frigo'),
+      expiresInMinutes: 10,
+    });
     expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(db.query('SELECT * FROM auth_otps WHERE email = ?', 'nobody@example.com')).toEqual([]);
   });

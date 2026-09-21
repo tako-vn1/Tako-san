@@ -1,3 +1,24 @@
+## T18A — auth resend expiry contract — `T18A_READY_FOR_REVIEW` (2026-09-21)
+
+- Repository ID `1368281478` now resolves to `omin-jp/Frigo-dev`; base/main
+  `51d0d3755d83b64185066228d98f44ab7bad5e3c` unchanged. New branch
+  `feat/t18a-auth-resend-expiry-contract`, review-only PR #46 OPEN; auto-fix
+  CI/review subscription enabled. Not merged or deployed.
+- Pushed server `88096cb7fbea8e3b95f5627ff5a46e8c3d34b462`, client
+  `47c3a3391e086caf2760b61ee4e2bfacd331cacf`, security-fixture
+  `53f9fefdc9d935bb736a37cdcd9f5b0d0479685e` checkpoints.
+- Resend now returns storage-authoritative `expiresInMinutes`; client no
+  longer guesses. Reset policy remains generic; malformed/delivery/offline
+  failures remain honest; security/T17B lifecycle invariants preserved.
+- Final auth/security 300/300, full Vitest 180 files/4117 tests and six-viewport
+  browser auth 42/42 PASS; lint/typecheck/migration smoke/build/diff checks PASS.
+  Chromium dependency repaired; initial full-suite timeout recovered with a
+  passing extended full run (two workers, no filters).
+- Payment/billing/production/migration behavior unchanged. Next: final-head
+  hosted CI and human review, never merge/deploy from this task. No local blockers.
+  Exact commands, failures, SHA receipts and Worker diff explanation:
+  [T18A report](docs/ai/T18A_AUTH_RESEND_EXPIRY_REPORT.md).
+
 ## Current — T17B contract reconciliation `T17B_COMPLETE` (2026-09-20)
 
 - Branch `feat/t17b-contract-reconciliation`, exact base `858759f`, application

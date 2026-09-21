@@ -46,6 +46,7 @@ let navigateForTest: NavigateFunction;
 let verifyGate: Promise<Response> | null;
 let registerGate: Promise<Response> | null;
 let loginGate: Promise<Response> | null;
+let resendGate: Promise<Response> | null;
 
 function response(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -190,6 +191,7 @@ beforeEach(() => {
   verifyGate = null;
   registerGate = null;
   loginGate = null;
+  resendGate = null;
   registerResponse = {
     status: 200,
     body: {
@@ -199,7 +201,10 @@ beforeEach(() => {
       expiresInMinutes: 10,
     },
   };
-  resendResponse = { status: 200, body: { success: true, message: 'Đã gửi lại mã OTP mới.' } };
+  resendResponse = {
+    status: 200,
+    body: { success: true, message: 'Đã gửi lại mã OTP mới.', expiresInMinutes: 7 },
+  };
   fetchMock.mockReset();
   fetchMock.mockImplementation(async (input, init) => {
     const path = new URL(String(input), 'https://takosan.example.test').pathname;
@@ -223,6 +228,7 @@ beforeEach(() => {
     }
     if (path.endsWith('/auth/resend-otp')) {
       if (resendOffline) throw new TypeError('network unavailable');
+      if (resendGate) return resendGate;
       return response(resendResponse.body, resendResponse.status);
     }
     throw new Error(`unexpected fetch ${path}`);
@@ -527,6 +533,8 @@ describe('screen 03 — /auth/verify route', () => {
     }
     const resend = button(/Gửi lại mã OTP/);
     expect(resend.disabled).toBe(false);
+    const oldExpiry = readVerifyContext()?.expiresAt;
+    const startedAt = Date.now();
     await act(async () => {
       resend.click();
     });
@@ -537,10 +545,117 @@ describe('screen 03 — /auth/verify route', () => {
     });
     expect(container.textContent).toMatch(/Gửi lại sau \(\d+s\)/);
     expect(resendSecondsRemaining(readVerifyContext())).toBeGreaterThan(55);
-    expect(readVerifyContext()?.expiresAt).toBeNull();
+    expect(readVerifyContext()?.expiresAt).toBeGreaterThanOrEqual(startedAt + 7 * 60_000);
+    expect(readVerifyContext()?.expiresAt).toBeLessThanOrEqual(Date.now() + 7 * 60_000);
+    expect(readVerifyContext()?.expiresAt).not.toBe(oldExpiry);
+    expect(container.querySelector('[data-testid="otp-expiry"]')?.textContent).toContain(
+      'Mã hết hạn lúc',
+    );
+  });
+
+  it.each([false, true])('restores fresh resend metadata after refresh without persisting credentials (dev OTP: %s)', async (development) => {
+    writeVerifyContext({ email: EMAIL, resendAvailableAt: 0, delivered: false });
+    resendResponse.body = {
+      success: true,
+      message: 'Đã gửi lại mã OTP mới.',
+      expiresInMinutes: 3,
+      ...(development ? { devOtp: OTP } : {}),
+      otp: OTP,
+      code: OTP,
+      password: 'not-for-storage',
+      token: 'not-for-storage',
+      resetToken: 'not-for-storage',
+    };
+    await mount('/auth/verify');
+    expect(container.querySelector('[role="alert"]')).toBeTruthy();
+    const startedAt = Date.now();
+    await click(/Gửi lại mã OTP/);
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    const context = readVerifyContext()!;
+    expect(context).toMatchObject({
+      email: EMAIL,
+      delivered: development ? null : true,
+      owner: { userId: '', householdId: '' },
+    });
+    expect(context.expiresAt).toBeGreaterThanOrEqual(startedAt + 3 * 60_000);
+    expect(context.expiresAt).toBeLessThanOrEqual(Date.now() + 3 * 60_000);
+    expect(resendSecondsRemaining(context)).toBeGreaterThan(55);
+    const persisted = sessionStorage.getItem(VERIFY_CONTEXT_KEY)!;
+    expect(Object.keys(JSON.parse(persisted)).sort()).toEqual([
+      'delivered', 'email', 'expiresAt', 'owner', 'resendAvailableAt',
+    ]);
+    expect(persisted).not.toContain(OTP);
+    expect(persisted).not.toContain('not-for-storage');
+    expect(localStorage.getItem(VERIFY_CONTEXT_KEY)).toBeNull();
+    const expiryText = container.querySelector('[data-testid="otp-expiry"]')?.textContent;
+
+    await act(async () => root!.unmount());
+    root = undefined;
+    await mount('/auth/verify');
+    expect(readVerifyContext()).toEqual(context);
+    expect(container.querySelector('[data-testid="otp-expiry"]')?.textContent).toBe(expiryText);
+    expect(container.textContent).toContain('Mã hết hạn lúc');
+    expect(otpValue()).toBe('');
+  });
+
+  it.each([undefined, null, '10', 0, -1, 1441, {}])('uses honest unknown expiry for malformed resend duration %j', async (expiresInMinutes) => {
+    writeVerifyContext({
+      email: EMAIL,
+      resendAvailableAt: 0,
+      expiresAt: Date.now() + 10 * 60_000,
+      delivered: true,
+    });
+    resendResponse.body = { success: true, message: 'Đã gửi lại mã OTP mới.', expiresInMinutes };
+    await mount('/auth/verify');
+    await click(/Gửi lại mã OTP/);
+    expect(readVerifyContext()).toMatchObject({ email: EMAIL, delivered: true, expiresAt: null });
+    expect(resendSecondsRemaining(readVerifyContext())).toBeGreaterThan(55);
     expect(container.querySelector('[data-testid="otp-expiry"]')?.textContent).toContain(
       'Máy chủ chưa cung cấp thời hạn cho mã này',
     );
+  });
+
+  it('a resent code reaching local expiry still submits to the server for the final decision', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    writeVerifyContext({ email: EMAIL, resendAvailableAt: 0, delivered: true });
+    resendResponse.body = { success: true, message: 'Đã gửi lại mã OTP mới.', expiresInMinutes: 0.01 };
+    verifyResponses.push({ status: 200, body: { success: true, user: ACCOUNT } });
+    await mount('/auth/verify');
+    await click(/Gửi lại mã OTP/);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    expect(container.querySelector('[data-testid="otp-expiry"]')?.textContent).toContain(
+      'Mã đã hết hạn theo thời hạn máy chủ trả về',
+    );
+    await typeOtp();
+    await click('Xác thực & Hoàn tất');
+    expect(calls.at(-1)).toMatchObject({
+      path: '/api/v1/auth/verify-otp', body: { email: EMAIL, purpose: 'register', code: OTP },
+    });
+    expect(localStorage.getItem('frigo_user_id')).toBe(ACCOUNT.id);
+    expect(readVerifyContext()).toBeNull();
+  });
+
+  it.each(['leave-and-return', 'session-change', 'logout'] as const)('ignores a delayed resend after %s', async (transition) => {
+    let release!: (value: Response) => void;
+    resendGate = new Promise<Response>((resolve) => { release = resolve; });
+    writeVerifyContext({ email: EMAIL, resendAvailableAt: 0, delivered: true });
+    await mount('/auth/verify');
+    await act(async () => button(/Gửi lại mã OTP/).click());
+    await until(() => expect(calls.some(({ path }) => path.endsWith('/auth/resend-otp'))).toBe(true));
+    if (transition === 'leave-and-return') {
+      await act(async () => navigateForTest('/auth'));
+      await act(async () => navigateForTest(-1));
+    } else if (transition === 'session-change') {
+      await act(async () => useAuthStore.getState().setAuthSession(ACCOUNT));
+    } else {
+      fetchMock.mockResolvedValueOnce(response({ success: true }));
+      await act(async () => { await useAuthStore.getState().logout(); });
+    }
+    release(response(resendResponse.body));
+    await flush();
+    expect(readVerifyContext()).toBeNull();
+    expect(sessionStorage.getItem(VERIFY_CONTEXT_KEY)).toBeNull();
+    expect(container.textContent).not.toContain('Đã gửi lại mã OTP mới.');
   });
 
   it('OTP_DELIVERY_UNAVAILABLE on register still reaches /auth/verify honestly: error shown, no cooldown, context marked undelivered', async () => {
@@ -613,16 +728,14 @@ describe('screen 03 — /auth/verify route', () => {
   });
 
   it('reports an offline resend without fabricating delivery or expiry metadata', async () => {
-    registerResponse = {
-      status: 503,
-      body: {
-        error: 'Email OTP chưa gửi được.',
-        code: 'OTP_DELIVERY_UNAVAILABLE',
-        accountCreated: true,
-      },
-    };
+    writeVerifyContext({
+      email: EMAIL,
+      resendAvailableAt: 0,
+      expiresAt: Date.now() + 10 * 60_000,
+      delivered: true,
+    });
     resendOffline = true;
-    await registerAndReachVerify();
+    await mount('/auth/verify');
     await click(/Gửi lại mã OTP/);
     await until(() =>
       expect(container.querySelector('[role="alert"]')?.textContent).toContain(

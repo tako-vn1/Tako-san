@@ -1,5 +1,41 @@
 # Frigo / Takosan current handoff — 2026-09-20
 
+## T18A handoff — `T18A_READY_FOR_REVIEW` (2026-09-21)
+
+- **Identity/base:** `1368281478`, currently `omin-jp/Frigo-dev`; exact main
+  `51d0d3755d83b64185066228d98f44ab7bad5e3c`. Branch
+  `feat/t18a-auth-resend-expiry-contract`.
+- **Publication:** new [PR #46](https://github.com/omin-jp/Frigo-dev/pull/46),
+  OPEN against main; CI/review auto-fix enabled. Do not merge or deploy.
+- **Durable checkpoints:** server `88096cb7fbea8e3b95f5627ff5a46e8c3d34b462`,
+  frontend/browser `47c3a3391e086caf2760b61ee4e2bfacd331cacf`, final security
+  fixtures `53f9fefdc9d935bb736a37cdcd9f5b0d0479685e`; each pushed immediately.
+- **Implemented:** server-owned `expiresInMinutes` from the storage TTL;
+  bounded presentation-only client expiry on resend; honest unknown/missing
+  metadata; delivery failure/offline stale-state cleanup unchanged. Reset
+  responses expose only generic policy, preserving anti-enumeration. No
+  migration, lifetime increase, credential persistence or anti-abuse change.
+- **Verification:** final auth/security 300/300; server 86/86 and client 83/83
+  focused subsets; full Vitest 180 files/4117 tests; six-viewport T17/T18A
+  browser coverage 42/42; lint/typecheck/migration smoke/build/diff check PASS.
+  `pnpm test --maxWorkers=2 --minWorkers=2` ran the entire suite, without filters.
+  Exact commands and results are in [the report](T18A_AUTH_RESEND_EXPIRY_REPORT.md).
+- **Failures/recovery:** missing locked Chromium fixed; browser rerun passed.
+  First full run hit 600s shell timeout without a reported test failure;
+  extended final run uses all tests. Setup lifecycle claim refusal reported;
+  effective durable local setup was safely executed via shell. Platform-only
+  settings were preserved in a named stash and excluded from the PR.
+- **Boundaries:** billing/payment UI/payment behavior/migrations/other Worker
+  code all zero diff from base. T17B history unchanged; T18B payment mismatch
+  remains out of scope. Main CI #137 and staging Deploy #50 were verified
+  successful for the unchanged base; production job skipped. This branch has
+  not been merged or deployed anywhere.
+- **Next action:** no local blockers; settle final-head hosted CI and human review of
+  PR #46. Auto-fix subscription will deliver subsequent CI/review feedback;
+  it is not merge/deploy authorization.
+  Implementation-head CI `35549781613` passed; the final documentation SHA
+  receives its own hosted run.
+
 ## Current handoff — T17B contract reconciliation (2026-09-20)
 
 - **Identity/base:** repository id `1368281478`, `omin-vn/Frigo-dev`; branch

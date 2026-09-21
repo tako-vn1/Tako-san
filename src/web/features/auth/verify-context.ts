@@ -13,7 +13,7 @@ export interface VerifyContext {
   email: string;
   /** Epoch ms after which resend is allowed; 0 when resend is immediately allowed. */
   resendAvailableAt: number;
-  /** Epoch ms derived from server registration metadata; null when the API did not provide it. */
+  /** Epoch ms derived from server OTP metadata; null when the API did not provide it. */
   expiresAt: number | null;
   /** Server-confirmed delivery; null when the response cannot prove email delivery. */
   delivered: boolean | null;

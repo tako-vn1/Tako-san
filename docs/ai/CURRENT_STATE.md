@@ -1,5 +1,36 @@
 # Frigo / Takosan current authority — 2026-09-20
 
+## T18A — auth resend expiry contract — `T18A_READY_FOR_REVIEW` (2026-09-21)
+
+- Repository ID `1368281478` currently resolves to `omin-jp/Frigo-dev` (supplied
+  `omin-vn` path redirects). Exact main/base remains
+  `51d0d3755d83b64185066228d98f44ab7bad5e3c`.
+- Branch `feat/t18a-auth-resend-expiry-contract`; review-only PR
+  [#46](https://github.com/omin-jp/Frigo-dev/pull/46), OPEN, auto-fix CI/review
+  subscription enabled. No merge or deployment performed.
+- Pushed checkpoints: server `88096cb7fbea8e3b95f5627ff5a46e8c3d34b462`, client
+  `47c3a3391e086caf2760b61ee4e2bfacd331cacf`, security fixtures
+  `53f9fefdc9d935bb736a37cdcd9f5b0d0479685e`.
+- One unchanged ten-minute server TTL now controls stored OTP expiry and
+  registration/resend response metadata. Client uses only returned metadata,
+  clears old expiry on malformed/failure/offline outcomes, and preserves T17B
+  route lifecycle, credential-free context and nullable delivery truth.
+- Forgot-password request/resend returns identical generic lifetime policy
+  for known/unknown accounts, never proof of issuance or delivery. Its distinct
+  UI/reset semantics are unchanged. Security review found no actionable issue.
+- Final local evidence: auth/security 300/300 (server 86/86, client 83/83 in
+  focused subsets), full Vitest 180 files/4117 tests, T17/T18A browser matrix
+  42/42; lint, typecheck, migration smoke and build PASS. Exact commands and
+  hosted CI publication receipt are in the report. Initial browser launch lacked its
+  locked Chromium; repaired and rerun green. Initial full run hit the 600s
+  shell budget; final full run passed with two workers and no test exclusions.
+- Billing/payment UI/behavior, migrations, other Worker files, Inventory Truth,
+  OCR/AI, planner and production config have zero diff. T18B remains separate.
+- Next: final-head hosted CI and human review only. No local blockers. Exact commands,
+  failures, Worker line-by-line explanation and evidence are in
+  [T18A_AUTH_RESEND_EXPIRY_REPORT.md](T18A_AUTH_RESEND_EXPIRY_REPORT.md).
+  T17B records below remain historical and unmodified.
+
 ## Current T17B — contract reconciliation `T17B_COMPLETE`; release pending (2026-09-20)
 
 Branch `feat/t17b-contract-reconciliation` was created from exact `main`
