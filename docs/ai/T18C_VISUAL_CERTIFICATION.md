@@ -1,9 +1,9 @@
 # T18C — Takosan final redesign certification baseline
 
 Status: **IN_PROGRESS**  
-Safe pause: **T18C_PAUSED_SAFE** — implementation halted by owner instruction;
-resume plan, test ledger and artifact paths:
-[T18C_WIP_HANDOFF.md](T18C_WIP_HANDOFF.md).  
+Safe pause: **T18C_PAUSED_SAFE** — implementation halted by owner instruction.
+Resume plan, test ledger and artifact paths:
+[T18C_WIP_HANDOFF.md](T18C_WIP_HANDOFF.md).
 Checkpoint: **A — reference discovery, registry, and baseline gap report**  
 Base: `b8447e85f099b800a9a8ebc6c4c137adc9e45a32`  
 Branch: `feat/t18c-final-redesign-certification`
