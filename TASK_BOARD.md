@@ -12,9 +12,15 @@
   build PASS. First full run's single style failure was corrected in source;
   regression 38/38 and complete rerun **183 files / 4185 tests PASS**.
 - Independent review: remaining P0/P1/P2/P3 all 0. Migrations 38/0 changes;
-  T18A OTP, Inventory Truth, OCR/AI, recipe/planner/Week and production config
+  T18A OTP, Inventory Truth, OCR/AI, recipe/planner/Week and Cloudflare infrastructure
   unchanged. No real payment. Live provider setup requires separate authorization.
-- Next: final-head hosted CI and human review only; no local blocker.
+- Readiness follow-up: CI `35554499704` passed at `2d6ff5a`; no review threads.
+  Corrected deployed image CSP for VietQR and removed the obsolete payment-secret
+  warning, without changing Wrangler bindings/workflows. Regression red/green,
+  focused 104/104, browser 48/48 with production image policy, lint/typecheck/
+  migration smoke/build/header parity/full-diff check PASS. New-head CI is
+  verified separately on the PR before readiness; see the report for exact commands.
+- Next: owner review/merge permission once final-head CI is green; no local blocker.
   [Exact authority maps, contract, commands and failures](docs/ai/T18B_PAYMENT_AUTHORITY_REPORT.md).
 
 ## T18A — auth resend expiry contract — `T18A_READY_FOR_REVIEW` (2026-09-21)

@@ -224,7 +224,8 @@ model and capture a non-PII live smoke before deployment; mock-AI tests and the
 isolated preview do not verify live provider availability.
 
 Warnings (reported, non-blocking): no email provider (`SEND_EMAIL` binding or
-`RESEND_API_KEY`), missing `PLUS_GRANT_SECRET`. Turnstile is not optional in
+`RESEND_API_KEY`). The retired `PLUS_GRANT_SECRET` binding is ignored and cannot
+enable a grant. Turnstile is not optional in
 production: either missing/blank key is fatal, including when both are absent.
 Explicit development/staging may omit the pair; configured secrets still enforce
 verification. Login, registration, forgot-password and OTP resend require tokens.

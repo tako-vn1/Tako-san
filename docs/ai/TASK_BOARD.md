@@ -14,10 +14,15 @@
   lint/typecheck/migration smoke/build/diff check PASS. No remaining security findings.
 - [done] Full rerun **183 files / 4185 tests PASS**, after correcting the first
   run's semantic-style failure in source without weakening coverage.
+- [done] Readiness follow-up: CI `35554499704` passed at `2d6ff5a`, no review
+  threads. Fixed exact-origin VietQR CSP and retired-secret readiness warning;
+  new CSP regression red then green, focused 104/104, browser 48/48 under real
+  image policy, lint/typecheck/migration smoke/build/header parity/full-diff check
+  PASS. New-head CI is independently verified on the PR before merge readiness.
 - [limit] No real payment or live-provider certification. Provider setup and
   callback delivery are separately authorized release prerequisites. No merge,
   deploy, remote D1, new migration or unrelated protected-code change.
-- [next] Settle final-head hosted CI and obtain human review only; no local blocker.
+- [next] Owner review/merge permission once final-head CI is green; no local blocker.
   See [T18B audit and evidence](T18B_PAYMENT_AUTHORITY_REPORT.md).
 
 ## T18A — auth resend expiry contract — `T18A_READY_FOR_REVIEW` (2026-09-21)

@@ -18,7 +18,7 @@ export function spaCsp(): string {
     // Google OAuth (GSI), Turnstile, and Cloudflare Web Analytics scripts.
     "script-src 'self' https://accounts.google.com https://challenges.cloudflare.com https://static.cloudflareinsights.com",
     "style-src 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com",
-    "img-src 'self' data: blob: https://lh3.googleusercontent.com",
+    "img-src 'self' data: blob: https://lh3.googleusercontent.com https://img.vietqr.io",
     "font-src 'self' data: https://fonts.gstatic.com",
     "connect-src 'self' https://api.resend.com https://challenges.cloudflare.com https://oauth2.googleapis.com https://cloudflareinsights.com",
     "frame-src https://accounts.google.com https://challenges.cloudflare.com",

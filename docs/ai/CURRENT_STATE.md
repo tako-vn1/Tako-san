@@ -19,18 +19,27 @@
   the legacy Plus endpoint is byte-identical to base.
 - Checkpoints A `2aba91a`, B `c00ea9f`, C `1cef30b`, semantic-error fix
   `1aabd32562edc2c5c37b3db9d7d19e1938896084` pushed. Focused 121/121;
-  browser six-width 48/48 plus error-state rerun 4/4; final full Vitest **183 files /
+  browser six-width 48/48 plus error-state rerun 4/4; implementation full Vitest **183 files /
   4185 tests PASS**; lint/typecheck/migration smoke/build PASS. First full run's
   single style-token failure was corrected in source, with brand/checkout 38/38
   and the complete rerun green. Security review: remaining P0/P1/P2/P3 = 0.
+- Merge-readiness follow-up: exact-head CI `35554499704` passed at `2d6ff5a`,
+  no review threads. Fixed deployed CSP blocking VietQR (exact image origin in
+  both policies), retired the obsolete grant-secret warning, and removed one
+  trailing blank line. New regression failed before the CSP fix, then passed:
+  104 focused tests and 48/48 browser tests under the real image policy.
+  Lint/typecheck/migration smoke/build/full-diff whitespace and built-header
+  parity PASS; exact commands/failures are in the report. New-head CI is checked
+  separately on the PR before readiness, not inferred from the prior run.
 - No migration (38 existing), Inventory Truth, OCR/AI, recipe/planner/Week,
-  production config or workflow changes. No real payment, merge, remote D1 or
+  Wrangler binding, infrastructure or workflow changes. Application-config
+  adjustments are only the QR CSP and retired payment warning. No real payment, merge, remote D1 or
   deployment. Baseline main CI #140 and staging Deploy #51 passed; production
   job skipped. T18B is not deployed.
 - Managed isolated Preview is ready after removing a hard-coded run-script port
   override; actual metadata and missing-provider checkout were exercised. UI
   provider evidence is synthetic, not live payment certification.
-- Next: settle final-head hosted CI and human review; no local implementation blocker.
+- Next: owner review/merge permission once final-head CI is green; no local blocker.
   Provider channel/secrets and live callback delivery need separately authorized
   operator verification before any release. Exact audit, contract, failures,
   evidence and boundaries: [T18B report](T18B_PAYMENT_AUTHORITY_REPORT.md).

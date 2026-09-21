@@ -35,7 +35,16 @@
   payment-only legacy handler unchanged. Inventory, OCR/AI, recipe/planner, Week,
   production infrastructure/workflows unchanged. No real payment, deployment,
   remote mutation or merge. Main CI #140/staging #51 green, production skipped.
-- **Next action:** final-head hosted CI/human review only; no local blocker.
+- **Readiness follow-up:** CI `35554499704` green at `2d6ff5a`; no review threads.
+  Corrected CSP blocking VietQR in both production policies and removed the
+  obsolete grant-secret warning (no infrastructure/binding changes). CSP unit
+  and browser decode assertions failed before the fix, then passed. Final
+  focused CSP/config/health/payment 104/104 and six-width browser 48/48 PASS;
+  lint/typecheck/migration smoke/build, built-header parity and full-diff check
+  PASS. One full-diff trailing blank line and a local test-adapter origin mismatch
+  were corrected. Exact commands and limitations are in the report; full-suite
+  final-head CI must be verified separately, not inferred from the earlier run.
+- **Next action:** owner review/merge permission once final-head CI is green; no local blocker.
   Auto-fix is enabled for follow-up, not
   merge/deploy permission. See [exact report](T18B_PAYMENT_AUTHORITY_REPORT.md).
 

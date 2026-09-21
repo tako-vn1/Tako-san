@@ -1,5 +1,6 @@
 import { test, expect, reset } from '../t13b/fixtures';
 import type { Page } from '@playwright/test';
+import { spaCsp } from '../../../src/worker/config/csp';
 
 type Plan = 'monthly' | 'annual';
 type PaymentStatus = 'pending' | 'paid' | 'failed' | 'expired';
@@ -69,6 +70,17 @@ async function installPaymentMocks(
     qrRequests: [],
     entitlementReads: 0,
   };
+
+  // Vite does not serve production headers; enforce the real image policy here.
+  const imagePolicy = spaCsp().match(/img-src [^;]+/)?.[0];
+  if (!imagePolicy) throw new Error('Missing production image policy');
+  await page.route('**/plus', async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      headers: { ...response.headers(), 'content-security-policy': imagePolicy },
+    });
+  });
 
   await page.route('**/api/v1/billing/plans', async (route) => {
     await json(route, {
@@ -169,7 +181,10 @@ test('server intent amount and selected plan drive the VietQR payment surface', 
     );
     await expect(dialog.getByText(`${intentAmount} VND`, { exact: true })).toBeVisible();
     await expect(dialog.getByText(`${displayAmount} VND`, { exact: true })).toHaveCount(0);
-    await expect(dialog.getByRole('img', { name: 'Mã VietQR' })).toBeVisible();
+    const qrImage = dialog.getByRole('img', { name: 'Mã VietQR' });
+    await expect(qrImage).toBeVisible();
+    await expect.poll(() => qrImage.evaluate((image: HTMLImageElement) => image.naturalWidth))
+      .toBeGreaterThan(0);
     await expect(state.createdPlans).toContain(plan);
     await expect.poll(() => state.intentReads).toContain(`pay_${plan}_authority`);
     await expect.poll(() => state.qrRequests).not.toHaveLength(0);

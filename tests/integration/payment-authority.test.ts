@@ -608,4 +608,3 @@ describe('legacy activation retirement', () => {
     expect(db.query('SELECT * FROM subscriptions WHERE user_id = ?', 'user-a')).toEqual(before);
   });
 });
-

@@ -147,7 +147,8 @@ reloads can be retried. A tampered local Plus cache does not initialize entitlem
   races grant once; separate paid orders extend existing active duration; a
   reused transaction reference rolls back both writes.
 - The reusable legacy grant secret no longer writes subscriptions. The retired
-  binding remains a compatibility type/config warning only, never authority.
+  binding remains compatibility typing only, never authority. Its obsolete
+  configuration warning is removed; setting it cannot enable a grant.
 - A pre-existing payment-specific expected-owner-header exemption was removed;
   server cookie/CSRF/ownership enforcement itself is unchanged.
 - Review also caught premature Plus-success copy during `/me` loading and a
@@ -230,31 +231,72 @@ All were pushed immediately to `feat/t18b-payment-authority`:
   Restarted Preview is ready on 3000 and the real unavailable-checkout flow was
   rerun successfully. Browser tests use 3100/8790 to avoid interference.
 
+## Merge-readiness follow-up (2026-09-21)
+
+- Fetched main/head and verified CI run `35554499704` SUCCESS for
+  `2d6ff5a4a2bc1ad43a52d929adb5af88285adc4a`, clean merge state, and no review
+  threads. This receipt does not substitute for the follow-up head's CI.
+- Found that the deployed image policy blocked VietQR despite Preview passing.
+  Added only `https://img.vietqr.io` to `img-src` in the Worker and static CSPs;
+  scripts, connections and other policy directives are unchanged. Unit coverage
+  requires exact image sources and identical Worker/static policies. Browser
+  fixtures now enforce the production image directive and require decoded QR
+  pixels (`naturalWidth > 0`), not just a visible image element.
+- Removed the obsolete `PLUS_GRANT_SECRET` warning, its misleading deployment
+  guidance and health-test comment. Config coverage proves presence/absence of
+  the retired binding cannot alter readiness warnings; email/auth guards remain.
+- Red/green evidence: new CSP unit assertion failed against the old policy;
+  browser QR decode also failed with width 0. Both pass after the policy fix.
+  The first managed-Preview adapter run hit the existing external-WebSocket
+  guard because its origin was `127.0.0.1`, not Preview's `localhost`; matching
+  the adapter origin fixed the harness without relaxing network isolation.
+- `pnpm exec vitest run tests/unit/csp.test.ts tests/unit/config-validation.test.ts tests/unit/health.test.ts tests/integration/payment-authority.test.ts --maxWorkers=2 --minWorkers=2`
+  — **104 passed** (4 files).
+- `pnpm exec playwright test --config .hoplite/payment-readiness.playwright.config.ts payment-authority.e2e.ts`
+  — **48 passed** with the new CSP/decode assertions, all six viewports, against
+  managed Preview on 3000. The local-only adapter disables Playwright's second
+  server and uses `http://localhost:3000`; it was archived after the run as
+  `.hoplite/artifacts/payment-readiness/playwright.config.ts`, not committed.
+  Red/green logs and synthetic screenshots are in that artifact directory.
+- `pnpm lint`, `pnpm typecheck`, `pnpm check:migrations`, `pnpm build`,
+  `cmp public/_headers dist/client/_headers`, `git diff --check origin/main`
+  — **PASS** after the follow-up. Full-diff whitespace initially caught a trailing
+  blank line in the payment integration test; removed it without test changes.
+- Independent review found no remaining runtime/payment blocker. The complete
+  local 4185-test result above is the implementation checkpoint; the new head's
+  full-suite result is supplied by its hosted CI receipt, not inferred here.
+
 ## Protected boundaries and release state
 
 - `git diff BASE -- src/worker/routes/auth.ts` is intentionally nonzero ONLY for
   retiring `/auth/plus/activate`. A byte comparison of everything before that
   endpoint passes; all T18A/OTP/login/logout behavior is unchanged.
 - Inventory Truth, OCR/AI, recipe authority, planner algorithms, Week behavior,
-  packages, migrations, production configs and workflows have **zero diff**.
+  packages, migrations, Wrangler configs and workflows have **zero diff**.
+  Application-config changes are limited to the QR image allowlist and retired
+  payment-secret warning described above; no bindings or infrastructure changed.
 - Migration ledger: **38**, new/changed migrations **0**; no remote D1 action.
 - Final baseline check: main remains `13ff3f22082fc0601a81b90c96edded4741194ac`;
   main CI #140 / `35550927573` SUCCESS; Deploy #51 / `35551180810` staging
   SUCCESS, production job SKIPPED. T18B is not merged or deployed anywhere.
-- Release prerequisites (not silently performed): configure PayOS channel/server
-  secrets, verify callback delivery in an authorized environment, retire old
-  shared-secret callers, and obtain separate deployment approval. Mocked protocol
-  verification is not live-provider certification.
+- The payment/release owner must provision or verify Worker secrets
+  `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`, `PAYOS_CHECKSUM_KEY`, the existing `APP_URL`,
+  and PayOS delivery to `/api/v1/billing/payos/webhook`; retire legacy
+  `/auth/plus/activate` shared-secret callers. These are payment-activation/release
+  prerequisites, not a schema change or code-merge blocker. None was performed;
+  mocked protocol verification is not live-provider certification. Deployment
+  still requires separate authorization.
 
 ## Publication and next action
 
 - [PR #47](https://github.com/omin-jp/Frigo-dev/pull/47) is OPEN against main,
   review-only; CI/review auto-fix subscription **enabled**, auto-merge **disabled**.
-- Implementation-head hosted CI run `35554247707` was started for `1aabd32`;
-  the documentation head receives its own CI run. Final live check state and
-  exact remote HEAD are verified at publication, not assumed from a prior run.
-- No local implementation/verification blocker remains. Next is final-head
-  hosted CI and human review, never merge/deploy from this task. The auto-fix
+- Hosted CI run `35554499704` passed for `2d6ff5a`; the follow-up receives its own
+  CI run. Exact remote HEAD/checks/review threads are reverified on the PR before
+  declaring merge readiness, never inferred from this older successful receipt.
+- No local implementation/verification blocker remains. Next is owner review
+  and merge permission once final-head hosted CI is green, never agent merge or
+  deployment from this task. The auto-fix
   subscription resumes the task when provider CI/review feedback settles.
 - Frontend monetary authority removed: **YES**. VietQR server-authoritative:
   **YES**. Client amount tampering: **BLOCKED**. Entitlement server-authoritative:

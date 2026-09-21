@@ -116,7 +116,7 @@ describe('health endpoints', () => {
       JWT_SECRET: 's'.repeat(40),
       OTP_HASH_SECRET: 'otp'.repeat(16),
       APP_URL: 'https://frigo.example.com',
-      // No email provider and no Plus grant secret: warnings only, not fatal.
+      // No email provider: warning only, not fatal.
       TURNSTILE_SITE_KEY: 'test-site-key',
       TURNSTILE_SECRET_KEY: 'test-secret-key',
     });
