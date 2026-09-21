@@ -32,6 +32,8 @@ let otherUserCookie: string;
 let guestCookie: string;
 let providerCalls: ProviderCall[];
 let providerDataOverride: ((request: Json) => Json) | null;
+let providerThrowsAfterRequest: boolean;
+let providerBadSignature: boolean;
 let testNow: Date;
 let testNumber = 0;
 
@@ -89,17 +91,20 @@ function providerResponseData(request: Json): Json {
 function installProviderMock(): void {
   providerCalls = [];
   providerDataOverride = null;
+  providerThrowsAfterRequest = false;
+  providerBadSignature = false;
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url !== PAYOS_URL) throw new Error(`Unexpected outbound request: ${url}`);
     const body = JSON.parse(String(init?.body ?? '{}')) as Json;
     providerCalls.push({ url, init: init ?? {}, body });
+    if (providerThrowsAfterRequest) throw new Error('simulated provider timeout after order creation');
     const data = providerDataOverride?.(body) ?? providerResponseData(body);
     return new Response(JSON.stringify({
       code: '00',
       desc: 'success',
       data,
-      signature: signOfficialData(data),
+      signature: providerBadSignature ? '00'.repeat(32) : signOfficialData(data),
     }), { status: 200, headers: { 'content-type': 'application/json' } });
   }));
 }
@@ -153,6 +158,19 @@ async function createIntent(plan: 'monthly' | 'annual' = 'monthly', cookie = use
 
 function paymentRow(id: string): Record<string, unknown> {
   return db.query<Record<string, unknown>>('SELECT * FROM payment_intents WHERE id = ?', id)[0];
+}
+
+function paymentFromRow(row: Record<string, unknown>): PaymentIntent {
+  return {
+    id: String(row.id),
+    orderCode: String(row.order_code),
+    plan: row.plan as PaymentIntent['plan'],
+    amountVnd: Number(row.amount_vnd),
+    currency: String(row.currency) as PaymentIntent['currency'],
+    description: String(row.description),
+    expiresAt: String(row.expires_at),
+    status: row.status as PaymentIntent['status'],
+  };
 }
 
 function subscriptionRow(userId = 'user-a'): Record<string, unknown> | undefined {
@@ -313,7 +331,61 @@ describe('server payment authority', () => {
     const result = await request('/billing/payment-intents', { method: 'POST', body: { plan: 'monthly' } });
     expect(result.status).toBe(502);
     expect(db.query('SELECT * FROM payment_intents')).toHaveLength(1);
-    expect(db.query('SELECT status FROM payment_intents')[0]).toEqual({ status: 'pending' });
+    expect(db.query('SELECT status FROM payment_intents')[0]).toEqual({ status: 'failed' });
+  });
+
+  it('marks an intent failed after a provider timeout and rejects a later signed callback', async () => {
+    providerThrowsAfterRequest = true;
+    const result = await request('/billing/payment-intents', { method: 'POST', body: { plan: 'monthly' } });
+    expect(result.status).toBe(502);
+    expect(providerCalls).toHaveLength(1);
+    const row = db.query<Record<string, unknown>>('SELECT * FROM payment_intents')[0];
+    expect(row).toMatchObject({ status: 'failed', provider_reference: null });
+
+    const lateCallback = await postWebhook(webhookFor(paymentFromRow(row)));
+    expect(lateCallback.status).toBe(409);
+    expect(subscriptionRow()).toBeUndefined();
+  });
+
+  it('accepts a signed provider description prefix and uses that exact description in QR addInfo', async () => {
+    providerDataOverride = (requestBody) => ({
+      ...providerResponseData(requestBody),
+      description: `PAYOS-${String(requestBody.description)}`,
+    });
+    const payment = await createIntent();
+    const requestDescription = String(providerCalls[0].body.description);
+    expect(payment.description).toBe(`PAYOS-${requestDescription}`);
+    expect(new URL(payment.instructions.qrImageUrl).searchParams.get('addInfo')).toBe(payment.description);
+    expect(paymentRow(payment.id)).toMatchObject({ description: payment.description, order_code: payment.orderCode });
+  });
+
+  it('rejects a provider response with an invalid signature and fails the local intent', async () => {
+    providerBadSignature = true;
+    const result = await request('/billing/payment-intents', { method: 'POST', body: { plan: 'monthly' } });
+    expect(result.status).toBe(502);
+    expect(db.query('SELECT status FROM payment_intents')[0]).toEqual({ status: 'failed' });
+  });
+
+  it('rejects provider order, currency, and expiry mismatches', async () => {
+    providerDataOverride = (requestBody) => ({
+      ...providerResponseData(requestBody),
+      orderCode: Number(requestBody.orderCode) + 1,
+    });
+    expect((await request('/billing/payment-intents', { method: 'POST', body: { plan: 'monthly' } })).status).toBe(502);
+    expect(db.query('SELECT status FROM payment_intents')[0]).toEqual({ status: 'failed' });
+
+    providerDataOverride = (requestBody) => ({ ...providerResponseData(requestBody), currency: 'USD' });
+    const currencyResult = await request('/billing/payment-intents', { method: 'POST', body: { plan: 'monthly' } });
+    expect(currencyResult.status).toBe(502);
+    expect(db.query('SELECT status FROM payment_intents').map((row) => row.status)).toEqual(['failed', 'failed']);
+
+    providerDataOverride = (requestBody) => ({
+      ...providerResponseData(requestBody),
+      expiredAt: Math.floor(Date.now() / 1000) + 1,
+    });
+    const expiryResult = await request('/billing/payment-intents', { method: 'POST', body: { plan: 'monthly' } });
+    expect(expiryResult.status).toBe(502);
+    expect(db.query('SELECT status FROM payment_intents').map((row) => row.status)).toEqual(['failed', 'failed', 'failed']);
   });
 });
 
@@ -357,6 +429,17 @@ describe('owned payment intent status', () => {
     expect(result.status).toBe(403);
     expect(providerCalls).toHaveLength(0);
     expect(db.query('SELECT * FROM payment_intents')).toHaveLength(0);
+  });
+
+  it('rejects a request whose expected account headers do not match the cookie session', async () => {
+    const result = await request('/billing/plans', {
+      headers: {
+        'X-Frigo-Expected-User-Id': 'user-b',
+        'X-Frigo-Expected-Household-Id': 'user-b-household',
+      },
+    });
+    expect(result.status).toBe(403);
+    expect(result.json.code).toBe('SESSION_OWNER_MISMATCH');
   });
 });
 
@@ -410,6 +493,24 @@ describe('verified webhook reconciliation and entitlement grants', () => {
     expect(subscriptionRow()).toBeUndefined();
   });
 
+  it('rejects paid callbacks for invalid stored plans', async () => {
+    const payment = await createIntent();
+    await db.prepare('UPDATE payment_intents SET plan = ? WHERE id = ?').bind('forged', payment.id).run();
+    const result = await postWebhook(webhookFor(payment));
+    expect(result.status).toBe(409);
+    expect(subscriptionRow()).toBeUndefined();
+    expect(paymentRow(payment.id)).toMatchObject({ status: 'pending', plan: 'forged' });
+  });
+
+  it.each(['failed', 'refunded', 'expired'] as const)('rejects a paid callback for terminal %s intents', async (terminalStatus) => {
+    const payment = await createIntent();
+    await db.prepare('UPDATE payment_intents SET status = ? WHERE id = ?').bind(terminalStatus, payment.id).run();
+    const result = await postWebhook(webhookFor(payment));
+    expect(result.status).toBe(409);
+    expect(subscriptionRow()).toBeUndefined();
+    expect(paymentRow(payment.id)).toMatchObject({ status: terminalStatus, provider_reference: null });
+  });
+
   it('ACKs duplicate paid callbacks without extending the same entitlement', async () => {
     const payment = await createIntent();
     const body = webhookFor(payment);
@@ -435,6 +536,34 @@ describe('verified webhook reconciliation and entitlement grants', () => {
     const secondExpires = String(subscriptionRow()?.expires_at);
     expect(Date.parse(secondExpires)).toBeGreaterThan(Date.parse(firstExpires));
     expect(Date.parse(secondExpires) - Date.parse(firstExpires)).toBe(31 * 24 * 60 * 60 * 1000);
+  });
+
+  it('stacks two distinct paid orders when their signed callbacks arrive concurrently', async () => {
+    const first = await createIntent();
+    const second = await createIntent();
+    const results = await Promise.all([
+      postWebhook(webhookFor(first)),
+      postWebhook(webhookFor(second)),
+    ]);
+    expect(results.map((result) => result.status).sort()).toEqual([200, 200]);
+    expect(paymentRow(first.id)).toMatchObject({ status: 'paid' });
+    expect(paymentRow(second.id)).toMatchObject({ status: 'paid' });
+    const sqlNow = db.query<{ now: string }>("SELECT datetime('now') AS now")[0].now;
+    const expiresAt = Date.parse(String(subscriptionRow()?.expires_at));
+    expect(expiresAt).toBeGreaterThan(Date.parse(`${sqlNow}Z`) + 60 * 24 * 60 * 60 * 1000);
+  });
+
+  it('rolls back a second order when its provider reference is already used by another order', async () => {
+    const first = await createIntent();
+    const second = await createIntent();
+    const firstBody = webhookFor(first);
+    expect((await postWebhook(firstBody)).status).toBe(200);
+    const before = subscriptionRow();
+    const firstReference = (firstBody.data as Json).reference;
+    const reusedReference = await postWebhook(webhookFor(second, { reference: firstReference }));
+    expect(reusedReference.status).toBe(409);
+    expect(paymentRow(second.id)).toMatchObject({ status: 'pending', provider_reference: null });
+    expect(subscriptionRow()).toEqual(before);
   });
 
   it('ACKs a paid replay after the intent expiry time without mutating entitlement', async () => {

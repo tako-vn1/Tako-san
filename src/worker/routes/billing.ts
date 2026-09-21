@@ -55,7 +55,9 @@ billingRoutes.post('/billing/payment-intents', rateLimiter({
       .bind(intent.description, intent.id).run();
     return c.json({ success: true, payment: { ...paymentView(intent), instructions } }, 201);
   } catch {
-    // A timed-out provider may have created the order. Never fabricate instructions or a grant.
+    // Ambiguous provider orders need operator reconciliation, never an automatic grant.
+    await c.env.DB.prepare("UPDATE payment_intents SET status = 'failed', updated_at = datetime('now') WHERE id = ? AND status = 'pending'")
+      .bind(intent.id).run();
     return c.json({ error: 'Chưa tạo được hướng dẫn thanh toán. Vui lòng thử lại.', code: 'PAYMENT_PROVIDER_UNAVAILABLE' }, 502);
   }
 });
