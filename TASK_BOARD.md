@@ -2,6 +2,10 @@
 See the continuation checkpoint below and
 [provenance](docs/ai/T18C_SOURCE_PROVENANCE.md). The safe pause is historical.
 
+Review correction: removed no-op non-recipe Week title actions; unit red/green
+and flag-off route test pass. Independent re-review is clear. Fresh full gates
+and 390 browser cases replace the intentionally interrupted 384-case attempt.
+
 Keyboard closure checkpoint: native row/shell/Week actions and shopping
 checked-state semantics verified by 37 focused unit tests and 12+1 browser
 passes. Full gates and the unfiltered 384-case browser run are underway;

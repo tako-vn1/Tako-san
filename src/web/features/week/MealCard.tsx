@@ -15,7 +15,7 @@ export const MealCard: React.FC<MealCardProps> = ({ slot, onClick, onSwapClick }
   if (slot.status === 'EATING_OUT') {
     return (
       <div
-        className="relative bg-white rounded-xl p-3.5 border border-semantic-border shadow-xs flex items-center justify-between cursor-pointer hover:border-semantic-border-strong active:scale-[0.99] transition-tap"
+        className="bg-white rounded-xl p-3.5 border border-semantic-border shadow-xs flex items-center justify-between"
       >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-semantic-warning-soft border border-semantic-warning/20 text-semantic-warning-strong flex items-center justify-center text-lg shrink-0">
@@ -28,9 +28,7 @@ export const MealCard: React.FC<MealCardProps> = ({ slot, onClick, onSwapClick }
               </span>
             </div>
             <h4 className="font-heading font-bold text-sm text-semantic-text-primary">
-              <button type="button" onClick={onClick} className="text-left after:absolute after:inset-0 after:rounded-xl">
-                Bữa ăn ngoài
-              </button>
+              Bữa ăn ngoài
             </h4>
             <p className="text-[11px] text-semantic-text-muted mt-0.5">
               Không cần chuẩn bị nguyên liệu ở nhà
@@ -40,7 +38,7 @@ export const MealCard: React.FC<MealCardProps> = ({ slot, onClick, onSwapClick }
 
         <button
           onClick={onSwapClick}
-          className="relative z-10 p-1.5 rounded-lg text-semantic-text-muted hover:text-semantic-text-secondary active:scale-95 tap-target flex items-center justify-center transition-colors"
+          className="p-1.5 rounded-lg text-semantic-text-muted hover:text-semantic-text-secondary active:scale-95 tap-target flex items-center justify-center transition-colors"
           aria-label="Đổi trạng thái bữa ăn"
         >
           <ArrowRightLeft className="w-4 h-4" />
@@ -52,7 +50,7 @@ export const MealCard: React.FC<MealCardProps> = ({ slot, onClick, onSwapClick }
   if (slot.status === 'FLEXIBLE') {
     return (
       <div
-        className="relative bg-white rounded-xl p-3.5 border border-semantic-border shadow-xs flex items-center justify-between cursor-pointer hover:border-semantic-border-strong active:scale-[0.99] transition-tap"
+        className="bg-white rounded-xl p-3.5 border border-semantic-border shadow-xs flex items-center justify-between"
       >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-takosan-mint border border-takosan-mint-deep text-takosan-green-deep flex items-center justify-center text-lg shrink-0">
@@ -65,9 +63,7 @@ export const MealCard: React.FC<MealCardProps> = ({ slot, onClick, onSwapClick }
               </span>
             </div>
             <h4 className="font-heading font-bold text-sm text-semantic-text-primary">
-              <button type="button" onClick={onClick} className="text-left after:absolute after:inset-0 after:rounded-xl">
-                Tùy chọn lúc đó
-              </button>
+              Tùy chọn lúc đó
             </h4>
             <p className="text-[11px] text-semantic-text-muted mt-0.5">
               Dùng đồ ăn thừa (leftovers) hoặc chọn món tự do
@@ -77,7 +73,7 @@ export const MealCard: React.FC<MealCardProps> = ({ slot, onClick, onSwapClick }
 
         <button
           onClick={onSwapClick}
-          className="relative z-10 px-3 py-1.5 rounded-lg bg-semantic-background-subtle border border-semantic-border text-xs font-semibold text-semantic-text-secondary hover:bg-semantic-border/60 active:scale-95 shadow-xs tap-target flex items-center gap-1"
+          className="px-3 py-1.5 rounded-lg bg-semantic-background-subtle border border-semantic-border text-xs font-semibold text-semantic-text-secondary hover:bg-semantic-border/60 active:scale-95 shadow-xs tap-target flex items-center gap-1"
           aria-label="Chọn món"
         >
           <Utensils className="w-3.5 h-3.5 text-takosan-green" />

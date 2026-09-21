@@ -45,7 +45,7 @@ async function click(name: string) {
 }
 
 it.each(['PLANNED', 'COOKED', 'EATING_OUT', 'FLEXIBLE'] as const)(
-  'Week %s card keeps a native primary action and independent swap action',
+  'Week %s card exposes only actionable native controls',
   async (status) => {
     const primary = vi.fn();
     const swap = vi.fn();
@@ -58,15 +58,20 @@ it.each(['PLANNED', 'COOKED', 'EATING_OUT', 'FLEXIBLE'] as const)(
     await render(<MealCard slot={slot} onClick={primary} onSwapClick={swap} />);
     const name = status === 'EATING_OUT' ? 'Bữa ăn ngoài'
       : status === 'FLEXIBLE' ? 'Tùy chọn lúc đó' : slot.recipe!.title;
-    expect(button(name).closest('h4')).not.toBeNull();
-    await click(name);
-    expect(primary).toHaveBeenCalledTimes(1);
+    const hasDetail = status === 'PLANNED' || status === 'COOKED';
+    if (hasDetail) {
+      expect(button(name).closest('h4')).not.toBeNull();
+      await click(name);
+    } else {
+      expect(container.querySelector('h4 button')).toBeNull();
+    }
+    expect(primary).toHaveBeenCalledTimes(hasDetail ? 1 : 0);
     expect(swap).not.toHaveBeenCalled();
     if (status !== 'COOKED') {
       await click(status === 'EATING_OUT' ? 'Đổi trạng thái bữa ăn'
         : status === 'FLEXIBLE' ? 'Chọn món' : `Đổi món ${slot.recipe!.title}`);
       expect(swap).toHaveBeenCalledTimes(1);
-      expect(primary).toHaveBeenCalledTimes(1);
+      expect(primary).toHaveBeenCalledTimes(hasDetail ? 1 : 0);
     }
   },
 );

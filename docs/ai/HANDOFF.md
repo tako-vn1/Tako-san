@@ -6,6 +6,14 @@ The safe-pause section is historical.
 
 ### Keyboard closure checkpoint
 
+- Review follow-up found P2 no-op title buttons on non-recipe legacy Week
+  slots. Removed those title actions/affordances; preserved real choose/change
+  buttons. Two targeted red cases, then five units PASS and real routed
+  flag-off setup 1/1 PASS. Independent re-review reports no P0/P1/P2.
+- The 384-case run and concurrent repository gate were intentionally
+  interrupted for this fix, not counted as final; archived at
+  `resume/pre-review-final-attempt`. Restart full gates plus 390 browser cases.
+
 - Native inventory/recipe navigation, item-named shopping checkbox state, shell
   brand links, and legacy Week card/setup controls preserve existing handlers.
 - Focused browser red 2/2, green 12/12; sibling-action follow-up 1/1 after a

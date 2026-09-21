@@ -6,6 +6,13 @@ The safe-pause section is historical.
 
 ### Keyboard closure / final-gate checkpoint
 
+Review follow-up: non-recipe legacy Week cards have no detail destination;
+their new title buttons were removed rather than advertising a no-op. Existing
+choose/change controls remain. Regression **2 red → 5/5 green**; flag-off
+routed browser setup **1/1 PASS**. Independent re-review: no remaining P0/P1/P2.
+The 384-case attempt and concurrent unit gate were intentionally interrupted
+for this correction; a fresh **390-case** run (adds flag-off coverage) follows.
+
 Inventory detail and recipe recommendations now expose native controls;
 shopping exposes item-specific checkbox state; shell brand links are native.
 Legacy Week card/setup controls retain their existing handlers and draft
