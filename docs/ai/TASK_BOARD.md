@@ -1,5 +1,26 @@
 # Frigo / Takosan current task board — 2026-09-20
 
+## T18A — auth resend expiry contract — `T18A_READY_FOR_REVIEW` (2026-09-21)
+
+- [done] Verified repository ID `1368281478`, exact main `51d0d3755d83b64185066228d98f44ab7bad5e3c`,
+  hosted main CI and absence of overlapping auth PRs; preserved unrelated
+  platform settings and created `feat/t18a-auth-resend-expiry-contract`.
+- [done] Server contract `88096cb7fbea8e3b95f5627ff5a46e8c3d34b462` and client
+  integration `47c3a3391e086caf2760b61ee4e2bfacd331cacf` committed/pushed;
+  explicit security fixtures `53f9fefdc9d935bb736a37cdcd9f5b0d0479685e` pushed.
+- [done] TTL storage/response parity, register/login/forgot-password purpose
+  behavior, malformed/failed/offline resend truth, refresh and stale-response
+  isolation covered. Review found no actionable security issue.
+- [done] Final auth/security 300/300, full Vitest 180 files/4117 tests, browser
+  42/42; lint, typecheck, migration smoke, build, `git diff --check` passed.
+  Browser launch dependency fixed; initial full-suite time budget exhausted,
+  extended final full run passed with two workers and no filters.
+- [done] New PR #46 OPEN with auto-fix subscription; no merge/deploy. Billing,
+  payment UI/behavior, migrations and non-auth Worker diffs zero.
+- [next] Final-head hosted CI and human review only; no local blockers.
+  See [exact evidence and next action](T18A_AUTH_RESEND_EXPIRY_REPORT.md).
+  Do not revisit T17B history or fold in the T18B payment mismatch.
+
 ## Current T17B — contract reconciliation — `T17B_COMPLETE` (2026-09-20)
 
 - [done] Rebuilt from exact main `858759f` on
