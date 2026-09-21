@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useCookingStore } from '../stores/useCookingStore';
@@ -44,6 +44,10 @@ export const CookingModePage: React.FC = () => {
   const [heardText, setHeardText] = useState<string | null>(null);
   const [confirmExit, setConfirmExit] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
+  const [timerAnnouncement, setTimerAnnouncement] = useState('');
+  const [listeningAnnouncement, setListeningAnnouncement] = useState('');
+  const timerToggleRef = useRef<HTMLButtonElement>(null);
+  const completionHeadingRef = useRef<HTMLHeadingElement>(null);
   // Step direction for the cooking-step transition (motion/page-transitions.md).
   const [stepDirection, setStepDirection] = useState<1 | -1>(1);
 
@@ -73,6 +77,7 @@ export const CookingModePage: React.FC = () => {
         tickTimer();
       }, 1000);
     } else if (timerSecondsRemaining === 0) {
+      setTimerAnnouncement('Hẹn giờ đã kết thúc.');
       audioEffects.playTimerAlertSound();
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate([200, 100, 200, 100, 400]);
@@ -80,6 +85,24 @@ export const CookingModePage: React.FC = () => {
     }
     return () => clearInterval(interval);
   }, [isTimerRunning, timerSecondsRemaining, tickTimer]);
+
+  useEffect(() => { setTimerAnnouncement(''); }, [currentStepIndex]);
+
+  useEffect(() => {
+    if (isCompletedView) completionHeadingRef.current?.focus();
+  }, [isCompletedView]);
+
+  const startStepTimer = (seconds: number) => {
+    const starting = useCookingStore.getState().timerSecondsRemaining === null;
+    setTimer(seconds);
+    setTimerAnnouncement(starting ? 'Đã bắt đầu hẹn giờ.' : 'Đã đặt lại hẹn giờ.');
+  };
+
+  const toggleStepTimer = () => {
+    const pausing = useCookingStore.getState().isTimerRunning;
+    toggleTimer();
+    setTimerAnnouncement(pausing ? 'Đã tạm dừng hẹn giờ.' : 'Đã tiếp tục hẹn giờ.');
+  };
 
   // Clean up voice on unmount
   useEffect(() => {
@@ -108,9 +131,11 @@ export const CookingModePage: React.FC = () => {
     if (isListening) {
       voiceChef.stopListening();
       setIsListening(false);
+      setListeningAnnouncement('Trợ lý rảnh tay đã tắt.');
       setHeardText(null);
     } else {
       setIsListening(true);
+      setListeningAnnouncement('Trợ lý rảnh tay đã bật.');
       voiceChef.startListening({
         onNext: () => {
           audioEffects.playStepClickSound();
@@ -131,11 +156,11 @@ export const CookingModePage: React.FC = () => {
         onStartTimer: () => {
           const step = activeRecipe.steps[currentStepIndex];
           if (step.timerMinutes) {
-            setTimer(step.timerMinutes * 60);
+            startStepTimer(step.timerMinutes * 60);
           }
         },
         onPauseTimer: () => {
-          toggleTimer();
+          toggleStepTimer();
         },
         onHeardCommand: (text) => {
           setHeardText(text);
@@ -143,6 +168,7 @@ export const CookingModePage: React.FC = () => {
         },
         onError: () => {
           setIsListening(false);
+          setListeningAnnouncement('Không thể bật trợ lý rảnh tay. Bạn vẫn có thể dùng các nút điều khiển.');
         },
       });
     }
@@ -225,7 +251,7 @@ export const CookingModePage: React.FC = () => {
                 className="w-full h-full object-contain"
               />
             </div>
-            <h1 className="font-heading font-bold text-2xl text-semantic-text-primary">
+            <h1 ref={completionHeadingRef} tabIndex={-1} className="font-heading font-bold text-2xl text-semantic-text-primary">
               Món ăn hoàn tất! 🎉
             </h1>
             <p className="text-xs text-semantic-text-muted mt-1 max-w-xs mx-auto">
@@ -270,14 +296,14 @@ export const CookingModePage: React.FC = () => {
                       <button
                         onClick={() => updateDeduction(d.ingredientId, Math.max(0, d.quantityDeducted - (d.unit === 'g' ? 50 : 1)))}
                         className="w-7 h-7 flex items-center justify-center font-bold text-semantic-text-secondary hover:bg-white rounded-md tap-target transition-colors"
-                        aria-label="Giảm"
+                        aria-label={`Giảm lượng ${d.name}`}
                       >
                         –
                       </button>
                       <button
                         onClick={() => updateDeduction(d.ingredientId, Math.min(d.currentQuantity, d.quantityDeducted + (d.unit === 'g' ? 50 : 1)))}
                         className="w-7 h-7 flex items-center justify-center font-bold text-semantic-text-secondary hover:bg-white rounded-md tap-target transition-colors"
-                        aria-label="Tăng"
+                        aria-label={`Tăng lượng ${d.name}`}
                       >
                         +
                       </button>
@@ -309,6 +335,18 @@ export const CookingModePage: React.FC = () => {
   // 2. Active step cooking mode
   return (
     <div className="min-h-screen bg-takosan-cream flex flex-col justify-between p-5 mx-auto w-full max-w-[var(--content-compact)]">
+      <p role="status" aria-live="polite" aria-atomic="true" className="sr-only" data-testid="cooking-step-status">
+        {`Bước ${currentStepIndex + 1} trên ${activeRecipe.steps.length}. ${currentStep.instruction}`}
+      </p>
+      <p role="status" aria-live="polite" aria-atomic="true" className="sr-only" data-testid="cooking-timer-status">
+        {timerAnnouncement}
+      </p>
+      <p role="status" aria-live="polite" aria-atomic="true" className="sr-only" data-testid="cooking-listening-status">
+        {listeningAnnouncement}
+      </p>
+      <p role="status" aria-live="polite" aria-atomic="true" className="sr-only" data-testid="cooking-heard-status">
+        {heardText ? `Đã nghe: ${heardText}` : ''}
+      </p>
       <div>
         <div className="flex items-center justify-between mb-3">
           <button
@@ -372,7 +410,10 @@ export const CookingModePage: React.FC = () => {
         )}
 
         {/* Progress Bar */}
-        <div className="w-full h-1.5 bg-semantic-border/80 rounded-full overflow-hidden">
+        <div role="progressbar" aria-label="Tiến trình nấu ăn" aria-valuemin={1}
+          aria-valuemax={activeRecipe.steps.length} aria-valuenow={currentStepIndex + 1}
+          aria-valuetext={`Bước ${currentStepIndex + 1} trên ${activeRecipe.steps.length}`}
+          className="w-full h-1.5 bg-semantic-border/80 rounded-full overflow-hidden">
           <div
             className="h-full bg-takosan-green transition-tap duration-300 rounded-full"
             style={{ width: `${progressPercent}%` }}
@@ -405,7 +446,10 @@ export const CookingModePage: React.FC = () => {
             <div className="pt-2">
               {timerSecondsRemaining === null ? (
                 <button
-                  onClick={() => setTimer(currentStep.timerMinutes! * 60)}
+                  onClick={() => {
+                    startStepTimer(currentStep.timerMinutes! * 60);
+                    requestAnimationFrame(() => timerToggleRef.current?.focus());
+                  }}
                   className="px-4 py-2.5 rounded-xl bg-takosan-mint border border-takosan-mint-deep/60 text-takosan-green-deep font-heading font-semibold text-xs flex items-center justify-center gap-2 mx-auto hover:bg-takosan-mint-hover active:scale-95 transition-tap shadow-xs tap-target"
                 >
                   <Clock className="w-4 h-4 text-takosan-green" />
@@ -422,16 +466,17 @@ export const CookingModePage: React.FC = () => {
 
                   <div className="flex items-center gap-1.5">
                     <button
-                      onClick={toggleTimer}
+                      ref={timerToggleRef}
+                      onClick={toggleStepTimer}
                       className="p-2 rounded-lg bg-white border border-semantic-border shadow-xs hover:bg-semantic-background-subtle text-semantic-text-secondary tap-target flex items-center justify-center transition-colors"
-                      aria-label={isTimerRunning ? 'Tạm dừng' : 'Bắt đầu'}
+                      aria-label={isTimerRunning ? 'Tạm dừng hẹn giờ' : 'Tiếp tục hẹn giờ'}
                     >
                       {isTimerRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                     </button>
                     <button
-                      onClick={() => setTimer(currentStep.timerMinutes! * 60)}
+                      onClick={() => startStepTimer(currentStep.timerMinutes! * 60)}
                       className="p-2 rounded-lg bg-white border border-semantic-border shadow-xs hover:bg-semantic-background-subtle text-semantic-text-secondary tap-target flex items-center justify-center transition-colors"
-                      aria-label="Đặt lại giờ"
+                      aria-label="Đặt lại hẹn giờ"
                     >
                       <RotateCcw className="w-4 h-4" />
                     </button>

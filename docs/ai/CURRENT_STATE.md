@@ -14,7 +14,10 @@ poll retry alerts separately. `pnpm exec vitest run
 tests/unit/scan-processing-state.test.tsx tests/unit/t13b-fridge-review.test.tsx
 tests/unit/t13b-fridge-hardening.test.tsx`: **3 files / 57 tests PASS**;
 `git diff --check` PASS. Browser/full gates pending. No business/server changes.
-Next: recipe tabs, cooking announcements, browser and 27-screen semantic review.
+Recipe tabs now have automatic keyboard activation and labelled panels; cooking
+announcements and contextual controls implemented. `pnpm typecheck` and scoped
+ESLint PASS; cooking-store/client-session regression **2 files / 35 PASS**.
+Next: focused/browser/full gates and 27-screen semantic/independent review.
 VoiceOver/NVDA not performed. Pre-existing `.hoplite/settings.json` modification
 preserved and excluded. Managed isolated Preview restored through project
 overrides; setup tool refused an idle-ready lease, safe setup commands run

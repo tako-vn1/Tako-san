@@ -1450,7 +1450,9 @@ rolling `qwen3.7-flash` alias is canary-only.
 - [done] Exact stable-ID/base gate, CI #151/staging #53 success, production
   skipped, no overlapping UI PR; requested new branch pushed.
 - [done] Checkpoint A scan live-region/lifecycle fixes; 3 files / 57 Vitest PASS.
-- [pending] B recipe tabs; C cooking dynamic semantics; D deterministic browser
+- [done] B recipe tabs pushed; C cooking dynamic semantics implemented;
+  typecheck/scoped lint and 35 cooking/session regressions PASS.
+- [pending] D deterministic browser
   regressions, 27-screen review, full validation, independent review, review PR.
 - No merge/deploy; preserve protected business boundaries and T18C composition.
 
