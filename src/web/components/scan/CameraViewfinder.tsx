@@ -223,7 +223,7 @@ export const CameraViewfinder: React.FC<CameraViewfinderProps> = ({
             <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-takosan-green rounded-br-sm" />
 
             {/* Scanning Laser Line */}
-            <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-takosan-coral to-transparent shadow-[0_0_8px_rgba(255,123,107,0.85)] animate-[scanLaser_2.5s_ease-in-out_infinite]" />
+            <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-takosan-coral to-transparent shadow-[0_0_8px_rgba(255,123,107,0.85)] motion-safe:animate-[scanLaser_2.5s_ease-in-out_infinite]" />
           </div>
         </div>
 

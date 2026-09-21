@@ -56,6 +56,10 @@ export const RecipesPage: React.FC = () => {
       r.recipe.ingredients.some((i) => i.name.toLowerCase().includes(q))
     );
   });
+  const [featuredRecipe, ...gridRecipes] = filtered;
+  const resultsHeading = search.trim()
+    ? `Kết quả tìm kiếm cho “${search.trim()}”`
+    : 'Công thức phù hợp';
 
   const cuisines = [
     { id: null, label: 'Tất cả ẩm thực' },
@@ -259,13 +263,35 @@ export const RecipesPage: React.FC = () => {
               }}
             />
           ) : (
-            filtered.map((item) => (
+            <section aria-labelledby="recipes-results-heading" className="space-y-3.5">
+              <h2
+                id="recipes-results-heading"
+                className="font-heading font-bold text-base text-semantic-text-primary"
+              >
+                {resultsHeading}
+              </h2>
+
               <RecipeCard
-                key={item.recipe.id}
-                matchResult={item}
-                onClick={() => navigate(`/recipes/${item.recipe.slug}`)}
+                matchResult={featuredRecipe}
+                variant="feature"
+                headingLevel={3}
+                onClick={() => navigate(`/recipes/${featuredRecipe.recipe.slug}`)}
               />
-            ))
+
+              {gridRecipes.length > 0 && (
+                <div data-testid="recipe-discovery-grid" className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+                  {gridRecipes.map((item) => (
+                    <RecipeCard
+                      key={item.recipe.id}
+                      matchResult={item}
+                      variant="grid"
+                      headingLevel={3}
+                      onClick={() => navigate(`/recipes/${item.recipe.slug}`)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
           )}
         </div>
       </div>

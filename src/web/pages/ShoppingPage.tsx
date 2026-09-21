@@ -104,16 +104,20 @@ export const ShoppingPage: React.FC = () => {
             items.map((item) => (
               <div
                 key={item.id}
-                onClick={() => !toggleItem.isPending && toggleItem.mutate({ id: item.id, current: item.isChecked })}
                 className={clsx(
-                  'p-3 rounded-xl flex items-center justify-between cursor-pointer transition-tap border border-semantic-border shadow-xs active:scale-[0.99]',
+                  'relative p-3 rounded-xl flex items-center justify-between cursor-pointer transition-tap border border-semantic-border shadow-xs active:scale-[0.99]',
                   item.isChecked ? 'bg-semantic-background-subtle/70 opacity-60' : 'bg-white hover:border-semantic-border-strong'
                 )}
               >
                 <div className="flex items-center gap-3">
                   <button
-                    aria-label={item.isChecked ? 'Bỏ đánh dấu đã mua' : 'Đánh dấu đã mua'}
-                    className="text-takosan-green tap-target flex items-center justify-center shrink-0"
+                    type="button"
+                    role="checkbox"
+                    aria-checked={item.isChecked}
+                    aria-label={`${item.isChecked ? 'Bỏ đánh dấu đã mua' : 'Đánh dấu đã mua'}: ${item.name}`}
+                    aria-disabled={toggleItem.isPending}
+                    onClick={() => !toggleItem.isPending && toggleItem.mutate({ id: item.id, current: item.isChecked })}
+                    className="text-takosan-green tap-target flex items-center justify-center shrink-0 after:absolute after:inset-0 after:rounded-xl"
                   >
                     {item.isChecked ? (
                       <CheckCircle2 className="w-5 h-5 fill-takosan-green text-white" />
@@ -123,14 +127,14 @@ export const ShoppingPage: React.FC = () => {
                   </button>
 
                   <div>
-                    <h4
+                    <h2
                       className={clsx(
                         'font-heading font-semibold text-sm text-semantic-text-primary',
                         item.isChecked && 'line-through text-semantic-text-muted'
                       )}
                     >
                       {item.name}
-                    </h4>
+                    </h2>
                     <p className="text-xs text-semantic-text-muted">
                       {item.quantity} {item.unit}
                       {item.sourceRecipeTitle && ` • Cần cho ${item.sourceRecipeTitle}`}
@@ -143,7 +147,7 @@ export const ShoppingPage: React.FC = () => {
                     e.stopPropagation();
                     deleteItem.mutate(item.id);
                   }}
-                  className="p-1.5 rounded-lg text-semantic-text-muted hover:text-semantic-danger hover:bg-semantic-danger-soft transition-colors tap-target flex items-center justify-center"
+                  className="relative z-10 p-1.5 rounded-lg text-semantic-text-muted hover:text-semantic-danger hover:bg-semantic-danger-soft transition-colors tap-target flex items-center justify-center"
                   aria-label="Xóa món"
                 >
                   <Trash2 className="w-4 h-4" />

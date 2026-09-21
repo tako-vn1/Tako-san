@@ -219,6 +219,7 @@ export const OnboardingPage: React.FC = () => {
                         className="peer sr-only"
                         type="radio"
                         name="household-size"
+                        aria-label={label}
                         value={number}
                         checked={selected}
                         onChange={() => setHouseholdSize(number)}
@@ -236,7 +237,7 @@ export const OnboardingPage: React.FC = () => {
                         ) : (
                           <Users className="h-4 w-4" aria-hidden="true" />
                         )}
-                        <span aria-label={label}>
+                        <span>
                           {number === HOUSEHOLD_PLUS_CHOICE ? '5+' : number}
                         </span>
                       </span>

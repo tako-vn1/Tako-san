@@ -26,13 +26,13 @@ export const AppLayout: React.FC = () => {
   return (
     <div className="min-h-dvh bg-semantic-background text-semantic-text-primary antialiased selection:bg-takosan-mint">
       {!immersive && <RailSidebar />}
-      {/* Content canvas: rail 80px on md, sidebar 256px on lg; AppShell owns
+      {/* Content canvas: rail 80px from 640px, sidebar 256px on lg; AppShell owns
           gutters so pages must not re-emulate a phone width. */}
-      <div className={immersive ? '' : 'md:pl-20 lg:pl-64'}>
+      <div className={immersive ? '' : 'sm:pl-20 lg:pl-64'}>
         {!immersive && <OfflineBanner />}
         {/* Canvas caps at the kit's wide content width so ultra-wide viewports
             never stretch reading lines; pages request narrower widths via Page. */}
-        <main className={immersive ? '' : 'min-h-dvh pb-[calc(68px+env(safe-area-inset-bottom,0px))] md:pb-0 mx-auto w-full max-w-[var(--content-wide)]'}>
+        <main className={immersive ? '' : 'min-h-dvh pb-[calc(68px+env(safe-area-inset-bottom,0px))] sm:pb-0 mx-auto w-full max-w-[var(--content-wide)]'}>
           <Outlet />
         </main>
         {!immersive && <BottomNavigationBar />}

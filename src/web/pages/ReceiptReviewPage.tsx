@@ -505,7 +505,7 @@ const ReceiptReview: React.FC<{ receiptScanId: string | null }> = ({ receiptScan
       </div>
 
       {/* Floating Action Bottom */}
-      <div className="fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px))] md:bottom-0 left-0 right-0 md:left-20 lg:left-64 p-4 md:pb-[calc(1rem+env(safe-area-inset-bottom))] bg-white/95 backdrop-blur-md border-t border-semantic-border z-40 shadow-lg">
+      <div className="fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px))] sm:bottom-0 left-0 right-0 sm:left-20 lg:left-64 p-4 sm:pb-[calc(1rem+env(safe-area-inset-bottom))] bg-white/95 backdrop-blur-md border-t border-semantic-border z-40 shadow-lg">
         <div className="mx-auto w-full max-w-[var(--content-wide)] space-y-2">
           {submitError && <p role="alert" className="text-xs text-semantic-danger-strong">{submitError}</p>}
           {isConfirmed ? <Button fullWidth onClick={() => navigate('/fridge')}>Xem tủ lạnh</Button> : <>

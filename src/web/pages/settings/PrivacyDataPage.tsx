@@ -54,9 +54,11 @@ export const PrivacyDataPage: React.FC = () => {
           <Surface className="p-4 space-y-2">
             <p className="text-sm text-semantic-text-secondary flex gap-2">
               <Bell className="w-4 h-4 text-semantic-action-primary shrink-0 mt-0.5" aria-hidden="true" />
-              Quyền thông báo hiện tại:{' '}
-              <strong>{PERMISSION_LABELS[browserPermission] ?? 'không xác định'}</strong>. Bạn đổi
-              quyền này trong cài đặt trình duyệt; Takosan không thể tự bật.
+              <span className="min-w-0 leading-relaxed">
+                Quyền thông báo hiện tại:{' '}
+                <strong>{PERMISSION_LABELS[browserPermission] ?? 'không xác định'}</strong>. Bạn đổi
+                quyền này trong cài đặt trình duyệt; Takosan không thể tự bật.
+              </span>
             </p>
           </Surface>
         </Section>

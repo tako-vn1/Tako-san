@@ -61,9 +61,9 @@ export const NotificationsPage: React.FC = () => {
                       <Icon className="w-5 h-5" aria-hidden="true" />
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-heading font-semibold text-sm text-semantic-text-primary leading-snug">
+                      <h2 className="font-heading font-semibold text-sm text-semantic-text-primary leading-snug">
                         {n.title}
-                      </h4>
+                      </h2>
                       <p className="text-xs text-semantic-text-muted mt-0.5 leading-snug">{n.message}</p>
                       <p className="text-[10px] text-semantic-text-muted mt-1">{relativeTimeVi(n.createdAt)}</p>
                     </div>

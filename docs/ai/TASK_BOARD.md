@@ -1,4 +1,81 @@
-# Frigo / Takosan current task board — 2026-09-20
+# Frigo / Takosan current task board — 2026-09-21
+
+**Current: T18C_READY_FOR_REVIEW**, application freeze `6f8f6f4`.
+
+- [done] Existing branch/repository ID `1368281478` preserved; matching upstream,
+  unchanged base, pre-existing workspace settings excluded.
+- [done] Supplied source verified; 27/27 direct comparisons with fresh six-width
+  evidence. **2 PASS / 25 PASS_WITH_DOCUMENTED_DIFFERENCE**, no unresolved P0/P1/P2.
+- [done] Browser **379 PASS / 11 intentional skips / 390 unique**; 162 canonical
+  + 449 regression screenshot files; zero strict axe violations or overflow.
+  Five unfinished cases recovered after outer timeouts; full manifest reconciled.
+- [done] Serial final `pnpm lint`, `pnpm typecheck`, `pnpm test` (**184/4222**),
+  `pnpm check:migrations`, `pnpm build`, style residuals (**39/0**), contrast
+  (**33/33**), worktree and base-to-HEAD `git diff --check` PASS.
+- [done] Preserve baseline, failed Home zoom run, interrupted contention logs
+  and final evidence separately. No test timeout/coverage weakening.
+- [done] Review-only [PR #48](https://github.com/vn-tako/Frigo-dev/pull/48)
+  opened from published checkpoint `321824d`; CI/review auto-fix enabled,
+  auto-merge disabled. No merge conflict or initial review feedback.
+- [done] Hosted `validate` SUCCESS on `289d80a`, run `35578662531`; no review
+  feedback/unresolved threads; `MERGEABLE` / `CLEAN`. Final release audit found
+  no introduced migration/configuration action. Style/contrast/diff rechecks PASS.
+- [pending] Owner merge permission after latest-head CI stays green; this
+  readiness receipt changes docs only. Human VoiceOver/NVDA not performed.
+  Auto-merge remains disabled. No merge, deploy or T18D.
+
+See `T18C_VISUAL_CERTIFICATION.md`, `HANDOFF.md`, and
+`.hoplite/artifacts/t18c/EVIDENCE.md` for exact checks, failures and next action.
+
+## Historical continuation checkpoints (superseded)
+
+- [done] Final combined run exposed Home 1024px/200%-text P2 (46px overflow):
+  **378 passed / 11 intentional skips / 1 failed**. Rem-based wrapping fix plus
+  unchanged zoom gate and new region-stacking check: **12/12 focused PASS**.
+- [in progress] Preserve failed run, regenerate all 390 cases in isolated
+  viewport groups and repeat full repository gates after the Home correction.
+
+- [done] Final unfiltered repository gates on `b024b0d`: **184 files / 4222
+  tests**, lint/typecheck/migration smoke/build/diff-check; style 39/0,
+  contrast 33/33. Evidence: `repository-gates.zip`.
+- [in progress] Finish final six-viewport browser run and post-fix visual review,
+  then publish review-only PR. No merge/deploy/T18D.
+
+- [done] Explicit 44px native target bounds; unchanged strict gate plus keyboard
+  and flag-off checks: 14 PASS / 1 intentional project skip. Final rerun next.
+
+- [done] Independent review P2: remove inert non-recipe Week title buttons;
+  regression 2 red → 5 green, flag-off routed browser 1 PASS, re-review clear.
+- [in progress] Restart final gates and 390 browser cases after that correction;
+  preserve interrupted 384-case attempt as non-final evidence.
+
+- [done] Close evidenced keyboard/checked-state gaps in inventory, recipes,
+  shopping, shell and legacy Week controls; focused units 37/37, browser
+  12/12 plus sibling-action follow-up 1/1, typecheck/ESLint/diff PASS.
+- [in progress] Fresh full gates and unfiltered 384-case browser certification;
+  final artifacts remain separate from the immutable baseline.
+
+- [done] Direct approved-source comparison of 27 identities and evidence-led
+  keyboard, semantic and responsive corrections; no protected business change.
+- [done] Focused browser gates 43 passed/5 intentional skips, 18 passed,
+  supplemental boundary 1 passed; fresh typecheck passed. Logs retained in
+  `.hoplite/artifacts/t18c/fix-verification.zip`.
+- [pending] Final combined browser/matrix, native gates, screenshot review,
+  certification report and review-only PR. No final readiness claim yet.
+
+## T18C — final redesign certification — SAFE PAUSE (2026-09-21)
+
+**STATUS: `T18C_PAUSED_SAFE`** — implementation halted by owner instruction;
+all valid work committed/pushed; resume per
+[T18C_WIP_HANDOFF.md](T18C_WIP_HANDOFF.md).
+
+- **IN PROGRESS:** 27/27 identities baselined at six widths (route/overflow/nav
+  162/162); 11 identities have applied semantic fixes awaiting the rerun.
+- **BLOCKED:** Direct approved Takosan OS source absent; 0/27 boards compared.
+  Reconstructed registry and legacy Frigo kit cannot certify visual parity.
+- **Next:** Baseline checkpoint, evidence-led semantic corrections, final
+  responsive/state/a11y/gate runs and durable screenshot/report publication.
+  [Registry and findings](T18C_VISUAL_CERTIFICATION.md). No merge/deploy/T18D.
 
 ## T18B — payment authority unification — `T18B_READY_FOR_REVIEW` (2026-09-21)
 
@@ -1356,3 +1433,15 @@ rolling `qwen3.7-flash` alias is canary-only.
 - [done] Post-deploy smoke, health/readiness and SPA/API COOP header checks
   pass. Only the pre-existing `CONFIG_PLUS_GRANT_SECRET_MISSING` warning
   remains.
+## T18C continuation checkpoint — 2026-09-21
+
+- [done] Authorized renamed repository `1368281478` / `vn-tako/Frigo-dev`;
+  exact `b8447e85` base and `2e770f8` handoff verified, existing branch resumed,
+  upstream corrected; unrelated workspace settings preserved.
+- [done] Fresh fixed-tree matrix: 6 passed; 162 screenshots/strict axe audits,
+  zero violations and horizontal overflow. Baseline archive unchanged.
+- [done] Owner-supplied approved OS ZIP recovered and checksum-verified;
+  see `T18C_SOURCE_PROVENANCE.md`. Reference unavailability is superseded.
+- [in progress] Direct board comparison and source-led presentation findings;
+  full T17 regressions, final fixes/evidence/gates/PR remain pending.
+- **T18C_PARTIAL**; no merge/deploy/T18D. VoiceOver/NVDA NOT PERFORMED.

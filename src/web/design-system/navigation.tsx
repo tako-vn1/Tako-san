@@ -81,7 +81,7 @@ export const BottomNavigationBar: React.FC = () => {
   return (
     <nav
       aria-label="Điều hướng chính"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-semantic-border bg-semantic-surface/95 backdrop-blur-xl safe-bottom md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-semantic-border bg-semantic-surface/95 backdrop-blur-xl safe-bottom sm:hidden"
     >
       <ul className="flex items-stretch justify-around h-[68px] px-1.5">
         {NAV_ITEMS.slice(0, 2).map((item) => (
@@ -130,7 +130,7 @@ export const RailSidebar: React.FC = () => {
       {/* Tablet rail */}
       <nav
         aria-label="Điều hướng chính"
-        className="hidden md:flex lg:hidden fixed left-0 top-0 bottom-0 w-20 flex-col items-center gap-2 py-4 bg-semantic-surface border-r border-semantic-border z-30"
+        className="hidden sm:flex lg:hidden fixed left-0 top-0 bottom-0 w-20 flex-col items-center gap-2 py-4 bg-semantic-surface border-r border-semantic-border z-30"
       >
         <Link to="/" className="mb-2 tap-target flex items-center justify-center rounded-card focus-visible:outline-none focus-visible:shadow-t17-focus" aria-label="Takosan — Trang chủ">
           <img src={TAKOSAN_BRAND.symbol} alt="" width={32} height={32} className="w-8 h-8" />

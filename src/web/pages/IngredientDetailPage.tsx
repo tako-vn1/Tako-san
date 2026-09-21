@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { TopBar } from '../components/common/TopBar';
 import { StatusChip } from '../components/common/StatusChip';
@@ -201,7 +201,7 @@ const LotDetail: React.FC<{ routeId: string }> = ({ routeId }) => {
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-heading font-bold text-xl text-semantic-text-primary leading-tight">{item.name}</h3>
+              <h2 className="font-heading font-bold text-xl text-semantic-text-primary leading-tight">{item.name}</h2>
               <StatusChip status={status} />
             </div>
             <p className="text-sm font-semibold text-takosan-green">{item.quantity} {item.unit}</p>
@@ -374,16 +374,17 @@ const LotDetail: React.FC<{ routeId: string }> = ({ routeId }) => {
         )}
 
         <div className="pt-2">
-          <h4 className="font-heading font-bold text-base text-semantic-text-primary flex items-center gap-1.5 mb-3">
+          <h3 className="font-heading font-bold text-base text-semantic-text-primary flex items-center gap-1.5 mb-3">
             <ChefHat className="w-4 h-4 text-takosan-green" />
             <span>Món ngon có thể nấu ({matchingRecipes.length})</span>
-          </h4>
+          </h3>
 
           <div className="space-y-2.5">
             {matchingRecipes.map((recipe) => (
-              <div
+              <Link
                 key={recipe.id}
-                onClick={() => navigate(`/recipes/${recipe.slug}`)}
+                to={`/recipes/${recipe.slug}`}
+                aria-label={recipe.title}
                 className="bg-white rounded-xl p-3 flex items-center gap-3.5 border border-semantic-border shadow-xs cursor-pointer hover:border-takosan-green/40 active:scale-[0.99] transition-tap"
               >
                 <img src={resolveRecipeImage(recipe).src} alt={recipe.title} className="w-14 h-14 rounded-lg object-cover shrink-0 border border-semantic-border/70" loading="lazy" onError={recipeImageErrorHandler(resolveRecipeImage(recipe).fallbackSrc)} />
@@ -391,14 +392,14 @@ const LotDetail: React.FC<{ routeId: string }> = ({ routeId }) => {
                   <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-takosan-mint text-takosan-green-deep border border-takosan-mint-deep/60 uppercase">
                     {recipe.cuisine}
                   </span>
-                  <h5 className="font-heading font-semibold text-sm text-semantic-text-primary truncate mt-1">{recipe.title}</h5>
+                  <h4 className="font-heading font-semibold text-sm text-semantic-text-primary truncate mt-1">{recipe.title}</h4>
                   <span className="flex items-center gap-1 text-xs text-semantic-text-muted mt-0.5">
                     <Clock className="w-3 h-3 text-semantic-text-muted" />
                     <span>{recipe.cookTimeMinutes} phút</span>
                   </span>
                 </div>
                 <ArrowRight className="w-4 h-4 text-semantic-text-muted" />
-              </div>
+              </Link>
             ))}
           </div>
         </div>

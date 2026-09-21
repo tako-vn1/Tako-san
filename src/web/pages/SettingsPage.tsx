@@ -55,7 +55,7 @@ export const SettingsPage: React.FC = () => {
         <Card className="p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Smartphone className="w-4 h-4 text-takosan-green" />
-            <h4 className="font-heading font-bold text-sm text-semantic-text-primary">Ứng dụng Takosan trên điện thoại</h4>
+            <h2 className="font-heading font-bold text-sm text-semantic-text-primary">Ứng dụng Takosan trên điện thoại</h2>
           </div>
           <p className="text-xs text-semantic-text-secondary leading-relaxed">
             {isStandalone
@@ -79,7 +79,7 @@ export const SettingsPage: React.FC = () => {
         <Card className="p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Wifi className="w-4 h-4 text-takosan-green" />
-            <h4 className="font-heading font-bold text-sm text-semantic-text-primary">Bộ nhớ đệm ứng dụng</h4>
+            <h2 className="font-heading font-bold text-sm text-semantic-text-primary">Bộ nhớ đệm ứng dụng</h2>
           </div>
           <p className="text-xs text-semantic-text-secondary leading-relaxed">
             Xóa tài nguyên PWA đã lưu trên trình duyệt. Thao tác này không xóa dữ liệu ngoại tuyến hoặc thay đổi chưa đồng bộ của bạn.
@@ -99,7 +99,7 @@ export const SettingsPage: React.FC = () => {
         <Card className="p-4 space-y-2.5">
           <div className="flex items-center gap-2">
             <Globe className="w-4 h-4 text-takosan-green" />
-            <h4 className="font-heading font-bold text-sm text-semantic-text-primary">Ngôn ngữ hiển thị</h4>
+            <h2 className="font-heading font-bold text-sm text-semantic-text-primary">Ngôn ngữ hiển thị</h2>
           </div>
           <p className="text-xs text-semantic-text-secondary leading-relaxed">
             Tiếng Việt (hiện tại). Tiếng Anh sẽ được bổ sung khi bản dịch đầy đủ sẵn sàng.

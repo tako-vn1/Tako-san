@@ -1,3 +1,66 @@
+**Current: T18C_READY_FOR_REVIEW**, application freeze `6f8f6f4`.
+
+- [done] 27/27 source-backed direct comparisons at all six widths: **2 PASS /
+  25 PASS_WITH_DOCUMENTED_DIFFERENCE**, zero unresolved P0/P1/P2.
+- [done] Browser **379 PASS / 11 intentional skips / 390 unique cases**;
+  162 canonical + 449 regression screenshot files, zero strict axe/overflow.
+  Five outer-timeout cases recovered; prior failures retained, not hidden.
+- [done] Final lint/typecheck/full Vitest (**184 files / 4222 tests**), migration
+  smoke/build, style (**39/0**), contrast (**33/33**) and diff checks PASS on
+  the final implementation. Protected business/backend boundaries unchanged.
+- [done] Review-only [PR #48](https://github.com/vn-tako/Frigo-dev/pull/48)
+  opened; CI/review auto-fix enabled, auto-merge disabled.
+- [done] Hosted `validate` SUCCESS on `289d80a` (run `35578662531`); final
+  readiness audit clear, no unresolved threads or new migration/configuration
+  action. Style/contrast/diff rechecks PASS; no application changes.
+- [pending] Owner merge permission after latest documentation-head CI stays
+  green. Human VoiceOver/NVDA not performed; auto-merge disabled.
+  No merge, deployment or T18D.
+
+Exact commands, failure ledger, evidence and next action:
+[certification](docs/ai/T18C_VISUAL_CERTIFICATION.md),
+[handoff](docs/ai/HANDOFF.md),
+[evidence index](.hoplite/artifacts/t18c/EVIDENCE.md).
+
+## Historical continuation checkpoints (superseded)
+
+Final combined browser run: **378 passed / 11 intentional skips / 1 failed**.
+Home 1024px/200%-text overflow was a real P2; rem-based wrapping replaces the
+fixed two-column breakpoint. Original zoom gate plus explicit stacking check:
+**12/12 focused PASS**. Complete post-correction browser/repository reruns next;
+the failed run stays separate as `pre-zoom/`. No readiness/PR claim yet.
+
+**Repository gates PASS on application freeze `b024b0d`: 184 files / 4222
+tests**, lint/typecheck/migrations/build/diff, style 39/0 and contrast 33/33.
+Final browser matrix and post-fix visual review are running; review-only PR next.
+
+Explicit native target bounds passed the unchanged strict accessibility gate
+and focused keyboard/Week flow: 14 PASS / 1 intentional project skip.
+
+Review correction: removed no-op non-recipe Week title actions; unit red/green
+and flag-off route test pass. Independent re-review is clear. Fresh full gates
+and 390 browser cases replace the intentionally interrupted 384-case attempt.
+
+Keyboard closure checkpoint: native row/shell/Week actions and shopping
+checked-state semantics verified by 37 focused unit tests and 12+1 browser
+passes. Full gates and the unfiltered 384-case browser run are underway;
+failure history remains in the handoff. No merge/deploy/T18D.
+
+All 27 identities have now been compared directly. Localized source-led fixes
+passed targeted browser gates (43 + 18 + 1 passes; five intentional project
+skips) and typecheck. Full final certification is next; see the current
+[handoff](docs/ai/HANDOFF.md) for diagnostic failures and preserved evidence.
+
+## T18C — final redesign certification — SAFE PAUSE (2026-09-21)
+
+**STATUS: `T18C_PAUSED_SAFE`** — implementation halted by owner instruction.
+- Branch `feat/t18c-final-redesign-certification` from exact base
+  `b8447e85f099b800a9a8ebc6c4c137adc9e45a32`; checkpoint A `ac4d90e` pushed
+  (162-screenshot baseline). Approved OS boards unavailable:
+  **DIRECT_BOARD_COMPARISON_PENDING**; 0/27 board comparisons.
+- Evidence-led semantic fixes applied; final rerun pending. Resume:
+  [T18C_WIP_HANDOFF.md](docs/ai/T18C_WIP_HANDOFF.md). No merge or deployment.
+
 ## T18B — payment authority unification — `T18B_READY_FOR_REVIEW` (2026-09-21)
 
 - Final review P1 fixed from expected `0926222` on the same branch/PR: price
@@ -372,3 +435,12 @@
 - Readiness exact-SHA PASS; DB/queue/AI/config healthy, PLUS-grant warning only.
 - Full Vitest `3630/3630`, lint/typecheck/build and frozen install PASS.
 - Follow-up blocked on hosted CI/review for open PR #4; no protection bypass.
+## T18C continuation checkpoint — 2026-09-21
+
+**T18C_PARTIAL** — resumed existing branch at `2e770f8`, exact base `b8447e85`,
+repository `1368281478` / `vn-tako/Frigo-dev`; upstream corrected. Fresh
+pause-tree matrix **6 passed / 162 screenshots / 162 axe audits / zero
+violations and overflow**. Approved source ZIP is now available and direct
+comparison is underway: [provenance](docs/ai/T18C_SOURCE_PROVENANCE.md).
+Final source-led fixes, regressions, full gates and PR remain pending.
+Original baseline and workspace settings preserved; no merge/deploy/T18D.

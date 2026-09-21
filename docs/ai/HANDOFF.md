@@ -1,4 +1,159 @@
-# Frigo / Takosan current handoff — 2026-09-20
+# Frigo / Takosan current handoff — 2026-09-21
+
+## T18C final handoff — `T18C_READY_FOR_REVIEW`
+
+- **Task:** Continue existing T18C, not a restart. Repository ID `1368281478`
+  is `vn-tako/Frigo-dev`; branch `feat/t18c-final-redesign-certification`,
+  correct matching upstream, unchanged main/base `b8447e85`. Verified
+  implementation freeze: `6f8f6f40bb2c47dacd33670ac7397b0528b469a8`.
+- **Changes:** Evidence-led semantic, keyboard/focus, target, responsive and
+  source-composition corrections only. Latest Home fix wraps rem-based regions
+  under 200% text zoom without changing normal primary dominance. All 27
+  identities compared to supplied boards/contracts at all six widths; final
+  dispositions **2 PASS / 25 PASS_WITH_DOCUMENTED_DIFFERENCE**. No unresolved
+  P0/P1/P2. Detailed differences are explicit in `T18C_VISUAL_CERTIFICATION.md`.
+- **Checks:** `pnpm lint`, `pnpm typecheck`, full `pnpm test` (**184 files /
+  4222 PASS**, 554.62s), `pnpm check:migrations`, `pnpm build`,
+  `node scripts/t17/style-residuals.mjs` (**39/0**),
+  `node scripts/t17/contrast-audit.mjs` (**33/33**), `git diff --check` and
+  `git diff --check origin/main...HEAD` PASS. Final gates ended 08:23:33 UTC.
+  Six-project T17/T18C browser suite: **379 PASS / 11 intentional skips / 390
+  unique cases**, zero strict axe violations or horizontal overflow across
+  162 canonical captures. Exact shard/recovery commands: `final/reports/commands.md`.
+- **Failures/recovery:** Pre-fix 378/11/1 run found genuine Home zoom P2;
+  original assertion preserved and focused follow-up 12/12 PASS. Concurrent
+  Vitest hit unchanged CLI timeout under browser contention, was interrupted,
+  and then passed serially. Three 40-minute outer wrappers left five unfinished
+  browser cases; exact recovery 4/4 + 1/1 PASS and manifest reconciliation prove
+  zero missing/duplicate cases. Do not call it one uninterrupted green run.
+- **Evidence:** Separate final matrix, raw shards/recovery, 449 regression
+  screenshot files, Board 1/2/3 six-width reviews, gate logs, and preserved
+  failed-run archives indexed in `.hoplite/artifacts/t18c/EVIDENCE.md`.
+  Original baseline and approved-source hashes are unchanged.
+- **Boundaries/database:** No backend/shared/packages/migration/workflow/Wrangler
+  change. T18A auth, T18B 49000/499000 VND and issued-intent/webhook/entitlement
+  authority, Inventory Truth, OCR/AI, planner and Week logic unchanged.
+  Synthetic local SQLite fixtures only; no remote D1 change or real payment.
+- **Limitations:** Human VoiceOver and NVDA **NOT PERFORMED**; incomplete axe
+  records retained. Hardware/provider/production certification is not claimed.
+- **Publication:** Certification/evidence checkpoint `321824d` pushed and
+  verified. [PR #48](https://github.com/vn-tako/Frigo-dev/pull/48) OPEN to
+  `main`; CI/review auto-fix **enabled**, auto-merge **disabled**. Hosted
+  `validate` **SUCCESS** on `289d80a` (run `35578662531`, 08:40:02 UTC),
+  including lint/typecheck/full Vitest/migration smoke/build. Final read:
+  no reviews/comments/unresolved threads, `MERGEABLE` / `CLEAN`.
+- **Final readiness audit:** No introduced migration/configuration follow-up
+  or additional application fix. Protected-surface and application-freeze diff
+  checks PASS; high-confidence credential/private-key scan of 443 changed-text
+  files/archive members found no matches. Re-executed style audit **39/0**,
+  contrast **33/33**, and both diff checks PASS. Independent configuration
+  review agrees. No application/test changes; this receipt is docs only.
+- **Next:** Confirm the latest documentation-head CI, then await owner merge
+  permission. The enabled loop handles any new CI/review feedback. No merge,
+  deploy, T18D or speculative redesign. Keep pre-existing
+  `.hoplite/settings.json` and `.hoplite/extracted/` uncommitted.
+
+## Historical continuation checkpoints (superseded)
+
+### Final browser failure / text-zoom correction
+
+- Complete run: **378 PASS / 11 intentional skips / 1 FAIL**. Home at 1024px
+  overflowed by 46px under 200% text zoom; this is a real P2, not a fixture issue.
+- Three Home layout classes now wrap by rem-based region width rather than
+  forcing two columns at a pixel breakpoint. Original zoom assertion unchanged;
+  new explicit stacked-region check added. Six-width focused follow-up:
+  **12/12 PASS** in 1.8 minutes.
+- Preserve the complete failed run separately as `pre-zoom/`; current board
+  reviews cover that freeze and must not silently certify new Home pixels.
+- Next: rerun all 390 cases in three isolated two-project groups (independent
+  frontend/API ports and process-local in-memory SQLite, one worker per group),
+  rerun complete repository gates, inspect regenerated images and archive.
+  This changes scheduling only, not tests, fixtures, retries, or assertions.
+
+### Complete repository gate receipt
+
+- Application freeze `b024b0d41d13e07df253dad4f6a7d472ec1d7c11`.
+- Fresh full `pnpm test`: **184 files / 4222 PASS**, 818.46s, finished
+  2026-09-21T06:49:59Z. Lint/typecheck/migration smoke/build/diff-check PASS.
+- Style **39 allowlisted / 0 unjustified**; contrast **33/33 PASS** (one
+  informational border pair). Full-diff review found imported license trailing
+  whitespace: normalized that line and its fetch script, without changing any
+  font byte/checksum. Script ESLint and `node --check` PASS; 5/5 font hashes PASS.
+- Evidence checkpoint: `.hoplite/artifacts/t18c/repository-gates.zip`.
+  Browser/visual final certification remains running; no final browser total
+  or PR claimed yet. Next: finish six-width run, archive matrix, finalize PR.
+
+### Keyboard closure checkpoint
+
+- Strict target gate identified new brand/title elements without explicit
+  44px bounds. Existing `tap-target` utility now supplies them; gate unchanged.
+  Focused mobile-360 a11y/gaps/flag-off run **14 PASS / 1 intentional skip**.
+  Preserve failed attempt at `resume/target-bounds-final-attempt`; final run
+  restarts on the explicit-bound implementation, not on `ef5a619`.
+
+- Review follow-up found P2 no-op title buttons on non-recipe legacy Week
+  slots. Removed those title actions/affordances; preserved real choose/change
+  buttons. Two targeted red cases, then five units PASS and real routed
+  flag-off setup 1/1 PASS. Independent re-review reports no P0/P1/P2.
+- The 384-case run and concurrent repository gate were intentionally
+  interrupted for this fix, not counted as final; archived at
+  `resume/pre-review-final-attempt`. Restart full gates plus 390 browser cases.
+
+- Native inventory/recipe navigation, item-named shopping checkbox state, shell
+  brand links, and legacy Week card/setup controls preserve existing handlers.
+- Focused browser red 2/2, green 12/12; sibling-action follow-up 1/1 after a
+  test-only fix for row ordering after refetch. New real-Link rendering exposed
+  an incomplete router mock (25 failures); MemoryRouter restored it without
+  removing assertions. Final focused units 3 files / 37 PASS; typecheck,
+  targeted ESLint and diff-check PASS. The new test's two type errors were
+  corrected in its fixture (`appendChild`, lowercase `dinner`).
+- Full gates and unfiltered 384-case browser run now in progress. Neither the
+  earlier interrupted final attempts nor historical 4217 results are current
+  proof. Logs remain under `resume/reports/interrupted-final` and
+  `resume/reports/keyboard`; final evidence is separately under `final/`.
+- Next: finish final gates, inspect fresh matrix, archive and publish review PR.
+
+### Source-led fixes ready for final rerun
+
+- Source/fixed-tree checkpoint pushed: `147f1714a8c8c81e2e0d37785a614c0e4446f2be`.
+- All 27 boards/contracts directly compared; presentation corrections applied
+  without changing protected business authority. Targeted browser gates:
+  43 passed/5 intentional skips, 18 passed, boundary 1 passed; typecheck passed.
+- Failure ledger: initial gap diagnostic was 7 failed/1 skipped/6 passed.
+  RecipeCard was patched between its mobile red and desktop green cases, so
+  this is not a single pre-fix snapshot. The first 306-case pre-fix T17 run
+  was intentionally interrupted after 59 passes/1 planned screenshot skip
+  to apply verified source-led fixes; it is not final proof. Its interrupted
+  JSON is not a valid completion report. A supplemental boundary test then
+  hit the real authenticated landing redirect; clearing public-session state
+  corrected the fixture, and the unchanged layout assertions passed.
+- Next: freeze implementation, run complete T18C/T17 and fresh native gates,
+  inspect final screenshots, archive evidence, finish docs and review-only PR.
+  Human VoiceOver/NVDA remain NOT PERFORMED.
+
+## T18C safe pause — certification handoff (2026-09-21)
+
+- **Task/status:** `T18C_PAUSED_SAFE`; overall `T18C_PARTIAL` with
+  `DIRECT_BOARD_COMPARISON_PENDING`. No direct Takosan boards available.
+- **Branch/base:** `feat/t18c-final-redesign-certification` from exact main
+  `b8447e85f099b800a9a8ebc6c4c137adc9e45a32` in repository `1368281478` /
+  `omin-jp/Frigo-dev`. Initial tree clean; main CI #145 and staging Deploy #52
+  successful; production skipped; no overlapping redesign PR.
+- **Changes:** Checkpoint A `ac4d90e` (harness, registry/report, 162-PNG
+  baseline archive) pushed; evidence-led presentation fixes applied after it
+  (landmarks, heading order ×11, camera reduced-motion, VietQR focus
+  trap/return) with red/green targeted regressions and OFL font fixtures.
+- **Checks:** typecheck PASS and one targeted payment-focus regression PASS on
+  the paused tree; `git diff --check` PASS. Full Vitest 183/4217 applies only
+  to the `ac4d90e`-era tree. Matrix/gate rerun NOT yet run.
+- **Evidence:** durable baseline in `.hoplite/artifacts/t18c/baseline.zip`;
+  remaining screenshots/logs are ephemeral (paths listed in the handoff).
+- **Boundaries:** No backend/schema/workflow changes, no payment/OTP authority
+  change, no real payment, remote D1, merge, staging or production deployment.
+  No T18D work.
+- **Next:** Owner-resumable plan and exact artifact/test ledger:
+  [T18C_WIP_HANDOFF.md](T18C_WIP_HANDOFF.md). See also
+  `T18C_VISUAL_CERTIFICATION.md`.
 
 ## T18B handoff — `T18B_READY_FOR_REVIEW` (2026-09-21)
 
@@ -2416,3 +2571,25 @@ readiness pass, `/auth` now returns `same-origin-allow-popups`, and `/api/*`
 retains `same-origin`. The only readiness warning is the pre-existing
 `CONFIG_PLUS_GRANT_SECRET_MISSING`; no migration or production data resource
 was changed.
+## T18C resumed — source comparison checkpoint (2026-09-21)
+
+- **Status:** T18C_PARTIAL; historical pause below is retained, not current.
+- **Resume:** `2e770f8e93bdda63dc3534093dc313d99fab229d`, existing branch,
+  main `b8447e85`, repository `1368281478` / `vn-tako/Frigo-dev`.
+  Correct upstream is `origin/feat/t18c-final-redesign-certification`.
+- **Executed:** `PORT=5173 pnpm exec playwright test -c
+  playwright.t18c.config.ts tests/e2e/t17-ui/t18c-matrix.e2e.ts` — 6 passed,
+  162 captures/audits, zero axe violations/overflow. Source remains unedited
+  since the pause. Style 39 allowlisted/0 unjustified; contrast 33/33
+  configured pairs (one decorative informational pair).
+- **Evidence:** baseline untouched; `fixed-tree.zip` preserves the fresh
+  rerun. `approved-source.zip` now preserves the supplied original kit.
+  See `T18C_SOURCE_PROVENANCE.md` for hashes and authority hierarchy.
+- **Environment:** dependency install was missing. Durable project setup/run
+  overrides use frozen pnpm install, Chromium, SQLite and repository-owned
+  isolated Preview on 5173. Platform setup claim failed twice; the exact
+  setup command succeeded through shell. Settings file remains untouched.
+- **Next:** finish direct 27-screen comparison, classify/fix evidenced UI
+  gaps, run T17 and final gates, then produce separate final evidence.
+  Do not reuse pause-tree results for subsequent edits. No human screen-reader
+  test, merge, deploy, remote migration or T18D.

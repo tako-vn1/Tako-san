@@ -25,13 +25,13 @@ export const LandingPage: React.FC = () => {
   };
 
   return (
-    <div
+    <main
       data-testid="landing-page"
-      className="min-h-screen bg-takosan-cream flex flex-col justify-between px-6 py-10 relative overflow-hidden"
+      className="min-h-screen bg-takosan-cream flex flex-col justify-between px-6 py-10 relative overflow-hidden sm:grid sm:grid-cols-2 sm:content-center sm:gap-x-8 lg:gap-x-12 sm:gap-y-8 sm:px-[max(2rem,calc((100vw-1200px)/2))]"
     >
       {/* Brand Header */}
-      <div className="relative z-10 text-center pt-4">
-        <div className="flex justify-center mb-4">
+      <div className="relative z-10 text-center pt-4 sm:col-start-1 sm:row-start-1 sm:text-left sm:pt-0">
+        <div className="flex justify-center mb-4 sm:justify-start">
           <img
             src={TAKOSAN_BRAND.logos.horizontal}
             alt="Takosan"
@@ -40,17 +40,17 @@ export const LandingPage: React.FC = () => {
           />
         </div>
         {/* Single page heading (accessibility checklist). */}
-        <h1 className="font-heading font-extrabold text-xl text-takosan-navy mb-1">{TAKOSAN_BRAND.tagline}</h1>
-        <p className="text-xs text-semantic-text-secondary max-w-xs mx-auto leading-relaxed">
+        <h1 className="font-heading font-extrabold text-xl sm:text-3xl lg:text-4xl text-takosan-navy mb-1">{TAKOSAN_BRAND.tagline}</h1>
+        <p className="text-sm text-semantic-text-secondary max-w-xs mx-auto leading-relaxed sm:mx-0 sm:max-w-lg sm:mt-4">
           Trợ lý bếp thân thiện: quản lý thực phẩm, giảm lãng phí và gợi ý món ngon chuẩn xác cùng AI.
         </p>
       </div>
 
       {/* Hero: mascot with fridge */}
-      <div className="relative z-10 my-6">
+      <div className="relative z-10 my-6 sm:my-0 sm:col-start-2 sm:row-start-1 sm:row-span-2 sm:self-center">
         <div className="relative rounded-3xl overflow-hidden border border-takosan-cream-line bg-white p-6 text-center shadow-xs">
           <div className="absolute inset-x-0 top-0 h-28 bg-takosan-mint/60 rounded-b-[48px]" aria-hidden="true" />
-          <div className="relative w-44 h-44 mx-auto mb-3 flex items-center justify-center">
+          <div className="relative w-44 h-44 sm:w-48 sm:h-48 md:w-56 md:h-56 mx-auto mb-3 flex items-center justify-center">
             <img
               src={TAKOSAN_BRAND.mascot.fridge}
               alt="Takosan cầm tủ lạnh"
@@ -59,15 +59,15 @@ export const LandingPage: React.FC = () => {
               height={176}
             />
           </div>
-          <h3 className="font-heading font-bold text-base text-takosan-navy">Nhận diện nguyên liệu tức thì</h3>
-          <p className="text-xs text-semantic-text-muted mt-1 max-w-xs mx-auto">
+          <h2 className="font-heading font-bold text-base text-takosan-navy">Nhận diện nguyên liệu tức thì</h2>
+          <p className="text-sm text-semantic-text-muted mt-1 max-w-xs mx-auto">
             Chỉ cần 1 bức ảnh chụp tủ lạnh, Takosan sẽ phân loại và tính toán món ăn tối ưu ngay cho bạn.
           </p>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="relative z-10 space-y-3">
+      <div className="relative z-10 space-y-3 sm:col-start-1 sm:row-start-2">
         {guestError && <p role="alert" className="text-sm text-semantic-danger-strong">{guestError}</p>}
         <Button
           fullWidth
@@ -86,6 +86,6 @@ export const LandingPage: React.FC = () => {
         </Button>
         <p className="pt-1 text-center text-[11px] leading-relaxed text-semantic-text-muted">Dùng thử không cần tài khoản. Đăng nhập khi bạn muốn đồng bộ giữa các thiết bị.</p>
       </div>
-    </div>
+    </main>
   );
 };
