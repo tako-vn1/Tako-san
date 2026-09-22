@@ -250,7 +250,7 @@ the review page. No artificial delay or business-state transition was introduced
 - Actual VoiceOver/NVDA, microphone recognition accuracy, real provider delivery,
   and live payments are not certified. Axe incomplete contrast records remain
   available for human inspection; approved T18C composition is unchanged.
-- Review-only publication and hosted CI receipt follow this local certification.
+- Hosted CI/reviewer approval remains separate from local certification.
   No merge or deployment is allowed.
 
 ## Final local report
@@ -269,3 +269,24 @@ the review page. No artificial delay or business-state transition was introduced
 - Merge/deploy/production/migration/real payment: **NO**.
 
 **Final status:** `T18D_READY_FOR_REVIEW`.
+
+## Publication receipt — 2026-09-22
+
+- [PR #49](https://github.com/vn-tako1/Frigo-dev/pull/49): **OPEN**, review-only,
+  `feat/t18d-a11y-human-style-hardening` → `main`.
+- Verified publication checkpoint: `fe1b5d4`, matching remote; base unchanged
+  `07ace57241f8270b2458610979c709bb69b9a65a` (`07ace57`), **6 ahead / 0 behind main**, **0/0 vs
+  upstream** at publication. This receipt is a subsequent documentation-only
+  checkpoint; the PR records its current head SHA.
+- First hosted `validate`: **IN_PROGRESS**, run `35677663372`, checked
+  2026-09-22 01:57 UTC. No reviews/comments/unresolved threads at that check;
+  `MERGEABLE`, pending CI. This is a timestamped receipt, not a CI-success claim.
+- CI/review auto-fix loop: **ENABLED**. Auto-merge: **DISABLED**. The loop will
+  resume the task when CI/review settles, without authorizing merge or deploy.
+- `git diff --check` and base diff check PASS. All T18D work committed;
+  worktree is not globally clean only because the unrelated pre-existing
+  `.hoplite/settings.json` change is deliberately preserved and excluded.
+- Merge, staging deployment, production deployment, remote migration, and
+  real payment: **NO**.
+- Next: inspect settled hosted CI and reviewer feedback. Actual VoiceOver/NVDA
+  and the two deferred P3 observations remain outside this task's certification.

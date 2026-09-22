@@ -18,7 +18,10 @@
   patched a 350ms wait after async CTA enable, with no axe/token changes.
 - [done] Fresh style residuals **39/0**, contrast **33/33**, lint/typecheck and
   `git diff --check` PASS after test-only settle correction.
-- [next] Review-only PR and hosted CI receipt.
+- [done] Review-only [PR #49](https://github.com/vn-tako1/Frigo-dev/pull/49)
+  OPEN; publication checkpoint `fe1b5d4` pushed. Auto-fix enabled, auto-merge off.
+- [next] Hosted CI/review settlement; initial `validate` IN_PROGRESS in run
+  `35677663372` at 01:57 UTC, no unresolved threads then.
   No merge/deploy. VoiceOver/NVDA NOT PERFORMED. See
   `T18D_HUMAN_STYLE_A11Y_REVIEW.md` for exact evidence.
 

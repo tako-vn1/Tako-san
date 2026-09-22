@@ -37,8 +37,14 @@ All **84 T18D cases PASS**; 162 canonical axe checks have **0 violations**.
 The five skips are duplicate project instances of the breakpoint sweep,
 which passes once in mobile-390. Axe contrast incomplete records are retained,
 not silently treated as passes. Full breakdown/commands are in the T18D report.
-Next: review-only PR and hosted CI receipt. Do not merge or deploy. Existing
-`.hoplite/settings.json` modification remains preserved and excluded.
+[PR #49](https://github.com/vn-tako1/Frigo-dev/pull/49) is OPEN, review-only,
+from this branch to unchanged `main`; publication checkpoint `fe1b5d4` matched
+remote (6 ahead / 0 behind main, 0/0 vs upstream). Hosted `validate` initially
+IN_PROGRESS in run `35677663372` at 01:57 UTC; no review threads then.
+CI/review auto-fix enabled; auto-merge disabled. This receipt is doc-only.
+Next: inspect settled CI/review feedback. Do not merge or deploy. Existing
+`.hoplite/settings.json` modification remains preserved and excluded; T18D
+changes are committed, but the overall worktree is therefore not clean.
 
 ## Previous T18C receipt (historical; PR #48 is now merged)
 

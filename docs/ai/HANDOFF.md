@@ -36,8 +36,13 @@
   accessibility-tree/ARIA review were performed; VoiceOver/NVDA actual
   execution was not performed. Existing settings-file modification remains
   preserved and excluded.
-- **Next:** Publish the review-only PR and record hosted CI. Do not merge,
-  deploy, run remote migrations, or begin production promotion.
+- **Publication:** [PR #49](https://github.com/vn-tako1/Frigo-dev/pull/49) OPEN
+  to `main`, review-only; verified checkpoint `fe1b5d4` matched remote (6 ahead /
+  0 behind main, 0/0 vs upstream). Initial hosted `validate` IN_PROGRESS in run
+  `35677663372` at 01:57 UTC; no unresolved review threads then. Auto-fix loop
+  enabled, auto-merge disabled. This receipt is a subsequent doc-only checkpoint.
+- **Next:** Inspect settled hosted CI and review feedback via the enabled loop.
+  Do not merge, deploy, run remote migrations, or begin production promotion.
 
 ### T18D failure history — 2026-09-22
 

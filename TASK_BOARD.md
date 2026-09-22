@@ -14,7 +14,10 @@
   near case 158 on pre-settle scan-review opacity/receipt enable sampling;
   parent added a 350ms wait after async CTA enable, with no axe/token changes.
 - Fresh style **39/0**, contrast **33/33**, lint/typecheck/diff checks PASS.
-- Next: review-only PR and hosted CI receipt.
+- Review-only [PR #49](https://github.com/vn-tako1/Frigo-dev/pull/49) OPEN;
+  publication checkpoint `fe1b5d4` pushed; auto-fix enabled, auto-merge disabled.
+- Next: hosted CI/review settlement. Initial `validate` IN_PROGRESS in run
+  `35677663372` at 01:57 UTC; no unresolved threads then.
   No merge/deploy. VoiceOver/NVDA NOT PERFORMED.
 
 ## Historical T18C receipt
