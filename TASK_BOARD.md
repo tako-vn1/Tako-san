@@ -1,5 +1,9 @@
 **Current: T18E_OTP_TEST_RECIPIENT_REQUIRED.**
 
+## T19 V2 — recipe authority cutover (safe stop 2026-09-22)
+
+See `docs/ai/TASK_BOARD.md` and `docs/ai/recipe-catalog/T19_V2_WIP_HANDOFF.md` (canonical T19 handoff). Production untouched; rollout blocked on hosted CI + token provisioning.
+
 - Exact repository/base/production: `1368281478`, `vn-tako1/Frigo-dev`,
   `66627ffea890dad1cec4e31674449775a940c660`.
 - Isolated branch `feat/t18e-otp-email-delivery-recovery` is pushed; Google
