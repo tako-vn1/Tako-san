@@ -7,7 +7,7 @@ import {
   RELEASE_PROPAGATION_PENDING,
   migrationManifest, requireSuccessfulCi, validateRecipeCatalogManifestPolicy, validateRecipeCatalogMode,
   validateRecipeCatalogRollout, validateReleaseSource,
-  verifyDeployedRelease, verifyMigrationLedger,
+  verifyDeployedRelease, verifyMigrationLedger, verifyRecipeAuthorityEvidence,
 } from '../../scripts/release-check.mjs';
 
 const repository = 'release-fixture/Frigo';
@@ -19,26 +19,29 @@ const successful = {
   html_url: 'https://github.com/release-fixture/Frigo/actions/runs/2',
 };
 
-describe('recipe catalog rollout mode validation', () => {
-  it.each(['static', 'shadow', 'canary'])('accepts the reviewed %s mode', (mode) => {
+describe('recipe catalog rollout mode validation (T19B release state machine)', () => {
+  it.each(['static', 'shadow', 'canary', 'd1'])('accepts the reviewed %s state', (mode) => {
     expect(validateRecipeCatalogMode(mode)).toBe(mode);
   });
 
-  it.each([undefined, '', 'd1', 'full', 'full_d1', 'SHADOW'])('rejects unreviewed mode %s', (mode) => {
-    expect(() => validateRecipeCatalogMode(mode)).toThrow('must be static, shadow, or canary');
+  it.each([undefined, '', 'full', 'full_d1', 'SHADOW', 'D1', 'static '])('rejects unreviewed mode %s', (mode) => {
+    expect(() => validateRecipeCatalogMode(mode)).toThrow('must be static, shadow, canary, or d1');
   });
 
   it.each([
     ['static', '0', false], ['shadow', '0', false],
-    ['canary', '1', true], ['canary', '2', true], ['canary', '5', true],
-  ])('%s/%s derives the reviewed immutable policy', (mode, canaryPercent, cutoverEnabled) => {
+    ['canary', '1', true], ['canary', '2', true], ['canary', '5', true], ['canary', '25', true],
+    ['d1', '0', true],
+  ])('%s/%s derives the reviewed immutable policy (cutover is derived, never an input)', (mode, canaryPercent, cutoverEnabled) => {
     expect(validateRecipeCatalogRollout({ mode, canaryPercent })).toEqual({ mode, canaryPercent: Number(canaryPercent), cutoverEnabled });
   });
 
   it.each([
-    ['static', '1'], ['shadow', '1'], ['canary', '0'], ['canary', '10'], ['canary', '100'],
-    ['d1', '1'], ['full', '1'], ['canary', '05'], ['canary', '1.0'], ['canary', '-1'], ['canary', '1e0'],
-  ])('rejects unsafe rollout combination %s/%s', (mode, canaryPercent) => {
+    ['static', '1'], ['static', '5'], ['shadow', '1'], ['shadow', '25'],
+    ['canary', '0'], ['canary', '10'], ['canary', '50'], ['canary', '100'],
+    ['d1', '1'], ['d1', '5'], ['d1', '25'], ['d1', '100'],
+    ['full', '1'], ['canary', '05'], ['canary', '1.0'], ['canary', '-1'], ['canary', '1e0'], ['canary', '025'],
+  ])('rejects contradictory rollout state %s/%s', (mode, canaryPercent) => {
     expect(() => validateRecipeCatalogRollout({ mode, canaryPercent })).toThrow();
   });
 
@@ -46,8 +49,21 @@ describe('recipe catalog rollout mode validation', () => {
     expect(validateRecipeCatalogManifestPolicy({
       recipeCatalogMode: 'canary', recipeCatalogCanaryPercent: 2, recipeCatalogCutoverEnabled: true,
     })).toEqual({ mode: 'canary', canaryPercent: 2, cutoverEnabled: true });
+    expect(validateRecipeCatalogManifestPolicy({
+      recipeCatalogMode: 'd1', recipeCatalogCanaryPercent: 0, recipeCatalogCutoverEnabled: true,
+    })).toEqual({ mode: 'd1', canaryPercent: 0, cutoverEnabled: true });
+    expect(validateRecipeCatalogManifestPolicy({
+      recipeCatalogMode: 'shadow', recipeCatalogCanaryPercent: 0, recipeCatalogCutoverEnabled: false,
+    })).toEqual({ mode: 'shadow', canaryPercent: 0, cutoverEnabled: false });
+    // A manifest whose cutover flag disagrees with its mode was tampered with or hand-written.
     expect(() => validateRecipeCatalogManifestPolicy({
       recipeCatalogMode: 'canary', recipeCatalogCanaryPercent: 2, recipeCatalogCutoverEnabled: false,
+    })).toThrow('cutover policy');
+    expect(() => validateRecipeCatalogManifestPolicy({
+      recipeCatalogMode: 'd1', recipeCatalogCanaryPercent: 0, recipeCatalogCutoverEnabled: false,
+    })).toThrow('cutover policy');
+    expect(() => validateRecipeCatalogManifestPolicy({
+      recipeCatalogMode: 'shadow', recipeCatalogCanaryPercent: 0, recipeCatalogCutoverEnabled: true,
     })).toThrow('cutover policy');
     expect(() => validateRecipeCatalogManifestPolicy({
       recipeCatalogMode: 'd1', recipeCatalogCanaryPercent: 1, recipeCatalogCutoverEnabled: true,
@@ -55,6 +71,71 @@ describe('recipe catalog rollout mode validation', () => {
     expect(() => validateRecipeCatalogManifestPolicy({
       recipeCatalogMode: 'canary', recipeCatalogCanaryPercent: 100, recipeCatalogCutoverEnabled: true,
     })).toThrow();
+  });
+});
+
+describe('T19D post-deploy recipe authority proof', () => {
+  const release = {
+    releaseId: 'rel-test', legacyBaselineCount: 71, expectedRecipeCount: 500,
+    legacyBaselineFingerprint: 'a'.repeat(64), expectedRuntimeFingerprint: 'b'.repeat(64),
+  };
+  const base = { sha: goodSha, environment: 'production' };
+  const evidenceFor = (mode, overrides = {}) => ({
+    schemaVersion: 1, environment: 'production', commit: goodSha, checkedAt: '2026-09-22T00:00:00.000Z',
+    configuredMode: mode, cutoverEnabled: mode === 'canary' || mode === 'd1', canaryPercent: mode === 'canary' ? 5 : 0,
+    globalSource: mode === 'd1' ? 'd1' : mode === 'canary' ? 'mixed' : 'static',
+    releaseId: 'rel-test', expectedRecipeCount: 500,
+    selectedSource: mode === 'canary' || mode === 'd1' ? 'd1' : 'static',
+    actualSource: mode === 'canary' || mode === 'd1' ? 'd1' : 'static',
+    servedRecipeCount: mode === 'canary' || mode === 'd1' ? 500 : 71,
+    servedFingerprint: mode === 'canary' || mode === 'd1' ? 'b'.repeat(64) : 'a'.repeat(64),
+    expectedRuntimeFingerprint: 'b'.repeat(64),
+    fingerprintMatchesRelease: mode === 'canary' || mode === 'd1',
+    d1Readiness: mode === 'canary' || mode === 'd1' ? 'ready' : 'not_evaluated', d1ReadinessCode: null,
+    fallbackReason: null, counters: {},
+    ...overrides,
+  });
+  // Manifests the reviewed gate would produce; each one passes the same policy revalidation `recheck` runs.
+  const manifestFor = (mode) => {
+    const manifest = { ...base, recipeCatalogMode: mode, recipeCatalogCanaryPercent: mode === 'canary' ? 5 : 0, recipeCatalogCutoverEnabled: mode === 'canary' || mode === 'd1' };
+    validateRecipeCatalogManifestPolicy(manifest);
+    return manifest;
+  };
+
+  it.each(['static', 'shadow', 'canary', 'd1'])('%s: the Worker must echo the approved state and serve exactly what it promises', (mode) => {
+    const proof = verifyRecipeAuthorityEvidence(manifestFor(mode), evidenceFor(mode), release);
+    expect(proof).toMatchObject({ configuredMode: mode, fallbackReason: null, releaseId: 'rel-test' });
+    expect(proof.servedRecipeCount).toBe(mode === 'static' || mode === 'shadow' ? 71 : 500);
+  });
+
+  it('d1: a D1 fallback (static actually served) is a failure, never a pass', () => {
+    const fallback = evidenceFor('d1', { actualSource: 'static', fallbackReason: 'COUNT_DRIFT', d1Readiness: 'not_ready', d1ReadinessCode: 'COUNT_DRIFT',
+      servedRecipeCount: 71, servedFingerprint: 'a'.repeat(64), fingerprintMatchesRelease: false, globalSource: 'static' });
+    expect(() => verifyRecipeAuthorityEvidence(manifestFor('d1'), fallback, release)).toThrow(/actualSource.*fallbackReason.*d1Readiness/);
+  });
+
+  it('d1: a served fingerprint or count that is not the reviewed release fails', () => {
+    expect(() => verifyRecipeAuthorityEvidence(manifestFor('d1'), evidenceFor('d1', { servedRecipeCount: 499 }), release)).toThrow('servedRecipeCount');
+    expect(() => verifyRecipeAuthorityEvidence(manifestFor('d1'), evidenceFor('d1', { servedFingerprint: 'c'.repeat(64), fingerprintMatchesRelease: false }), release)).toThrow('servedFingerprint');
+  });
+
+  it('rejects a Worker that reports a different mode, percent, cutover, commit, environment or release than approved', () => {
+    expect(() => verifyRecipeAuthorityEvidence(manifestFor('d1'), evidenceFor('shadow'), release)).toThrow('configuredMode');
+    expect(() => verifyRecipeAuthorityEvidence(manifestFor('canary'), evidenceFor('canary', { canaryPercent: 25 }), release)).toThrow('canaryPercent');
+    expect(() => verifyRecipeAuthorityEvidence(manifestFor('canary'), evidenceFor('canary', { cutoverEnabled: false }), release)).toThrow('cutoverEnabled');
+    expect(() => verifyRecipeAuthorityEvidence(manifestFor('static'), evidenceFor('static', { commit: 'b'.repeat(40) }), release)).toThrow('commit');
+    expect(() => verifyRecipeAuthorityEvidence(manifestFor('static'), evidenceFor('static', { environment: 'staging' }), release)).toThrow('environment');
+    expect(() => verifyRecipeAuthorityEvidence(manifestFor('static'), evidenceFor('static', { releaseId: 'rel-other' }), release)).toThrow('releaseId');
+    expect(() => verifyRecipeAuthorityEvidence(manifestFor('static'), evidenceFor('static', { expectedRecipeCount: 71 }), release)).toThrow('expectedRecipeCount');
+  });
+
+  it('static/shadow: serving D1 content while static is approved fails (no silent authority)', () => {
+    expect(() => verifyRecipeAuthorityEvidence(manifestFor('shadow'), evidenceFor('shadow', { actualSource: 'd1', servedRecipeCount: 500, servedFingerprint: 'b'.repeat(64) }), release)).toThrow('actualSource');
+  });
+
+  it('non-object or unknown-schema evidence fails closed', () => {
+    for (const body of [null, undefined, 'ok', 42]) expect(() => verifyRecipeAuthorityEvidence(manifestFor('static'), body, release)).toThrow('not an object');
+    expect(() => verifyRecipeAuthorityEvidence(manifestFor('static'), { ...evidenceFor('static'), schemaVersion: 2 }, release)).toThrow('schema');
   });
 });
 
@@ -283,8 +364,9 @@ describe('release workflow guardrails', () => {
     expect(deploy).toContain('environment: production');
     expect(deploy).toContain('ref: ${{ needs.release.outputs.deploy_sha }}');
     expect(deploy).toContain('GIT_COMMIT:${{ needs.release.outputs.deploy_sha }}');
-    expect(deploy).toContain('options: [static, shadow, canary]');
-    expect(deploy).toContain("options: ['0', '1', '2', '5']");
+    // T19B: full D1 is an explicit reviewed release state; 25 is the widest deterministic canary stage.
+    expect(deploy).toContain('options: [static, shadow, canary, d1]');
+    expect(deploy).toContain("options: ['0', '1', '2', '5', '25']");
     expect(deploy).toContain('recipe_catalog_d1_canary_percent: ${{ steps.gate.outputs.recipe_catalog_d1_canary_percent }}');
     expect(deploy).toContain('recipe_catalog_cutover_enabled: ${{ steps.gate.outputs.recipe_catalog_cutover_enabled }}');
     expect(deploy).toContain("RECIPE_CATALOG_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.recipe_catalog_mode || 'static' }}");
@@ -292,9 +374,9 @@ describe('release workflow guardrails', () => {
     expect(deploy.match(/RECIPE_CATALOG_MODE:\$\{\{ needs\.release\.outputs\.recipe_catalog_mode \}\}/g)).toHaveLength(2);
     expect(deploy.match(/RECIPE_CATALOG_D1_CANARY_PERCENT:\$\{\{ needs\.release\.outputs\.recipe_catalog_d1_canary_percent \}\}/g)).toHaveLength(2);
     expect(deploy.match(/RECIPE_CATALOG_CUTOVER_ENABLED:\$\{\{ needs\.release\.outputs\.recipe_catalog_cutover_enabled \}\}/g)).toHaveLength(2);
-    expect(deploy).not.toContain('options: [static, shadow, d1');
-    expect(deploy).not.toContain('options: [static, shadow, canary, d1');
     expect(deploy).not.toContain("options: ['0', '1', '2', '5', '10'");
+    expect(deploy).not.toContain("'50'");
+    expect(deploy).not.toContain("'100'");
     const dispatchInputs = deploy.slice(deploy.indexOf('workflow_dispatch:'), deploy.indexOf('\npermissions:'));
     expect(dispatchInputs).not.toContain('recipe_catalog_cutover_enabled:');
     expect(deploy).toContain('cancel-in-progress: false');
@@ -302,6 +384,10 @@ describe('release workflow guardrails', () => {
     expect(production.indexOf('release-check.mjs recheck')).toBeLessThan(production.indexOf('d1-schema-gate.sh remote'));
     expect(production.indexOf('release-check.mjs schema')).toBeLessThan(production.indexOf('command: deploy'));
     expect(production.indexOf('command: deploy')).toBeLessThan(production.indexOf('wait-for-deployed-release.mjs'));
+    // Production authority proof is unconditional: no token ⇒ the step fails, never silently passes.
+    const productionProof = production.slice(production.indexOf('recipe authority proof'));
+    expect(productionProof).toContain('node scripts/release-check.mjs authority release-manifest.json');
+    expect(productionProof.slice(0, productionProof.indexOf('release-check.mjs authority'))).not.toContain('if [ -n "$RELEASE_VERIFY_TOKEN" ]');
     expect(production).not.toContain('migrations apply');
     expect(production).not.toContain('frigo.tungjpstore.net');
   });
@@ -326,6 +412,9 @@ describe('release workflow guardrails', () => {
       expect(job).not.toContain('release-check.mjs deployed');
       expect(job.indexOf('wait-for-deployed-release.mjs')).toBeLessThan(job.indexOf('post-deploy-smoke.sh'));
       expect(job).toContain('post-deploy-smoke.sh "$APP_SMOKE_URL" "${{ needs.release.outputs.deploy_sha }}"');
+      // T19D: recipe authority proof follows the SHA/smoke proof and reads the protected evidence through env only.
+      expect(job.indexOf('post-deploy-smoke.sh')).toBeLessThan(job.indexOf('release-check.mjs authority release-manifest.json'));
+      expect(job).toMatch(/RELEASE_VERIFY_TOKEN: \$\{\{ secrets\.[A-Z_]*RELEASE_VERIFY_TOKEN \}\}/);
       // Forensic receipt survives a failed convergence.
       expect(job.slice(job.indexOf('wait-for-deployed-release.mjs'))).toMatch(/if: always\(\)[\s\S]*upload-artifact/);
     }

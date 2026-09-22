@@ -9,12 +9,13 @@ import {
 } from '../../recipes/src/planner-inventory';
 import type { RecipeCatalogSnapshot } from '../../recipes/src/catalog';
 import type { RankingContext } from '../../recipes/src/personalization';
+import type { RecipeAuthoritySnapshot } from '../../recipes/src/recipe-authority';
 import type { D1DatabaseBinding, D1Result } from './index';
 import {
   RECIPE_CATALOG_READ_STATEMENT_COUNT,
-  mapRecipeCatalogRead,
   prepareRecipeCatalogRead,
 } from './recipe-catalog';
+import { projectPlannerCatalogOnAuthority, type MealPlanningRecipeStep } from './planner-catalog-authority';
 import {
   RANKING_CONTEXT_READ_STATEMENT_COUNT,
   RankingContextAuthorizationError,
@@ -34,13 +35,14 @@ export interface MealPlanningSnapshotScope {
   userId: string;
 }
 
-export interface MealPlanningRecipeStep {
-  id: string;
-  recipeId: string;
-  stepNumber: number;
-  instruction: string;
-  tip: string | null;
-  timerMinutes: number | null;
+export type { MealPlanningRecipeStep } from './planner-catalog-authority';
+
+/** Identity of the recipe authority a planner snapshot was projected onto (persisted with plans). */
+export interface MealPlanningAuthorityIdentity {
+  source: 'static' | 'd1';
+  /** Recipe authority snapshot fingerprint (SHA-256 hex over the canonical ordered runtime projection). */
+  fingerprint: string;
+  recipeCount: number;
 }
 
 export interface MealPlanningSnapshotFingerprint {
@@ -61,6 +63,9 @@ export interface MealPlanningSnapshot {
   evidenceProvider: NonNullable<PlanningSourceInput['evidenceProvider']>;
   recipeSteps: MealPlanningRecipeStep[];
   fingerprint: MealPlanningSnapshotFingerprint;
+  /** The effective recipe authority this snapshot is fenced to; the planner universe is exactly its recipes. */
+  authority: MealPlanningAuthorityIdentity;
+  visibleRecipeIds: ReadonlySet<string>;
 }
 
 export class MealPlanningSnapshotAuthorizationError extends Error {
@@ -185,13 +190,16 @@ async function fingerprintFor(input: {
 }
 
 /**
- * Reads all T02–T04 inputs in one D1 batch. The returned evidence provider is
- * synchronous and in-memory, so planner search performs no database I/O.
+ * Reads all T02–T04 inputs in one D1 batch and projects the catalog facts onto the request's
+ * effective recipe authority (T19): the planner may only see recipes the Recipe API, Shopping and
+ * Cooking resolve for the same household under the same deployment. The returned evidence
+ * provider is synchronous and in-memory, so planner search performs no database I/O.
  */
 export async function loadMealPlanningSnapshot(
   db: D1DatabaseBinding,
   scope: MealPlanningSnapshotScope,
   referenceTime: string,
+  authority: RecipeAuthoritySnapshot,
 ): Promise<MealPlanningSnapshot> {
   const catalogStatements = prepareRecipeCatalogRead(db);
   const rankingStatements = prepareRankingContextRead(db, scope, referenceTime);
@@ -235,12 +243,15 @@ export async function loadMealPlanningSnapshot(
   const inventoryIndex = RECIPE_CATALOG_READ_STATEMENT_COUNT + RANKING_CONTEXT_READ_STATEMENT_COUNT;
   const nutritionIndex = inventoryIndex + 1;
   const recipeStepsIndex = nutritionIndex + RANKING_NUTRITION_READ_STATEMENT_COUNT;
-  const catalog = mapRecipeCatalogRead(results.slice(0, RECIPE_CATALOG_READ_STATEMENT_COUNT));
   const inventory = mapInventory(results[inventoryIndex], scope);
-  const nutrition = mapRankingNutritionRows(
-    results.slice(nutritionIndex, recipeStepsIndex) as D1Result<RankingNutritionRow>[],
-  );
-  const recipeSteps = mapRecipeSteps(results[recipeStepsIndex]);
+  const { catalog, nutrition, recipeSteps, visibleRecipeIds } = projectPlannerCatalogOnAuthority({
+    authority,
+    catalogResults: results.slice(0, RECIPE_CATALOG_READ_STATEMENT_COUNT),
+    nutrition: mapRankingNutritionRows(results.slice(nutritionIndex, recipeStepsIndex) as D1Result<RankingNutritionRow>[]),
+    recipeSteps: mapRecipeSteps(results[recipeStepsIndex]),
+  });
+  // The catalog part hashes only authority-visible facts, so an invisible (e.g. D1-only under
+  // static) recipe change can never stale a plan whose universe did not change.
   const fingerprint = await fingerprintFor({ inventory, rankingContext, catalog, nutrition, recipeSteps });
 
   return {
@@ -252,5 +263,7 @@ export async function loadMealPlanningSnapshot(
     evidenceProvider: createRankingEvidenceProviderFromNutritionRows(nutrition),
     recipeSteps,
     fingerprint,
+    authority: { source: authority.source, fingerprint: authority.fingerprint, recipeCount: authority.size },
+    visibleRecipeIds,
   };
 }

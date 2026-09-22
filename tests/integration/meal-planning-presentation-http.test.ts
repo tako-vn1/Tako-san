@@ -9,6 +9,7 @@ import { CurrentMealPlanDtoSchema, PlanAlternativesDtoSchema, PlanExplanationDto
 import { saveRankingPreferences } from '../../packages/db/src/personalization';
 import type { ExplanationTransport } from '../../src/worker/services/meal-planning-explanation';
 import { SqliteD1 } from '../helpers/sqlite-d1';
+import { fixtureRecipeAuthority } from '../helpers/recipe-authority-fixtures';
 import { fetchWorker } from '../helpers/worker-fetch.mjs';
 
 vi.mock('../../src/worker/services/email', () => ({ sendEmail: vi.fn(), buildOtpEmail: vi.fn() }));
@@ -62,7 +63,7 @@ beforeEach(async () => {
   app = new Hono();
   app.use('*', authMiddleware);
   app.route('/api/v1', createMealPlanningRoutes({
-    now: () => new Date('2030-01-01T00:00:00Z'), explanationTransport: (facts) => transport(facts),
+    now: () => new Date('2030-01-01T00:00:00Z'), explanationTransport: (facts) => transport(facts), recipeAuthority: fixtureRecipeAuthority(db),
   }));
 });
 afterEach(() => { db.close(); vi.restoreAllMocks(); vi.useRealTimers(); });

@@ -37,6 +37,9 @@ export interface Env {
   RECIPE_CATALOG_TEST_EXCLUDE?: string;
   // Shadow cost bound: minimum milliseconds between two catalog comparisons per isolate (default 60000).
   RECIPE_CATALOG_SHADOW_INTERVAL_MS?: string;
+  // T19C: Worker secret (>= 32 chars) authorizing GET /health/recipe-authority release evidence for
+  // deploy automation. Absent ⇒ the endpoint is 404; it never grants any user-data access.
+  RELEASE_VERIFY_TOKEN?: string;
   APP_URL?: string;
   AI_MOCK_MODE?: string;
   MEAL_PLANNER_ENABLED?: string;

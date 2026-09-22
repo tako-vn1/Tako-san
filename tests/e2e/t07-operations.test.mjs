@@ -3,6 +3,8 @@ import { SqliteD1 } from '../helpers/sqlite-d1';
 import { fetchWorker } from '../helpers/worker-fetch.mjs';
 import { createPreviewCache, issuePreviewSession, seedPlannerPreview } from '../../scripts/planner-preview-fixtures.mjs';
 import { MealPlanDtoSchema, PlanShoppingDtoSchema } from '../../packages/domain/src/meal-planning-api';
+import { createRecipeAuthoritySnapshot } from '../../packages/recipes/src/recipe-authority';
+import * as authority from '../../src/worker/services/recipe-authority';
 
 vi.mock('../../src/worker/services/email', () => ({ sendEmail: vi.fn(), buildOtpEmail: vi.fn() }));
 const origin = 'https://t07-operations.example.test';
@@ -60,7 +62,9 @@ describe('T07 real Worker operational observations', () => {
     expect(generated.result.meals).toHaveLength(7);
     const regenerated = MealPlanDtoSchema.parse(await measure('regenerate', `/${generated.id}/regenerate`, { revision: 1 }));
     const meal = regenerated.result.meals[0];
-    const id = meal.source.id === 'preview-tofu' ? 'preview-chicken' : 'preview-tofu';
+    // T19: swap targets come from the authority-fenced alternatives, never from an out-of-band recipe ID.
+    const alternatives = await measure('alternatives', `/${generated.id}/alternatives?revision=2`);
+    const id = alternatives.alternatives.find((entry) => entry.id !== meal.source.id).id;
     const swapped = MealPlanDtoSchema.parse(await measure('swap', `/${generated.id}/swap`, {
       revision: 2, slotId: meal.slotId, replacement: { kind: 'recipe', id },
     }));
@@ -73,7 +77,7 @@ describe('T07 real Worker operational observations', () => {
     expect(current.plan.revision).toBe(3);
     expect(inventoryState()).toEqual(beforeInventory);
     originalLog(`T07_OPERATION_OBSERVATIONS ${JSON.stringify(records)}`);
-  });
+  }, 30_000);
 
   it('sanitizes a catalog database failure without returning private SQL or partial success', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -88,7 +92,16 @@ describe('T07 real Worker operational observations', () => {
   });
 
   it('reports an empty catalog honestly instead of inventing a fallback plan', async () => {
+    // T19: the planner universe is the recipe AUTHORITY, not the raw D1 table. An empty D1 table under
+    // static authority still plans from the 71 static recipes; an empty authority yields no meals.
     db.seed('DELETE FROM recipes');
+    const staticStill = await request('', intent);
+    expect(staticStill.status).toBe(200);
+    expect(MealPlanDtoSchema.parse(await staticStill.json()).result.meals.length).toBeGreaterThan(0);
+    vi.spyOn(authority, 'resolveRecipeAuthority').mockImplementation(async () => ({
+      snapshot: await createRecipeAuthoritySnapshot('static', []), configuredMode: 'static', selectedSource: 'static',
+      actualSource: 'static', canaryTenant: false, canaryAssignmentReason: null, fallbackReason: null, diagnostics: [],
+    }));
     const response = await request('', intent);
     expect(response.status).toBe(200);
     const plan = MealPlanDtoSchema.parse(await response.json());

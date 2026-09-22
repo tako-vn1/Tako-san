@@ -10,6 +10,7 @@ import {
 } from '../../src/worker/services/meal-planning';
 import * as weeklyPlanner from '../../packages/recipes/src/weekly-planner';
 import { createBarrier, SqliteD1 } from '../helpers/sqlite-d1';
+import { fixtureRecipeAuthority } from '../helpers/recipe-authority-fixtures';
 
 const scope = { householdId: 't07-persistence-home', userId: 't07-persistence-user' };
 const fingerprint = 'a'.repeat(64);
@@ -72,7 +73,7 @@ function mealPlanningFixture() {
 }
 
 function service(db: SqliteD1, purchaseCatalog?: MealPlanningServiceOptions['purchaseCatalog']) {
-  return new MealPlanningApplicationService(db, { now: () => mealPlanningNow, purchaseCatalog });
+  return new MealPlanningApplicationService(db, { now: () => mealPlanningNow, purchaseCatalog, recipeAuthority: fixtureRecipeAuthority(db) });
 }
 
 async function createPlan(db: SqliteD1) {

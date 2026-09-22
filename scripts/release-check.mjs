@@ -6,12 +6,26 @@ import { pathToFileURL } from 'node:url';
 // The operator-approved final hardening SHA must descend from this reviewed floor.
 export const REVIEWED_HARDENING_BASE = 'af661af467ba8620ba6b2919ee958195d179380c';
 const SHA = /^[a-f0-9]{40}$/;
-const RELEASE_RECIPE_CATALOG_MODES = ['static', 'shadow', 'canary'];
-const RELEASE_CANARY_PERCENT_OPTIONS = [0, 1, 2, 5];
+/**
+ * T19B — reviewed release states for recipe catalog authority (ADR-026). Runtime accepts broader
+ * values; only these combinations may be DEPLOYED:
+ *
+ *   STATIC  mode=static  canaryPercent=0                cutover=false  (rollback baseline)
+ *   SHADOW  mode=shadow  canaryPercent=0                cutover=false  (static served, D1 compared off-response)
+ *   CANARY  mode=canary  canaryPercent∈{1,2,5,25}       cutover=true   (deterministic household cohort served D1)
+ *   D1      mode=d1      canaryPercent=0                cutover=true   (every household served verified D1)
+ *
+ * Cutover is derived, never an input, so a typo cannot flip authority. Any other combination is
+ * rejected here and again at deployment (`recheck`).
+ */
+export const RELEASE_RECIPE_CATALOG_MODES = ['static', 'shadow', 'canary', 'd1'];
+export const RELEASE_CANARY_PERCENT_OPTIONS = [1, 2, 5, 25];
+export const RELEASE_CANARY_PERCENT_INPUTS = ['0', ...RELEASE_CANARY_PERCENT_OPTIONS.map(String)];
+const USER_VISIBLE_D1_MODES = ['canary', 'd1'];
 
 export function validateRecipeCatalogMode(value) {
   if (!RELEASE_RECIPE_CATALOG_MODES.includes(value)) {
-    throw new Error('Release recipe catalog mode must be static, shadow, or canary');
+    throw new Error('Release recipe catalog mode must be static, shadow, canary, or d1');
   }
   return value;
 }
@@ -33,13 +47,13 @@ function normalizeReleaseCanaryPercent(value) {
 export function validateRecipeCatalogRollout({ mode, canaryPercent }) {
   validateRecipeCatalogMode(mode);
   const percent = normalizeReleaseCanaryPercent(canaryPercent);
-  if ((mode === 'static' || mode === 'shadow') && percent !== 0) {
+  if (mode !== 'canary' && percent !== 0) {
     throw new Error(`${mode} release requires canary percent 0`);
   }
-  if (mode === 'canary' && (percent === 0 || !RELEASE_CANARY_PERCENT_OPTIONS.includes(percent))) {
-    throw new Error('Canary release percent must be one of 1, 2, or 5');
+  if (mode === 'canary' && !RELEASE_CANARY_PERCENT_OPTIONS.includes(percent)) {
+    throw new Error(`Canary release percent must be one of ${RELEASE_CANARY_PERCENT_OPTIONS.join(', ')}`);
   }
-  return Object.freeze({ mode, canaryPercent: percent, cutoverEnabled: mode === 'canary' });
+  return Object.freeze({ mode, canaryPercent: percent, cutoverEnabled: USER_VISIBLE_D1_MODES.includes(mode) });
 }
 
 export function validateRecipeCatalogManifestPolicy(manifest) {
@@ -170,6 +184,68 @@ function writeManifest(file, manifest) {
   writeFileSync(file, `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
+/**
+ * T19D — post-deploy recipe authority proof. `evidence` is the body of the protected
+ * `GET /api/v1/health/recipe-authority` endpoint; `release` is the reviewed catalog release manifest
+ * shipped at the deployed SHA. Every claim of the deployment (mode, cutover, percent, release ID,
+ * expected count) must be echoed by the Worker, and the served content must be exactly what the
+ * state promises:
+ *   static/shadow → static content, no fallback;
+ *   canary        → probe (forced in-cohort) served VERIFIED D1 == release fingerprint;
+ *   d1            → every request served VERIFIED D1 == release fingerprint, fallbackReason null.
+ * A D1 fallback while D1 was selected is a HOLD/ROLLBACK signal, never a pass.
+ */
+export function verifyRecipeAuthorityEvidence(manifest, evidence, release) {
+  if (typeof evidence !== 'object' || evidence === null) throw new Error('Recipe authority evidence is not an object');
+  if (evidence.schemaVersion !== 1) throw new Error('Recipe authority evidence schema is not supported');
+  const problems = [];
+  const expect = (label, actual, expected) => { if (actual !== expected) problems.push(`${label} ${JSON.stringify(actual)} != ${JSON.stringify(expected)}`); };
+  expect('environment', evidence.environment, manifest.environment);
+  expect('commit', evidence.commit, manifest.sha);
+  expect('configuredMode', evidence.configuredMode, manifest.recipeCatalogMode);
+  expect('cutoverEnabled', evidence.cutoverEnabled, manifest.recipeCatalogCutoverEnabled);
+  expect('canaryPercent', evidence.canaryPercent, manifest.recipeCatalogCanaryPercent);
+  expect('releaseId', evidence.releaseId, release.releaseId);
+  expect('expectedRecipeCount', evidence.expectedRecipeCount, release.expectedRecipeCount);
+  const d1State = USER_VISIBLE_D1_MODES.includes(manifest.recipeCatalogMode);
+  if (d1State) {
+    expect('selectedSource', evidence.selectedSource, 'd1');
+    expect('actualSource', evidence.actualSource, 'd1');
+    expect('fallbackReason', evidence.fallbackReason, null);
+    expect('d1Readiness', evidence.d1Readiness, 'ready');
+    expect('servedRecipeCount', evidence.servedRecipeCount, release.expectedRecipeCount);
+    expect('servedFingerprint', evidence.servedFingerprint, release.expectedRuntimeFingerprint);
+    expect('fingerprintMatchesRelease', evidence.fingerprintMatchesRelease, true);
+    expect('globalSource', evidence.globalSource, manifest.recipeCatalogMode === 'd1' ? 'd1' : 'mixed');
+  } else {
+    expect('selectedSource', evidence.selectedSource, 'static');
+    expect('actualSource', evidence.actualSource, 'static');
+    expect('fallbackReason', evidence.fallbackReason, null);
+    expect('servedRecipeCount', evidence.servedRecipeCount, release.legacyBaselineCount);
+    expect('servedFingerprint', evidence.servedFingerprint, release.legacyBaselineFingerprint);
+    expect('globalSource', evidence.globalSource, 'static');
+  }
+  if (problems.length) throw new Error(`Deployed recipe authority does not match the approved release state: ${problems.join('; ')}`);
+  return {
+    configuredMode: evidence.configuredMode, cutoverEnabled: evidence.cutoverEnabled, canaryPercent: evidence.canaryPercent,
+    actualSource: evidence.actualSource, globalSource: evidence.globalSource, servedRecipeCount: evidence.servedRecipeCount,
+    servedFingerprint: evidence.servedFingerprint, releaseId: evidence.releaseId, d1Readiness: evidence.d1Readiness,
+    fallbackReason: evidence.fallbackReason, checkedAt: new Date().toISOString(),
+  };
+}
+
+export const CATALOG_RELEASE_MANIFEST_PATH = 'packages/recipes/src/import/catalog-release.current.json';
+
+async function fetchRecipeAuthorityEvidence(origin, token) {
+  if (!token || token.length < 32) throw new Error('RELEASE_VERIFY_TOKEN is required to read recipe authority evidence');
+  const response = await fetch(new URL('/api/v1/health/recipe-authority', origin), {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    signal: AbortSignal.timeout(30_000), redirect: 'error',
+  });
+  if (!response.ok) throw new Error(`Recipe authority evidence lookup failed (HTTP ${response.status})`);
+  return response.json();
+}
+
 async function main() {
   const [command, file = 'release-manifest.json', evidenceFile] = process.argv.slice(2);
   if (command === 'gate') {
@@ -212,8 +288,16 @@ async function main() {
       manifest.observedMigrationLedger = verifyMigrationLedger(manifest.schema, JSON.parse(readFileSync(evidenceFile, 'utf8')));
     } else if (command === 'deployed') {
       manifest.deployed = verifyDeployedRelease(manifest, JSON.parse(readFileSync(evidenceFile, 'utf8')));
+    } else if (command === 'authority') {
+      // Evidence file (offline) or live protected endpoint (APP_SMOKE_URL + RELEASE_VERIFY_TOKEN).
+      const evidence = evidenceFile
+        ? JSON.parse(readFileSync(evidenceFile, 'utf8'))
+        : await fetchRecipeAuthorityEvidence(process.env.APP_SMOKE_URL, process.env.RELEASE_VERIFY_TOKEN);
+      const release = JSON.parse(readFileSync(CATALOG_RELEASE_MANIFEST_PATH, 'utf8'));
+      manifest.recipeAuthority = verifyRecipeAuthorityEvidence(manifest, evidence, release);
+      console.log(`Recipe authority verified: mode=${manifest.recipeAuthority.configuredMode} source=${manifest.recipeAuthority.actualSource} served=${manifest.recipeAuthority.servedRecipeCount} release=${manifest.recipeAuthority.releaseId} fallback=${manifest.recipeAuthority.fallbackReason}`);
     } else {
-      throw new Error('Usage: release-check.mjs <gate|recheck|schema|deployed> [manifest.json] [evidence.json]');
+      throw new Error('Usage: release-check.mjs <gate|recheck|schema|deployed|authority> [manifest.json] [evidence.json]');
     }
     writeManifest(file, manifest);
   }

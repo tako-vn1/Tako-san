@@ -8,6 +8,7 @@ import { createMealPlanningRoutes } from '../../src/worker/routes/meal-planning'
 import type { AuthContext, Env } from '../../src/worker/types';
 import { SESSION_COOKIE, sha256Hex } from '../../src/worker/utils/session';
 import { SqliteD1 } from '../helpers/sqlite-d1';
+import { fixtureRecipeAuthority } from '../helpers/recipe-authority-fixtures';
 
 vi.mock('../../src/worker/services/email', () => ({
   sendEmail: vi.fn(), buildOtpEmail: vi.fn(),
@@ -80,7 +81,7 @@ beforeEach(async () => {
   };
   app = new Hono();
   app.use('*', authMiddleware);
-  app.route('/api/v1', createMealPlanningRoutes({ now: () => new Date('2030-01-01T00:00:00.000Z') }));
+  app.route('/api/v1', createMealPlanningRoutes({ now: () => new Date('2030-01-01T00:00:00.000Z'), recipeAuthority: fixtureRecipeAuthority(db) }));
 });
 
 afterEach(() => {

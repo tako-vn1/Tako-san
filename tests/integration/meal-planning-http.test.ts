@@ -11,6 +11,8 @@ import { MealPlanDtoSchema, PlanShoppingDtoSchema, PlanFeedbackDtoSchema } from 
 import type { PurchaseOption } from '../../packages/recipes/src/shopping-catalog';
 import * as planner from '../../packages/recipes/src/weekly-planner';
 import { createBarrier, SqliteD1 } from '../helpers/sqlite-d1';
+import { ALL_RECIPES } from '../../packages/recipes/src/data';
+import { fixtureRecipeAuthority } from '../helpers/recipe-authority-fixtures';
 
 vi.mock('../../src/worker/services/email', () => ({
   sendEmail: vi.fn(), buildOtpEmail: vi.fn(),
@@ -68,7 +70,7 @@ beforeEach(async () => {
   offers = [];
   app = new Hono();
   app.use('*', authMiddleware);
-  app.route('/api/v1', createMealPlanningRoutes({ purchaseCatalog: async (_scope, asOf) => ({
+  app.route('/api/v1', createMealPlanningRoutes({ recipeAuthority: fixtureRecipeAuthority(db), purchaseCatalog: async (_scope, asOf) => ({
     snapshotId: 'reviewed-fixture', status: 'available',
     options: offers.map((offer) => ({ ...offer, price: offer.price ? { ...offer.price, asOf } : null })),
   }) }));
@@ -105,8 +107,9 @@ describe('T06A real authenticated Worker/API boundary', () => {
     const plan = MealPlanDtoSchema.parse(await response.json());
     expect(plan.result.status).toBe('feasible');
     expect(plan.revision).toBe(1);
-    expect(plan.result.meals[0].requirements[0].required.value).toBe('100');
-    expect(plan.result.meals[0].instructions).toEqual(['Cook thoroughly.']);
+    // T19: the real Worker plans from the recipe AUTHORITY (static 71 here), never from the synthetic D1 rows.
+    expect(plan.result.meals.every((meal) => ALL_RECIPES.some((recipe) => recipe.id === meal.source.id))).toBe(true);
+    expect(plan.result.meals[0].instructions.length).toBeGreaterThan(0);
     expect(planning).toHaveBeenCalledTimes(1);
     const retrieved = await request(`/${plan.id}`, undefined, { realWorker: true });
     expect(retrieved.status).toBe(200);
@@ -222,7 +225,10 @@ describe('T06A real authenticated Worker/API boundary', () => {
   it('keeps missing reviewed prices unknown and never converts them into free shopping', async () => {
     db.seed('DELETE FROM inventory_items');
     const before = inventoryState();
-    const plan = await generate();
+    // Generate and shop through the same (real Worker) authority so the stored plan's source identity matches.
+    const generated = await request('', intent, { realWorker: true });
+    expect(generated.status, await generated.clone().text()).toBe(200);
+    const plan = MealPlanDtoSchema.parse(await generated.json());
     const response = await request(`/${plan.id}/shopping`, { revision: 1, currency: 'JPY', budget: { mode: 'hard', money: { currency: 'JPY', minorAmount: '100' } } }, { realWorker: true });
     expect(response.status, await response.clone().text()).toBe(200);
     const shopping = PlanShoppingDtoSchema.parse(await response.json());
@@ -279,7 +285,7 @@ describe('T06A real authenticated Worker/API boundary', () => {
     db.hooks.beforeStatement = async ({ sql }) => {
       if (!raced && /INSERT\s+(?:OR IGNORE\s+)?INTO recipe_feedback_events/i.test(sql)) {
         raced = true;
-        await new MealPlanningApplicationService(db).regenerate(scope, plan.id, { revision: 1 });
+        await new MealPlanningApplicationService(db, { recipeAuthority: fixtureRecipeAuthority(db) }).regenerate(scope, plan.id, { revision: 1 });
       }
     };
     const response = await request(`/${plan.id}/feedback`, { revision: 1, slotId: SLOT, type: 'liked' }, { key: 'racing-feedback' });
