@@ -1,5 +1,36 @@
 # Frigo / Takosan current authority — 2026-09-22
 
+## Google Safari profile recovery + registration-only Turnstile
+
+Production base `8dc9198918837cb15f4a7ddf4f9029875b015091` was reproduced with
+WebKit: a blocked first load of `accounts.google.com/gsi/client` left the
+normal profile controlled by the Takosan service worker, while a clean/private
+profile rendered Google GIS. The failing profile emitted
+`FetchEvent.respondWith received an error: Returned response is null`; removing
+the service worker/cache recovered the button immediately. The candidate fix on
+`codex/google-safari-turnstile` makes the PWA fetch handler return before every
+cross-origin request, so Google GIS and Cloudflare Turnstile are owned directly
+by the browser. Same-origin cache misses now reject instead of resolving an
+invalid null response.
+
+Turnstile remains mandatory and fail-closed for account registration, including
+the production configuration gate. It is no longer rendered or submitted for
+login, forgot-password, or OTP resend. Those routes retain the shared auth rate
+limit; resend keeps its 60-second email/purpose cooldown, and register/login
+resend now no-ops truthfully for missing or already verified accounts instead of
+mailing arbitrary recipients.
+
+Validation: focused auth/PWA/browser-security **124 tests PASS**; full Vitest
+**185 files / 4242 tests PASS**; lint, typecheck, migration smoke, production
+build, and `git diff --check` PASS. A production-origin WebKit smoke against the
+built candidate, with an active service worker and the first GIS request
+blocked, recovered after the built-in retry: Google button visible at 362x44,
+warning cleared, zero Turnstile frames on login, one on registration. The
+unchanged dependency audit reports two moderate React Router advisories fixed
+only in React Router 7.18+. No migration, secret, DNS, PayOS/payment, D1, KV,
+R2, or queue mutation is part of this change. Detailed evidence:
+[GOOGLE_SAFARI_TURNSTILE_RECOVERY.md](GOOGLE_SAFARI_TURNSTILE_RECOVERY.md).
+
 ## T18E — `T18E_OTP_TEST_RECIPIENT_REQUIRED`
 
 Repository ID `1368281478` resolves to `vn-tako1/Frigo-dev`; exact starting

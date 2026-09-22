@@ -11,7 +11,7 @@ function setInput(input: HTMLInputElement, value: string) {
   input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-describe('OTP resend Turnstile lifecycle', () => {
+describe('registration-only Turnstile lifecycle', () => {
   let root: Root;
   let host: HTMLDivElement;
   const requestBodies: Array<Record<string, unknown>> = [];
@@ -26,11 +26,11 @@ describe('OTP resend Turnstile lifecycle', () => {
     Object.defineProperty(window, 'turnstile', {
       configurable: true,
       value: {
-        render: (_element: HTMLElement, options: Record<string, unknown>) => {
+        render: vi.fn((_element: HTMLElement, options: Record<string, unknown>) => {
           generation += 1;
           queueMicrotask(() => (options.callback as (token: string) => void)(`turnstile-token-${generation}`));
           return `widget-${generation}`;
-        },
+        }),
         remove: vi.fn(),
         reset: vi.fn(),
       },
@@ -64,7 +64,7 @@ describe('OTP resend Turnstile lifecycle', () => {
     requestBodies.length = 0;
   });
 
-  it('uses a new single-use token for resend after registration consumed the first token', async () => {
+  it('challenges once during registration and resends OTP without another widget', async () => {
     await act(async () => {
       root = createRoot(host);
       root.render(<MemoryRouter initialEntries={['/auth?mode=register']}><AuthPage /></MemoryRouter>);
@@ -95,8 +95,32 @@ describe('OTP resend Turnstile lifecycle', () => {
 
     expect(requestBodies).toHaveLength(2);
     expect(requestBodies[0].turnstileToken).toMatch(/^turnstile-token-/);
-    expect(requestBodies[1].turnstileToken).toMatch(/^turnstile-token-/);
-    expect(requestBodies[1].turnstileToken).not.toBe(requestBodies[0].turnstileToken);
+    expect(requestBodies[1]).not.toHaveProperty('turnstileToken');
+    expect(window.turnstile?.render).toHaveBeenCalledTimes(1);
     expect(host.textContent).toContain('Đã gửi lại mã OTP mới.');
+  });
+
+  it('does not mount Turnstile on login or forgot-password screens', async () => {
+    await act(async () => {
+      root = createRoot(host);
+      root.render(<MemoryRouter initialEntries={['/auth']}><AuthPage /></MemoryRouter>);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(window.turnstile?.render).not.toHaveBeenCalled();
+
+    const forgotPassword = [...host.querySelectorAll('button')].find((button) =>
+      button.textContent?.includes('Quên mật khẩu'),
+    );
+    expect(forgotPassword).toBeDefined();
+
+    await act(async () => {
+      forgotPassword?.click();
+      await Promise.resolve();
+    });
+
+    expect(host.textContent).toContain('Gửi mã OTP khôi phục');
+    expect(window.turnstile?.render).not.toHaveBeenCalled();
   });
 });

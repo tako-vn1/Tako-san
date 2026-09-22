@@ -141,6 +141,11 @@ describe('PWA metadata', () => {
     expect(sw).toContain('CACHE_NAME = `takosan-pwa-${BUILD_ID}`');
     expect(sw).toContain('/takosan/app-icons/icon-192.png');
     expect(sw).toContain("url.pathname.startsWith('/takosan/')");
+    const crossOriginBypass = sw.indexOf('if (url.origin !== self.location.origin) return;');
+    expect(crossOriginBypass).toBeGreaterThan(-1);
+    expect(crossOriginBypass).toBeLessThan(sw.indexOf('event.respondWith'));
+    expect(sw).not.toContain("url.hostname.includes('fonts.googleapis.com')");
+    expect(sw).not.toContain("url.hostname.includes('fonts.gstatic.com')");
     const precached = [...sw.matchAll(/'(\/takosan\/[^']+)'/g)].map((m) => m[1]);
     expect(precached.filter((p) => !existsSync(publicFile(p)))).toEqual([]);
   });

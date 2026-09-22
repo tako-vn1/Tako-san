@@ -1,5 +1,25 @@
 # Frigo / Takosan current task board — 2026-09-22
 
+## Google Safari profile recovery + registration-only Turnstile
+
+- [done] Reproduced normal-profile failure and private/clean-profile success in
+  WebKit; isolated the failure before backend OAuth at the service-worker/GIS
+  request boundary.
+- [done] Changed the PWA worker to bypass all cross-origin requests and reject
+  same-origin uncached network failures without returning null.
+- [done] Kept Turnstile mandatory for registration only; removed repeat widgets
+  and tokens from login, forgot-password and resend.
+- [done] Retained auth rate limiting, resend cooldown, CSRF and OTP security;
+  blocked arbitrary register/login resend mail to unknown or verified accounts.
+- [done] Focused 124/124, full Vitest 185 files / 4242 tests, lint, typecheck,
+  migration smoke, build and diff check PASS.
+- [done] Built-candidate WebKit smoke with active service worker: first GIS load
+  blocked, retry recovered Google, warning cleared; CAPTCHA frames login 0 /
+  registration 1.
+- [next] Push branch, open PR, wait for exact-head hosted CI, merge/deploy, then
+  run production WebKit and readiness smoke. No migration or configuration
+  mutation required.
+
 ## T18E — `T18E_OTP_TEST_RECIPIENT_REQUIRED` (2026-09-22)
 
 - [done] Verified stable repository ID, exact base/production `66627ff`, and

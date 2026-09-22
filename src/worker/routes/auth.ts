@@ -540,10 +540,6 @@ authRoutes.post('/auth/verify-otp', async (c) => {
 // 4. POST /auth/resend-otp — Resend new OTP
 authRoutes.post('/auth/resend-otp', async (c) => {
   const rawBody = await c.req.json().catch(() => ({}));
-  const turnstile = await verifyTurnstileToken(c.env, rawBody?.turnstileToken, c.req.header('cf-connecting-ip'));
-  if (!turnstile.ok) {
-    return c.json({ error: 'Xác thực chống bot thất bại. Vui lòng thử lại.', code: 'TURNSTILE_FAILED' }, 403);
-  }
   const parsed = ResendOtpSchema.safeParse(rawBody);
   if (!parsed.success) {
     return c.json(
@@ -589,6 +585,18 @@ authRoutes.post('/auth/resend-otp', async (c) => {
       return c.json(await requestPasswordReset(db, c.env, normalizedEmail, (task) => c.executionCtx.waitUntil(task)));
     }
 
+    const account: any = await db
+      .prepare('SELECT is_verified FROM auth_accounts WHERE email = ?')
+      .bind(normalizedEmail)
+      .first();
+    if (!account || account.is_verified === 1) {
+      return c.json({
+        success: true,
+        message: 'Nếu tài khoản đang chờ xác thực, mã OTP mới sẽ được gửi.',
+        expiresInMinutes: OTP_TTL_MINUTES,
+      });
+    }
+
     // Only the newest code remains valid for this flow.
     await db
       .prepare('UPDATE auth_otps SET used = 1 WHERE email = ? AND purpose = ? AND used = 0')
@@ -627,16 +635,6 @@ authRoutes.post('/auth/resend-otp', async (c) => {
 // 5. POST /auth/login — Email/Password Login
 authRoutes.post('/auth/login', async (c) => {
   const rawBody = await c.req.json().catch(() => ({}));
-
-  // Production requires bot protection before account lookup.
-  const turnstile = await verifyTurnstileToken(
-    c.env,
-    rawBody?.turnstileToken,
-    c.req.header('cf-connecting-ip')
-  );
-  if (!turnstile.ok) {
-    return c.json({ error: 'Xác thực chống bot thất bại. Vui lòng thử lại.', code: 'TURNSTILE_FAILED' }, 403);
-  }
 
   const parseResult = LoginSchema.safeParse(rawBody);
 
@@ -752,16 +750,6 @@ authRoutes.post('/auth/login', async (c) => {
 // 6. POST /auth/forgot-password — Request OTP for password reset
 authRoutes.post('/auth/forgot-password', async (c) => {
   const rawBody = await c.req.json().catch(() => ({}));
-
-  // Production requires bot protection before account lookup.
-  const turnstile = await verifyTurnstileToken(
-    c.env,
-    rawBody?.turnstileToken,
-    c.req.header('cf-connecting-ip')
-  );
-  if (!turnstile.ok) {
-    return c.json({ error: 'Xác thực chống bot thất bại. Vui lòng thử lại.', code: 'TURNSTILE_FAILED' }, 403);
-  }
 
   const parseResult = ForgotPasswordSchema.safeParse(rawBody);
 

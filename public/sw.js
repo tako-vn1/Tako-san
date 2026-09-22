@@ -57,13 +57,15 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
+  // Third-party scripts must bypass the PWA entirely. Intercepting Google GIS
+  // or Turnstile can leave Safari profiles stuck after a blocked network load.
+  if (url.origin !== self.location.origin) return;
+
   // Static assets (images, fonts, css, js): Cache first, fallback to network
   if (
     url.pathname.startsWith('/frigo/') ||
     url.pathname.startsWith('/takosan/') ||
-    url.pathname.startsWith('/assets/') ||
-    url.hostname.includes('fonts.gstatic.com') ||
-    url.hostname.includes('fonts.googleapis.com')
+    url.pathname.startsWith('/assets/')
   ) {
     event.respondWith(
       caches.match(request).then((cached) => {
@@ -108,8 +110,10 @@ self.addEventListener('fetch', (event) => {
       .then((response) => {
         return response;
       })
-      .catch(() => {
-        return caches.match(request);
+      .catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        throw new Error('Network unavailable and no cached response');
       })
   );
 });

@@ -7,8 +7,9 @@ import { RecipeAuthorityConfigError, resolveRecipeAuthorityConfig, USER_VISIBLE_
  * deployment is dangerous; every message is a static string and never embeds
  * secret values, token material, or binding identifiers.
  *
- * Production authentication always requires Turnstile; optional providers
- * remain feature-aware.
+ * Production account creation always requires Turnstile; optional providers
+ * remain feature-aware. Existing account recovery is protected by auth rate
+ * limits and OTP resend cooldowns without repeatedly challenging the user.
  */
 
 export const VALID_ENVIRONMENTS = ['development', 'staging', 'production'] as const;
@@ -262,7 +263,7 @@ export function validateEnvironment(env: Env): ConfigValidationResult {
     fatalIssues.push(
       fatal(
         'CONFIG_TURNSTILE_MISSING_SECRET',
-        'Production authentication requires TURNSTILE_SECRET_KEY.'
+        'Production account creation requires TURNSTILE_SECRET_KEY.'
       )
     );
   }
@@ -270,7 +271,7 @@ export function validateEnvironment(env: Env): ConfigValidationResult {
     fatalIssues.push(
       fatal(
         'CONFIG_TURNSTILE_MISSING_SITE_KEY',
-        'Production authentication requires TURNSTILE_SITE_KEY.'
+        'Production account creation requires TURNSTILE_SITE_KEY.'
       )
     );
   }
