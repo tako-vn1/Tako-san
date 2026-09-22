@@ -7,6 +7,7 @@ import * as planner from '../../packages/recipes/src/weekly-planner';
 import { SESSION_COOKIE, sha256Hex } from '../../src/worker/utils/session';
 import type { AuthContext, Env } from '../../src/worker/types';
 import { SqliteD1 } from '../helpers/sqlite-d1';
+import { fixtureRecipeAuthority } from '../helpers/recipe-authority-fixtures';
 
 const origin = 'https://planner.test';
 const date = '2030-01-02';
@@ -47,7 +48,7 @@ async function fixture(primary: boolean) {
     MEAL_PLANNER_ENABLED: 'true', ...(primary ? { CACHE: cache } : {}) };
   const app = new Hono<{ Bindings: Env; Variables: { auth: AuthContext } }>();
   app.use('*', authMiddleware);
-  app.route('/api/v1', createMealPlanningRoutes({ now: () => new Date('2030-01-01T00:00:00Z') }));
+  app.route('/api/v1', createMealPlanningRoutes({ now: () => new Date('2030-01-01T00:00:00Z'), recipeAuthority: fixtureRecipeAuthority(db) }));
   const request = (path: string, body?: unknown, session = ownerCookie) => app.request(
     `${origin}/api/v1/meal-planning/plans${path}`, {
       method: body === undefined ? 'GET' : 'POST',

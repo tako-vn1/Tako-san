@@ -26,14 +26,14 @@ on:
         type: boolean
         default: false
       recipe_catalog_mode:
-        description: Recipe catalog authority mode (bounded canary only; full D1 is intentionally unavailable)
+        description: "Recipe catalog authority state (T19B, ADR-026): static | shadow | canary (deterministic household cohort) | d1 (every household served the verified 500-recipe D1 release)"
         type: choice
-        options: [static, shadow, canary]
+        options: [static, shadow, canary, d1]
         default: static
       recipe_catalog_d1_canary_percent:
-        description: Bounded D1 canary percentage (0 for static/shadow; 1/2/5 for canary)
+        description: Deterministic D1 canary percentage (0 for static/shadow/d1; 1/2/5/25 for canary)
         type: choice
-        options: ['0', '1', '2', '5']
+        options: ['0', '1', '2', '5', '25']
         default: '0'
 
 permissions:
@@ -153,9 +153,16 @@ jobs:
         if: env.STAGING_UNCONFIGURED != 'true' && vars.STAGING_URL != ''
         env:
           APP_SMOKE_URL: ${{ vars.STAGING_URL }}
+          EXPECTED_RECIPE_CATALOG_MODE: ${{ needs.release.outputs.recipe_catalog_mode }}
+          RELEASE_VERIFY_TOKEN: ${{ secrets.STAGING_RELEASE_VERIFY_TOKEN }}
         run: |
           node scripts/wait-for-deployed-release.mjs release-manifest.json
           bash scripts/post-deploy-smoke.sh "$APP_SMOKE_URL" "${{ needs.release.outputs.deploy_sha }}"
+          if [ -n "$RELEASE_VERIFY_TOKEN" ]; then
+            node scripts/release-check.mjs authority release-manifest.json
+          else
+            echo "::notice::STAGING_RELEASE_VERIFY_TOKEN is not configured; recipe authority evidence not verified on staging."
+          fi
 
       - name: Save staging receipt after exact-SHA proof
         if: always()
@@ -237,12 +244,18 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --var GIT_COMMIT:${{ needs.release.outputs.deploy_sha }} --var RECIPE_CATALOG_MODE:${{ needs.release.outputs.recipe_catalog_mode }} --var RECIPE_CATALOG_D1_CANARY_PERCENT:${{ needs.release.outputs.recipe_catalog_d1_canary_percent }} --var RECIPE_CATALOG_CUTOVER_ENABLED:${{ needs.release.outputs.recipe_catalog_cutover_enabled }}
 
-      - name: Production exact SHA receipt and post-deploy smoke
+      # T19D: the deployment is not successful until the Worker proves, through the protected
+      # recipe-authority evidence, that it serves exactly the approved authority state (mode,
+      # cutover, percent, release ID, D1 readiness, served count/fingerprint, no fallback).
+      - name: Production exact SHA receipt, post-deploy smoke and recipe authority proof
         env:
           APP_SMOKE_URL: ${{ vars.PRODUCTION_URL }}
+          EXPECTED_RECIPE_CATALOG_MODE: ${{ needs.release.outputs.recipe_catalog_mode }}
+          RELEASE_VERIFY_TOKEN: ${{ secrets.RELEASE_VERIFY_TOKEN }}
         run: |
           node scripts/wait-for-deployed-release.mjs release-manifest.json
           bash scripts/post-deploy-smoke.sh "$APP_SMOKE_URL" "${{ needs.release.outputs.deploy_sha }}"
+          node scripts/release-check.mjs authority release-manifest.json
 
       - name: Save production receipt even on failure (inspect deployed field)
         if: always()

@@ -34,13 +34,26 @@ describe('T05 review counterexamples', () => {
     expect(result.diagnostics.some((row) => row.code === 'BUDGET_INFEASIBLE')).toBe(false);
   });
 
-  it('rejects a lossy aggregate boundary rather than buying too little at an exact budget', () => {
+  it('reports a lossy aggregate boundary as unresolved rather than buying too little at an exact budget', () => {
+    // T19: real 3-serving legacy recipes planned at 2 servings twice aggregate to a non-terminating
+    // rational. Rounding is still forbidden; the truthful result is an unresolved requirement with no
+    // purchase line and an unknown budget — never a thrown 500 and never an under-purchase.
     const plan = shoppingPlan([recipe('large', 'CHICKEN', 1), recipe('tiny', 'CHICKEN', 5e-17)]);
     expect(plan.slots).toHaveLength(2);
     const context = shoppingContext(
       shoppingSource(plan, [purchaseOption('one-gram', 1, 100)], { budget: shoppingBudget(100) }),
     );
-    expect(() => optimizeShopping({ context })).toThrow(/exact.*quantity|quantity.*exact/i);
+    const result = optimizeShopping({ context });
+    expect(result.purchaseLines).toEqual([]);
+    expect(result.unresolvedRequirements).toEqual([
+      expect.objectContaining({ code: 'UNRESOLVED_PURCHASE_QUANTITY', requirement: expect.objectContaining({
+        ingredientId: 'CHICKEN', status: 'unresolved', requiredQuantity: null, knownRequiredQuantity: 0, unresolvedCount: 2,
+      }) }),
+    ]);
+    expect(result.cost.totalCostMinor).toBeNull();
+    expect(result.budget.status).toBe('unknown');
+    expect(result.optimization.exhaustive).toBe(false);
+    expect(result.optimization.incompleteReasons).toContain('UNRESOLVED_PURCHASE_QUANTITY');
   });
 
   it('rejects a lossy purchased-quantity witness instead of rounding package contents', () => {

@@ -109,7 +109,7 @@ export type PlannedMealDto = z.infer<typeof PlannedMealDtoSchema>;
 
 export const PlanningFreshnessSchema = z.object({
   status: z.enum(['fresh', 'requires_revalidation']),
-  reasons: z.array(z.enum(['stale_inventory', 'stale_preferences', 'stale_catalog', 'stale_history', 'planning_time_elapsed'])),
+  reasons: z.array(z.enum(['stale_inventory', 'stale_preferences', 'stale_catalog', 'stale_history', 'catalog_authority_changed', 'planning_time_elapsed'])),
   checkedAt: Instant,
   requiresRevalidationBeforeConsumption: z.literal(true),
 }).strict();

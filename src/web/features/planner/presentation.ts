@@ -144,6 +144,7 @@ const viCopy = {
     stale_preferences: 'Tùy chọn đã thay đổi',
     stale_catalog: 'Dữ liệu món ăn đã thay đổi',
     stale_history: 'Lịch sử hoặc phản hồi đã thay đổi',
+    catalog_authority_changed: 'Nguồn danh mục món ăn đã thay đổi. Hãy lên kế hoạch lại.',
     planning_time_elapsed: 'Một phần lịch ăn đã qua',
     fresh: 'Đã kiểm tra dữ liệu hiện tại',
     requires_revalidation: 'Cần kiểm tra lại dữ liệu',
@@ -296,6 +297,7 @@ const viCopy = {
     REGISTERED_ACCOUNT_REQUIRED: 'Đăng nhập bằng tài khoản đã đăng ký để dùng kế hoạch bữa ăn.',
     PLAN_REVISION_CONFLICT: 'Kế hoạch đã thay đổi. Tải bản mới nhất trước khi thử lại.',
     PLAN_REVALIDATION_REQUIRED: 'Dữ liệu nguồn đã thay đổi. Hãy lên kế hoạch lại.',
+    CATALOG_AUTHORITY_CHANGED: 'Nguồn danh mục món ăn đã thay đổi. Hãy lên kế hoạch lại trước khi tiếp tục.',
     IDEMPOTENCY_CONFLICT:
       'Mã thử lại đã dùng cho thao tác khác. Tải lại trước khi gửi một thao tác mới.',
     SWAP_NOT_FEASIBLE:
@@ -447,6 +449,7 @@ const enCopy: PlannerCopy = {
     stale_preferences: 'Preferences changed',
     stale_catalog: 'Recipe data changed',
     stale_history: 'History or feedback changed',
+    catalog_authority_changed: 'The recipe catalog source changed. Regenerate the plan.',
     planning_time_elapsed: 'Some scheduled meals are in the past',
     fresh: 'Current source data checked',
     requires_revalidation: 'Source data needs revalidation',
@@ -599,6 +602,7 @@ const enCopy: PlannerCopy = {
     REGISTERED_ACCOUNT_REQUIRED: 'Sign in with a registered account to use meal planning.',
     PLAN_REVISION_CONFLICT: 'The plan changed. Load the latest version before retrying.',
     PLAN_REVALIDATION_REQUIRED: 'Source data changed. Regenerate the plan first.',
+    CATALOG_AUTHORITY_CHANGED: 'The recipe catalog source changed. Regenerate the plan before continuing.',
     IDEMPOTENCY_CONFLICT:
       'This retry key belongs to another action. Reload before submitting a new action.',
     SWAP_NOT_FEASIBLE:

@@ -5,6 +5,7 @@ import {
   updateGeneratedMealPlan, recordCookedGeneratedMealPlanAnnotation, type GeneratedMealPlanRecord,
 } from '../../../packages/db/src/meal-planning';
 import { loadMealPlanningSnapshot } from '../../../packages/db/src/meal-planning-snapshot';
+import type { RecipeAuthoritySnapshot } from '../../../packages/recipes/src/recipe-authority';
 import {
   MealPlanningIntentSchema, MealPlanDtoSchema, PlanResultDtoSchema, PlanSourceIdentitySchema,
   PlanFeedbackDtoSchema, PlanShoppingDtoSchema, type MealPlanningIntent,
@@ -37,8 +38,13 @@ const StoredResultSchema = z.object({
   shoppingPlan: ShoppingMealPlanSnapshotSchema,
   lastSwap: z.object({ slotId: z.string(), previous: PlanSourceIdentitySchema, replacement: PlanSourceIdentitySchema }).strict().nullable(),
 }).strict();
+const StoredAuthoritySchema = z.object({
+  source: z.enum(['static', 'd1']), fingerprint: z.string().regex(/^[0-9a-f]{64}$/), recipeCount: z.number().int().nonnegative(),
+}).strict();
+// `authority` is absent on plans persisted before T19; those revalidate through the catalog fingerprint alone.
 const FingerprintsSchema = z.object({
   inventory: z.string(), preferences: z.string(), catalog: z.string(), history: z.string(),
+  authority: StoredAuthoritySchema.optional(),
 }).strict();
 const envelope = <T extends z.ZodTypeAny>(data: T) => z.object({ version: z.literal(1), data }).strict();
 const serialize = (data: object) => JSON.stringify({ version: 1, data });
@@ -50,12 +56,33 @@ export interface MealPlanningServiceOptions {
     snapshotId: string; options: readonly PurchaseOption[];
     status: 'available' | 'reviewed_catalog_unavailable';
   }>;
+  /**
+   * T19 (ADR-026): the household's EFFECTIVE recipe authority, resolved once per operation by
+   * server composition from deployment config + deterministic canary — never from request input.
+   * The planner universe is exactly this snapshot, so Recipe API, Planner, Shopping and Cooking agree.
+   */
+  recipeAuthority: (scope: Scope) => Promise<RecipeAuthoritySnapshot>;
 }
 
 export class MealPlanningApplicationService {
-  constructor(private readonly db: D1DatabaseBinding, private readonly options: MealPlanningServiceOptions = {}) {}
+  constructor(private readonly db: D1DatabaseBinding, private readonly options: MealPlanningServiceOptions) {
+    if (typeof options?.recipeAuthority !== 'function') throw new Error('Meal planning requires a server-owned recipe authority resolver');
+  }
 
   private now() { return (this.options.now?.() ?? new Date()).toISOString(); }
+
+  private async snapshot(scope: Scope, referenceTime: string) {
+    return loadMealPlanningSnapshot(this.db, scope, referenceTime, await this.options.recipeAuthority(scope));
+  }
+
+  /** Persisted source identity: planner fingerprints + the recipe authority the plan was fenced to. */
+  private sourceIdentity(snapshot: Snapshot) {
+    return { ...snapshot.fingerprint.parts, authority: snapshot.authority };
+  }
+
+  private authorityChanged(stored: { fingerprints: { authority?: { source: string } } }, snapshot: Snapshot) {
+    return stored.fingerprints.authority !== undefined && stored.fingerprints.authority.source !== snapshot.authority.source;
+  }
 
   private decode(row: GeneratedMealPlanRecord) {
     const intent = envelope(StoredIntentSchema).parse(JSON.parse(row.intentJson)).data;
@@ -69,12 +96,13 @@ export class MealPlanningApplicationService {
   private async freshness(row: GeneratedMealPlanRecord, snapshot?: Snapshot) {
     const stored = this.decode(row);
     const checkedAt = this.now();
-    const current = snapshot ?? await loadMealPlanningSnapshot(this.db, { householdId: row.householdId, userId: row.creatorUserId }, checkedAt);
+    const current = snapshot ?? await this.snapshot({ householdId: row.householdId, userId: row.creatorUserId }, checkedAt);
     const reasons: MealPlanDto['freshness']['reasons'] = [];
     const labels = { inventory: 'stale_inventory', preferences: 'stale_preferences', catalog: 'stale_catalog', history: 'stale_history' } as const;
     for (const key of Object.keys(labels) as Array<keyof typeof labels>) {
       if (stored.fingerprints[key] !== current.fingerprint.parts[key]) reasons.push(labels[key]);
     }
+    if (this.authorityChanged(stored, current)) reasons.push('catalog_authority_changed');
     if (stored.result.meals.some((meal) => Date.parse(meal.instant) < Date.parse(checkedAt))) reasons.push('planning_time_elapsed');
     return { status: reasons.length ? 'requires_revalidation' as const : 'fresh' as const, reasons,
       checkedAt, requiresRevalidationBeforeConsumption: true as const };
@@ -138,12 +166,12 @@ export class MealPlanningApplicationService {
       return this.dto(prior);
     }
     const now = this.now();
-    const snapshot = await loadMealPlanningSnapshot(this.db, scope, now);
+    const snapshot = await this.snapshot(scope, now);
     const id = crypto.randomUUID();
     const result = this.run(scope, id, intent, [], snapshot, now);
     const { plan: row } = await createGeneratedMealPlan(this.db, scope, {
       id, requestKey: key, requestFingerprint, intentJson: serialize({ intent, locks: [] }),
-      resultJson: serialize(result), sourceJson: serialize(snapshot.fingerprint.parts),
+      resultJson: serialize(result), sourceJson: serialize(this.sourceIdentity(snapshot)),
     });
     return this.dto(row);
   }
@@ -158,7 +186,8 @@ export class MealPlanningApplicationService {
   async alternatives(scope: Scope, id: string, revision: number) {
     const row = await getGeneratedMealPlan(this.db, scope, id);
     this.assertRevision(row, revision);
-    const snapshot = await loadMealPlanningSnapshot(this.db, scope, this.now());
+    const snapshot = await this.snapshot(scope, this.now());
+    // Alternatives come from the authority-fenced planner catalog only: never a D1-only recipe under static authority.
     const recipes = [...snapshot.catalog.recipes].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
     this.assertRevision(await getGeneratedMealPlan(this.db, scope, id), revision);
     return PlanAlternativesDtoSchema.parse({
@@ -186,14 +215,17 @@ export class MealPlanningApplicationService {
     this.assertRevision(row, input.revision);
     const stored = this.decode(row);
     const intent = input.intent ?? stored.intent;
-    const locks = stored.locks.filter((entry) => intent.slots.some((slot) => `${slot.date}:${slot.mealType}:${slot.sequence}` === entry.slotId));
     const now = this.now();
-    const snapshot = await loadMealPlanningSnapshot(this.db, scope, now);
+    const snapshot = await this.snapshot(scope, now);
+    // Regenerate IS the revalidation path: locks on recipes outside the current authority universe are dropped, not substituted.
+    const locks = stored.locks
+      .filter((entry) => intent.slots.some((slot) => `${slot.date}:${slot.mealType}:${slot.sequence}` === entry.slotId))
+      .filter((entry) => entry.lock.kind !== 'recipe' || snapshot.visibleRecipeIds.has(entry.lock.id));
     const result = this.run(scope, id, intent, locks, snapshot, now);
     return this.dto(await updateGeneratedMealPlan(this.db, scope, {
       id, expectedRevision: input.revision,
       intentJson: serialize({ intent, locks }), resultJson: serialize(result),
-      sourceJson: serialize(snapshot.fingerprint.parts),
+      sourceJson: serialize(this.sourceIdentity(snapshot)),
     }));
   }
 
@@ -204,7 +236,11 @@ export class MealPlanningApplicationService {
     const original = stored.result.meals.find((meal) => meal.slotId === input.slotId);
     if (!original) throw new MealPlanningError('SLOT_NOT_FOUND', 422, 'Swap requires a selected meal slot');
     const now = this.now();
-    const snapshot = await loadMealPlanningSnapshot(this.db, scope, now);
+    const snapshot = await this.snapshot(scope, now);
+    if (this.authorityChanged(stored, snapshot)) {
+      throw new MealPlanningError('CATALOG_AUTHORITY_CHANGED', 409, 'Recipe catalog authority changed since this plan was generated; regenerate the plan');
+    }
+    // The replacement must be in the authority-fenced catalog: a D1-only recipe under static authority is a typed rejection.
     const source = input.replacement.kind === 'recipe'
       ? snapshot.catalog.recipes.find((recipe) => recipe.id === input.replacement.id)
       : snapshot.catalog.families.find((family) => family.id === input.replacement.id);
@@ -220,7 +256,7 @@ export class MealPlanningApplicationService {
     return this.dto(await updateGeneratedMealPlan(this.db, scope, {
       id, expectedRevision: input.revision,
       intentJson: serialize({ intent: stored.intent, locks }), resultJson: serialize(result),
-      sourceJson: serialize(snapshot.fingerprint.parts),
+      sourceJson: serialize(this.sourceIdentity(snapshot)),
     }));
   }
 
@@ -229,6 +265,9 @@ export class MealPlanningApplicationService {
     this.assertRevision(row, input.revision);
     const stored = this.decode(row);
     const freshness = await this.freshness(row);
+    if (freshness.reasons.includes('catalog_authority_changed')) {
+      throw new MealPlanningError('CATALOG_AUTHORITY_CHANGED', 409, 'Recipe catalog authority changed since this plan was generated; regenerate the plan');
+    }
     if (freshness.status !== 'fresh') throw new MealPlanningError('PLAN_REVALIDATION_REQUIRED', 409, 'Regenerate the plan before optimizing shopping');
     const asOf = this.now();
     const catalog = this.options.purchaseCatalog

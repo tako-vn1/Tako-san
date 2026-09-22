@@ -4,7 +4,7 @@ import { seedT13ReviewEvidence, seedT13ScenarioEvidence, t13PreviewState } from 
 export const PREVIEW_USER_ID = 'planner-preview-user';
 export const PREVIEW_HOUSEHOLD_ID = 'planner-preview-household';
 const SESSION_COOKIE = '__Host-frigo_session';
-const FIXTURE_VERSION = 't06b-planner-v1';
+const FIXTURE_VERSION = 't19-planner-v2';
 
 // Keep real limiter behavior, but make its synthetic state reset with the database.
 export function createPreviewCache(now = Date.now) {
@@ -49,25 +49,8 @@ export function seedPlannerPreview(db) {
     INSERT INTO user_preferences (id, user_id, household_size, language) VALUES
       ('planner-preview-preferences', '${PREVIEW_USER_ID}', 2, 'vi');
 
-    DELETE FROM recipes;
-    INSERT INTO recipes (id, slug, title, cuisine, servings, prep_time_minutes, cook_time_minutes, difficulty) VALUES
-      ('preview-chicken', 'preview-chicken', 'Gà áp chảo', 'viet', 2, 10, 15, 'easy'),
-      ('preview-tofu', 'preview-tofu', 'Đậu phụ sốt cà chua', 'viet', 2, 5, 15, 'easy'),
-      ('preview-egg', 'preview-egg', 'Trứng xào cà chua', 'viet', 2, 5, 10, 'easy');
-    INSERT INTO recipe_ingredients (id, recipe_id, ingredient_id, name, required_quantity, unit, is_optional) VALUES
-      ('preview-chicken-line', 'preview-chicken', 'CHICKEN_BREAST', 'Ức gà', 200, 'g', 0),
-      ('preview-chicken-tomato', 'preview-chicken', 'TOMATO', 'Cà chua', 100, 'g', 0),
-      ('preview-tofu-line', 'preview-tofu', 'TOFU', 'Đậu phụ', 200, 'g', 0),
-      ('preview-tofu-tomato', 'preview-tofu', 'TOMATO', 'Cà chua', 150, 'g', 0),
-      ('preview-egg-line', 'preview-egg', 'CHICKEN_EGG', 'Trứng', 2, 'piece', 0),
-      ('preview-egg-tomato', 'preview-egg', 'TOMATO', 'Cà chua', 100, 'g', 0);
-    INSERT INTO recipe_steps (id, recipe_id, step_number, instruction) VALUES
-      ('preview-chicken-step-1', 'preview-chicken', 1, 'Rửa cà chua, cắt miếng vừa ăn.'),
-      ('preview-chicken-step-2', 'preview-chicken', 2, 'Áp chảo gà đến khi chín hoàn toàn, thêm cà chua và nấu chín.'),
-      ('preview-tofu-step-1', 'preview-tofu', 1, 'Cắt đậu phụ thành miếng và cà chua thành múi.'),
-      ('preview-tofu-step-2', 'preview-tofu', 2, 'Nấu cà chua thành sốt, cho đậu phụ vào và đun chín.'),
-      ('preview-egg-step-1', 'preview-egg', 1, 'Đánh trứng, cắt cà chua thành miếng.'),
-      ('preview-egg-step-2', 'preview-egg', 2, 'Xào cà chua, thêm trứng và đảo đến khi chín hoàn toàn.');
+    -- T19: the preview plans from the REAL recipe catalog under the Worker's recipe authority
+    -- (static 71 by default); synthetic preview-only recipes would be invisible to the planner.
     INSERT INTO inventory_items (id, household_id, ingredient_id, name, quantity, unit, category, storage, version) VALUES
       ('preview-stock-chicken', '${PREVIEW_HOUSEHOLD_ID}', 'CHICKEN_BREAST', 'Ức gà', 300, 'g', 'meat', 'fridge', 1),
       ('preview-stock-tofu', '${PREVIEW_HOUSEHOLD_ID}', 'TOFU', 'Đậu phụ', 200, 'g', 'other', 'fridge', 1),
