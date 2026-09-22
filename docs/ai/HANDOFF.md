@@ -1,16 +1,17 @@
 # Frigo / Takosan current handoff — 2026-09-22
 
-## T18E — `T18E_OTP_RESEND_SECRET_REQUIRED`
+## T18E — `T18E_OTP_PROVIDER_CONFIG_REQUIRED`
 
 - **Base/branch:** repository `1368281478` / `vn-tako1/Frigo-dev`; exact base
   and production `66627ffea890dad1cec4e31674449775a940c660`; branch
   `feat/t18e-otp-email-delivery-recovery`.
-- **Observed production state:** `SEND_EMAIL` present; `RESEND_API_KEY` absent;
-  readiness currently equates provider presence with configured. Current
-  sender onboarding and the exact provider rejection category are UNKNOWN
-  because both stored Observability and Email Sending subdomain APIs rejected
-  the available OAuth scope. Do not claim sender or recipient rejection without
-  a sanitized event.
+- **Observed production state:** `SEND_EMAIL` and the operator-authorized
+  `RESEND_API_KEY` secret are present; the supplied key authenticates. Resend
+  domain `tungjpstore.net` remains pending because `rsend.tungjpstore.net`
+  points to the old global endpoint instead of the required ap-northeast-1
+  endpoint. Current Cloudflare sender onboarding and the exact primary-provider
+  rejection category remain UNKNOWN. Do not claim sender or recipient rejection
+  without a sanitized event.
 - **Implementation:** Workers Email -> Resend -> fail-closed is preserved;
   Resend HTTP/body categories are sanitized; final provider failures log only
   event/provider/category/purpose/environment; unexpected router rejection
@@ -28,13 +29,14 @@
   is OPEN. Hosted validate run `35685553412` passed on publication head
   `eec404a`; PR was `MERGEABLE` / `CLEAN`. Wait for fresh exact-head CI after
   the final documentation receipt. Do not merge.
-- **Safety:** no migration, workflow, payment, Google, production config, D1,
-  deploy, merge, or random test email. Real inbox delivery is NOT RUN.
-- **Next:** operator verifies `no-reply@tungjpstore.net` in Cloudflare Email
-  Service, provisions Worker secret `RESEND_API_KEY`, verifies the domain in
-  Resend, and supplies an authorized test recipient. Then review/merge,
+- **Safety:** no migration, workflow, payment, Google, D1, deploy, merge, or
+  random test email. The only production mutation was the explicitly authorized
+  Resend secret upload. Real inbox delivery is NOT RUN.
+- **Next:** update the `rsend` CNAME to `rsend-apne1.forge.rmta.net`, complete
+  Resend domain verification, verify `no-reply@tungjpstore.net` in Cloudflare
+  Email Service, and supply an authorized test recipient. Then review/merge,
   exact-main CI, automatic staging and controlled staging delivery; production
-  remains separately authorized. See
+  deploy remains separately authorized. See
   [T18E_OTP_DELIVERY_RECOVERY.md](T18E_OTP_DELIVERY_RECOVERY.md).
 
 ## T18D — `T18D_READY_FOR_REVIEW`

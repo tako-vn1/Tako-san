@@ -2,7 +2,7 @@
 
 Date: 2026-09-22
 
-Status: `T18E_OTP_RESEND_SECRET_REQUIRED`
+Status: `T18E_OTP_PROVIDER_CONFIG_REQUIRED`
 
 ## Scope and boundaries
 
@@ -29,8 +29,9 @@ Confirmed facts:
 
 - Production readiness and `wrangler.jsonc` show the unrestricted `SEND_EMAIL`
   binding is present.
-- Production Worker secrets do not include `RESEND_API_KEY`; therefore the
-  deployed service has no secondary provider when Workers Email fails.
+- The operator subsequently supplied a Resend API key through the local
+  clipboard. It was provisioned directly as the production Worker secret
+  `RESEND_API_KEY`; its value was never printed, logged, or written to disk.
 - The active Cloudflare account owns an active `tungjpstore.net` zone.
 - The fixed sender in code is `no-reply@tungjpstore.net`.
 - Current readiness reports email as configured solely from binding/secret
@@ -43,9 +44,15 @@ Confirmed facts:
 The exact current primary-provider failure category is therefore **not
 observed** and is not fabricated. Sender authorization for
 `no-reply@tungjpstore.net` in the production Cloudflare account remains
-`UNKNOWN` in this task. The confirmed production recovery gap is that
-`RESEND_API_KEY` is absent, so there is no fallback after any Workers Email
-failure.
+`UNKNOWN` in this task.
+
+The supplied Resend key authenticates successfully, but the Resend sending
+domain remains `pending`. Public DNS matches the expected DKIM and `send`
+records, while `rsend.tungjpstore.net` still points to the older
+`rsend.forge.rmta.net`; the configured ap-northeast-1 domain requires
+`rsend-apne1.forge.rmta.net`. A Resend domain verification refresh returned
+HTTP 200 but correctly remained pending. Production fallback therefore cannot
+yet be certified for arbitrary recipients.
 
 Historical T16 evidence proved that the old subdomain sender
 `no-reply@frigo.tungjpstore.net` was unauthorized and that the current apex
@@ -65,15 +72,17 @@ but it is not treated as proof of current sender authorization or inbox delivery
 
 ### Resend
 
-- `RESEND_API_KEY` Worker secret present: NO
+- `RESEND_API_KEY` Worker secret present: YES
+- API authentication: PASS
+- Sending-domain state: PENDING
 - Fallback router implemented: YES
 - Deterministic fallback tests: PASS
 - Real provider test: NOT RUN
-- Required Worker secret: `RESEND_API_KEY`
-- Required provider setup: authorize `tungjpstore.net` for the fixed From
-  identity before using Resend for arbitrary recipients.
+- Required provider setup: update the `rsend.tungjpstore.net` CNAME to the
+  Resend ap-northeast-1 target, then complete domain verification for the fixed
+  From identity before using Resend for arbitrary recipients.
 
-No secret value was printed, stored, or committed.
+No secret value was printed, stored, logged, or committed.
 
 ## Code changes
 
@@ -142,6 +151,8 @@ No secret value was printed, stored, or committed.
 - Hosted PR CI run `35685553412` on publication head `eec404a`:
   `validate` PASS; PR reported `MERGEABLE` / `CLEAN`. The final documentation
   receipt triggers a fresh exact-head CI check before handoff.
+- Hosted PR CI run `35686094736` on head `2d75579`: `validate` PASS and the PR
+  remained `MERGEABLE` / `CLEAN` before the operator-authorized secret receipt.
 - `pnpm audit --audit-level high`: reports the unchanged lockfile baseline of
   21 advisories (6 high) in Wrangler/Miniflare Undici, jsdom ws, and build-time
   sharp paths. No dependency changed in T18E; remediation requires a separate
@@ -160,15 +171,15 @@ A random address was not selected and no production request was generated.
 
 ## Remaining operator action
 
-1. Confirm in the production Cloudflare account that `tungjpstore.net` and the
+1. Update DNS CNAME `rsend.tungjpstore.net` from the old Resend target to
+   `rsend-apne1.forge.rmta.net`, then re-run Resend domain verification until
+   `tungjpstore.net` is verified.
+2. Confirm in the production Cloudflare account that `tungjpstore.net` and the
    fixed sender `no-reply@tungjpstore.net` are authorized for Email Service.
-2. Provision the production Worker secret `RESEND_API_KEY` without printing or
-   committing its value.
-3. Confirm the same sending domain/identity is authorized in Resend.
-4. Supply an explicitly authorized test inbox outside source control.
-5. After review and merge, require exact-main CI and automatic staging, then run
+3. Supply an explicitly authorized test inbox outside source control.
+4. After review and merge, require exact-main CI and automatic staging, then run
    the controlled staging OTP smoke if provider configuration is available.
-6. Separately authorize any production deploy. After deployment, run one
+5. Separately authorize any production deploy. After deployment, run one
    controlled registration or reset delivery, verify the received OTP, and
    confirm replay rejection without recording the code.
 
