@@ -8,8 +8,10 @@
 - [done] Release state machine `static|shadow|canary{1,2,5,25}|d1` with derived cutover; deploy workflow authority-proof steps; smoke validates the authority summary.
 - [done] Public sanitized `recipeAuthority` readiness + protected `/health/recipe-authority` release evidence (bearer token, no PII).
 - [done] Verification: lint, typecheck, migration smoke, build, full Vitest 567 files / 4294 PASS, `recipe:import:check` 500 = rel-bd00a4f53fcaeee4.
-- [blocked] Production rollout: requires hosted CI, `RELEASE_VERIFY_TOKEN`/`STAGING_RELEASE_VERIFY_TOKEN` provisioning, GitHub `production` Environment approval, Cloudflare credentials. Production unchanged.
-- [next] Hosted CI on the PR → operator provisioning → staged rollout (shadow → canary 1 → 5 → 25 → d1) via the reviewed Deploy workflow. Handoff: `docs/ai/recipe-catalog/T19_V2_WIP_HANDOFF.md`.
+- [blocked] **Publication:** `feat/t19-recipe-authority-cutover-v2` is local/artifact-only and ABSENT from the remote (credential cannot publish workflow-changing commits; push rejected). Status `T19_V2_SAFE_STOP_PUBLICATION_BLOCKED`.
+- [blocked] Hosted CI for the application code has NOT happened (no application PR). [PR #52](https://github.com/vn-tako2/Frigo-dev/pull/52) is documentation-only; its `validate` pass certifies the docs, not the code.
+- [blocked] Production rollout is NOT eligible to start; production unchanged.
+- [next] Takeover steps A–F: obtain original workspace/artifacts → restore exact application branch (HEAD token `0a04209e512d19293ed56a19d3fd51eb29ffefcd`) → verify → publish branch → verify remote SHA → only then application PR, hosted CI, `RELEASE_VERIFY_TOKEN` provisioning, staged rollout (shadow → canary 1 → 5 → 25 → d1). Handoff: `docs/ai/recipe-catalog/T19_V2_WIP_HANDOFF.md`.
 - [not-started] T20 Meal Composition V2 (blocked until `T19_COMPLETE`).
 
 ## Google Safari profile recovery + registration-only Turnstile

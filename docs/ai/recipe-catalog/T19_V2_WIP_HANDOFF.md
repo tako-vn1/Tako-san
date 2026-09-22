@@ -7,15 +7,25 @@ T19_V2_SAFE_STOP_PUBLICATION_BLOCKED
 ```
 
 All valid T19 work is committed locally (working tree clean) and preserved in
-portable artifacts, but **the branch could not be pushed**: the GitHub App
-credential refuses any ref that creates/updates
-`.github/workflows/deploy.yml` ("refusing to allow a GitHub App to create or
-update workflow ... without `workflows` permission"). A safe credential refresh
-(`credential_control rotate`) was attempted and did not change the scope. Per
-the safe-stop contract the workflow change was NOT stripped to force the push.
-A docs-only branch (`docs/t19-v2-safe-stop-handoff`) carrying this handoff and
-the T19 V2 documentation IS published; the application branch exists only
-locally and in the artifacts below. Production untouched. Not `T19_COMPLETE`.
+portable artifacts, but **the application branch could not be pushed**: the
+credential/token used by the authoring workspace lacks effective capability to
+publish workflow-changing commits; GitHub rejected the push. A credential
+refresh was attempted and did not change the outcome. Per the safe-stop
+contract the workflow change was NOT stripped to force the push.
+
+Published truth (independently verified):
+
+```text
+remote feat/t19-recipe-authority-cutover-v2 = ABSENT (application code is NOT reviewable from GitHub)
+docs/t19-v2-safe-stop-handoff (remote) = 16b3148ee199c19cd6befa0da8f2b02cc9ce7c60   # documentation only
+PR #52 = open, documentation only; its validate run certifies DOCS, not the T19 application code
+hosted CI for the T19 application code = HAS NOT HAPPENED (no application PR exists)
+production rollout = NOT ELIGIBLE to start
+```
+
+The T19 V2 application code is **local/artifact-only**: it exists in the
+original authoring workspace and in the portable artifacts described below, and
+nowhere else. Production untouched. Not `T19_COMPLETE`.
 
 # Repository
 
@@ -25,8 +35,12 @@ repository_full_name=vn-tako2/Frigo-dev
 origin_url=https://github.com/vn-tako2/Frigo-dev.git
 canonical_main=4677ebb (short) — `git rev-parse` prints 4677ebbabbb580b9045423350da719acaf8f5742
 session_start_sha=4677ebbabbb580b9045423350da719acaf8f5742 (HEAD == origin/main at session start)
-branch=feat/t19-recipe-authority-cutover-v2 (LOCAL ONLY; push blocked, see STATUS)
+branch=feat/t19-recipe-authority-cutover-v2 (LOCAL ONLY; absent from remote)
 worktree_clean=true
+
+SHA identities (tokens; the two branch heads are DIFFERENT and must never be conflated):
+application_branch_final_local_HEAD=0a04209e512d19293ed56a19d3fd51eb29ffefcd   # feat/t19-recipe-authority-cutover-v2 (local)
+docs_only_remote_branch_HEAD=16b3148ee199c19cd6befa0da8f2b02cc9ce7c60            # docs/t19-v2-safe-stop-handoff on GitHub
 ```
 
 Session note: this environment redacts commit SHAs to stable word tokens in
@@ -135,39 +149,51 @@ Historical (pre-T19, other sessions): CI run `8dc9198` full-suite 4242 tests —
 
 # Next exact action
 
-```text
-NEXT:
-1. git fetch origin --prune && git checkout feat/t19-recipe-authority-cutover-v2
-2. git rev-parse HEAD   # must equal the final published SHA in the takeover contract below
-3. git log --oneline origin/main..HEAD && pnpm vitest run tests/integration/t19-recipe-authority-split.test.ts
-4. Hosted CI on the PR must be green; then operator provisioning:
-   - RELEASE_VERIFY_TOKEN (>=32 chars) as a Worker secret (staging + production) and repo secret(s)
-5. Continue T19 production phase ONLY via the reviewed Deploy workflow:
-   shadow → verify (readiness + release-check authority) → canary 1 → 5 → 25 → d1,
-   each gate decided by the workflow's machine proof; rollback = redeploy mode=shadow.
-```
+See the **Takeover contract** at the end of this file — steps A through F in
+order. Hosted CI, an application PR and production rollout are step F only:
+none of them has happened yet, and production rollout is not eligible to start
+until the application branch is published and hosted CI is green.
 
 # Takeover contract (publication blocked)
 
-The remote does NOT contain `feat/t19-recipe-authority-cutover-v2`. Recover in
-one of these ways, in order:
+The remote does NOT contain `feat/t19-recipe-authority-cutover-v2`. The GitHub
+remote (`16b3148ee199c19cd6befa0da8f2b02cc9ce7c60` on `docs/t19-v2-safe-stop-handoff`, PR #52) is
+documentation only and does NOT carry the application implementation.
 
-1. **Restore from the portable artifacts** (held in THIS workspace at
-   `.artifacts/`; they are gitignored and not on GitHub):
-   - `.artifacts/t19-v2-safe-stop.bundle` (git bundle of the full branch;
-     SHA-256 as printed in the final safe-stop report; ~350 MB)
-   - `.artifacts/t19-v2-safe-stop.patch` (`git format-patch origin/main..HEAD`)
-   Restore: `git fetch .artifacts/t19-v2-safe-stop.bundle feat/t19-recipe-authority-cutover-v2 && git checkout -b feat/t19-recipe-authority-cutover-v2 FETCH_HEAD`
-   (or `git am < .artifacts/t19-v2-safe-stop.patch` on a fresh branch from main).
-2. **Re-apply the patch from GitHub**: the docs-only branch
-   `docs/t19-v2-safe-stop-handoff` carries this handoff and the T19 V2 docs;
-   the application code must come from the artifacts or be re-implemented from
-   this document's file list.
-3. If an operator grants the installation `workflows` permission, re-push:
-   `git push origin feat/t19-recipe-authority-cutover-v2` from the restored
-   workspace, then verify `git ls-remote origin` equals local HEAD.
+Portable artifacts:
 
-Expected final local HEAD: `0b416a29f60f2bb4afa36f6928f71f55c523223d` (`git rev-parse` token for
-the docs commit on top of the application checkpoint; commits listed in the
-final safe-stop report). If a restored HEAD differs: STOP and reconcile.
-Production mutations in this session: **none**.
+- `.artifacts/t19-v2-safe-stop.bundle` — `git bundle` of the full application
+  branch (SHA-256 `2c7c758f179ef861fafbe33c329e2ddaf2137fdf78b7b800701ee399902a60d8` as printed by `sha256sum`; ~350 MB)
+- `.artifacts/t19-v2-safe-stop.patch` — `git format-patch origin/main..HEAD`
+  of the application branch (SHA-256 `22101084e71ab8b49bbd334d644d50eb2926e86334e8fa62a9ac5c93bbafda73`)
+
+These artifacts exist ONLY in the original authoring workspace
+(`.artifacts/` is gitignored) and are NOT on GitHub. Account takeover is safe
+ONLY if the original workspace is retained or the artifacts are explicitly
+transferred out of it. The documentation on GitHub is a map, not the
+implementation: re-implementing the application code from these documents is a
+lossy substitute and is NOT an equivalent recovery.
+
+```text
+NEXT (in this exact order):
+A. Obtain the original workspace or an explicit transfer of the portable artifacts.
+B. Restore the exact application branch:
+   git fetch <artifacts-dir>/t19-v2-safe-stop.bundle feat/t19-recipe-authority-cutover-v2
+   git checkout -b feat/t19-recipe-authority-cutover-v2 FETCH_HEAD
+   (equivalent: git am < artifacts-dir>/t19-v2-safe-stop.patch from a fresh main branch)
+C. Verify the expected commit/tree: HEAD token 0a04209e512d19293ed56a19d3fd51eb29ffefcd;
+   git log --oneline origin/main..HEAD shows 3 commits (application checkpoint,
+   safe-stop handoff, publication-blocker note); git status clean;
+   spot-check the file list in this handoff.
+D. Publish the branch: git push origin HEAD:feat/t19-recipe-authority-cutover-v2
+   (requires a credential with effective capability to publish
+   workflow-changing commits; the authoring credential did not have it).
+E. Verify the remote: git ls-remote origin refs/heads/feat/t19-recipe-authority-cutover-v2
+   must equal the local HEAD.
+F. Only then create the application PR, let hosted CI run, and continue T19
+   release work (RELEASE_VERIFY_TOKEN provisioning, staged rollout via the
+   reviewed Deploy workflow: shadow -> verify -> canary 1 -> 5 -> 25 -> d1).
+```
+
+If a restored HEAD differs from `0a04209e512d19293ed56a19d3fd51eb29ffefcd` (token): STOP and
+reconcile before continuing. Production mutations in this session: **none**.

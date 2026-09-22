@@ -2,7 +2,7 @@
 
 ## ADR-030 — One recipe authority for the Meal Planner, stored-plan authority identity, reviewed full-D1 release state and protected release evidence (T19 V2)
 
-**Status:** Accepted 2026-09-22 (branch `feat/t19-recipe-authority-cutover-v2`; production remains `static`, untouched)
+**Status:** Accepted 2026-09-22 (branch `feat/t19-recipe-authority-cutover-v2`, local/artifact-only — absent from the remote, publication blocked; production remains `static`, untouched)
 
 **Context:** ADR-026 made the Recipe API/Week/Shopping/Cooking read one
 `RecipeAuthoritySnapshot`, but the Meal Planner still loaded the raw D1 catalog

@@ -2,7 +2,14 @@
 
 ## T19 V2 — recipe authority cutover (safe stop 2026-09-22)
 
-See `docs/ai/TASK_BOARD.md` and `docs/ai/recipe-catalog/T19_V2_WIP_HANDOFF.md` (canonical T19 handoff). Production untouched; rollout blocked on hosted CI + token provisioning.
+Status `T19_V2_SAFE_STOP_PUBLICATION_BLOCKED`. The T19 application branch
+`feat/t19-recipe-authority-cutover-v2` (local HEAD token `0a04209e512d19293ed56a19d3fd51eb29ffefcd`)
+is **local/artifact-only and ABSENT from the remote**: the credential used by
+the authoring workspace cannot publish workflow-changing commits and GitHub
+rejected the push. Hosted CI for the application code has **NOT happened**.
+[PR #52](https://github.com/vn-tako2/Frigo-dev/pull/52) is documentation-only.
+**Production rollout is NOT eligible to start**; production untouched. Canonical
+handoff: `docs/ai/recipe-catalog/T19_V2_WIP_HANDOFF.md` (takeover steps A–F).
 
 - Exact repository/base/production: `1368281478`, `vn-tako1/Frigo-dev`,
   `66627ffea890dad1cec4e31674449775a940c660`.

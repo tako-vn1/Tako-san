@@ -1,8 +1,14 @@
 # T19 V2 — One Recipe Authority and the 500-recipe D1 cutover
 
 Status: **T19_CODE_COMPLETE_PRODUCTION_BLOCKED** (see the final section for the
-exact blocker). Branch `feat/t19-recipe-authority-cutover-v2` from canonical
-main `4677ebb` (repository ID `1368281478`, currently `vn-tako2/Frigo-dev`).
+exact blocker). Safe-stop status: **T19_V2_SAFE_STOP_PUBLICATION_BLOCKED**.
+Branch `feat/t19-recipe-authority-cutover-v2` from canonical main `4677ebb`
+(repository ID `1368281478`, currently `vn-tako2/Frigo-dev`) is
+**local/artifact-only and ABSENT from the remote**: the credential/token used by
+the authoring workspace lacks effective capability to publish workflow-changing
+commits and GitHub rejected the push. Hosted CI for this application code has
+NOT happened; PR #52 validates documentation only. Takeover contract:
+[T19_V2_WIP_HANDOFF.md](T19_V2_WIP_HANDOFF.md).
 
 The old unpublished T19 checkpoint (`7ac0433fba748f2c1c4af3988eaae6b08404bf74`) was never available
 to this session and was **not** reconstructed. Everything below is a fresh
@@ -189,12 +195,23 @@ Exact commands, counts and the production gate status are in
 
 ## 9. Production status and blocker
 
-See `docs/ai/HANDOFF.md` (T19 section). Production progression requires the
-reviewed Deploy workflow (GitHub `production` Environment approval, Cloudflare
-secrets, and the new `RELEASE_VERIFY_TOKEN` Worker secret + repository secret).
-None of these are available to this session, so no production mutation was
-performed and the staged rollout (`shadow → canary → d1`) is the operator's next
-action through the workflow.
+Two separate blockers, in order:
+
+1. **Publication blocker (safe stop):** the application branch
+   `feat/t19-recipe-authority-cutover-v2` is local/artifact-only and absent
+   from the remote. The credential/token used by the authoring workspace lacks
+   effective capability to publish workflow-changing commits; GitHub rejected
+   the push. Hosted CI for the application code has NOT happened — PR #52
+   validates documentation only. Recovery is takeover steps A–F in
+   [T19_V2_WIP_HANDOFF.md](T19_V2_WIP_HANDOFF.md).
+2. **Release blocker:** production progression additionally requires the
+   reviewed Deploy workflow (GitHub `production` Environment approval, Cloudflare
+   secrets, and the new `RELEASE_VERIFY_TOKEN` Worker secret + repository
+   secret).
+
+**Production rollout is NOT eligible to start** until (1) the application
+branch is published, (2) an application PR exists and hosted CI is green.
+No production mutation was performed in this session.
 
 ## 10. T20 handoff (unchanged product scope)
 

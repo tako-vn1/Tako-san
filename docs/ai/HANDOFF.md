@@ -5,20 +5,34 @@
 - **Base/branch:** repository ID `1368281478` (`vn-tako2/Frigo-dev`); exact
   canonical main `4677ebb` (`4677ebbabbb580b9045423350da719acaf8f5742`); branch
   `feat/t19-recipe-authority-cutover-v2`.
-- **State:** `T19_V2_SAFE_STOP_PUBLISHED`. Application authority unification
+- **State:** `T19_V2_SAFE_STOP_PUBLICATION_BLOCKED`. Application authority unification
   (Recipe API = Planner = Shopping = Cooking under one `resolveRecipeAuthority`),
   authority-scoped fingerprints, stored-plan authority identity with typed
   revalidation, reviewed full-D1 release states (`static|shadow|canary{1,2,5,25}|d1`,
-  derived cutover), protected recipe-authority release evidence. Production
-  untouched (no deploy, no mode/percent change, no D1 access).
+  derived cutover), protected recipe-authority release evidence.
+- **Publication truth:** the application branch is **local/artifact-only and
+  ABSENT from the remote** — the credential/token used by the authoring
+  workspace lacks effective capability to publish workflow-changing commits and
+  GitHub rejected the push. Hosted CI for the application code has **NOT
+  happened**. [PR #52](https://github.com/vn-tako2/Frigo-dev/pull/52)
+  (`docs/t19-v2-safe-stop-handoff`, head `16b3148ee199c19cd6befa0da8f2b02cc9ce7c60`) is
+  **documentation-only**; its `validate` run does not exercise the application
+  code. **Production rollout is NOT eligible to start.** The application
+  branch's final local HEAD token is `0a04209e512d19293ed56a19d3fd51eb29ffefcd` (≠ the docs branch
+  head); the portable bundle/patch artifacts exist only in the original
+  workspace. Production untouched (no deploy, no mode/percent change, no D1
+  access).
 - **Verification (current session):** `pnpm lint`, `pnpm typecheck`,
   `pnpm check:migrations`, `pnpm build`, full Vitest **567 files / 4294 tests
   PASS**, `pnpm recipe:import:check` (`rel-bd00a4f53fcaeee4`, 500 recipes),
   `git diff --check`. Full-suite counts are current-session, not historical.
-- **Blocked on:** hosted CI green, `RELEASE_VERIFY_TOKEN` (+ staging twin)
-  provisioning, GitHub `production` Environment approval, Cloudflare credentials.
-- **Next:** staged rollout through the reviewed Deploy workflow
-  (shadow → verify → canary 1 → 5 → 25 → d1), rollback = redeploy `shadow`.
+- **Blocked on (in order):** original workspace/artifact takeover → publishing
+  `feat/t19-recipe-authority-cutover-v2` → application PR + hosted CI →
+  `RELEASE_VERIFY_TOKEN` (+ staging twin) provisioning, GitHub `production`
+  Environment approval, Cloudflare credentials.
+- **Next:** takeover steps A–F in the canonical handoff; only at step F is the
+  staged rollout (shadow → verify → canary 1 → 5 → 25 → d1) via the reviewed
+  Deploy workflow eligible to start. Rollback = redeploy `shadow`.
 - **Canonical handoff:**
   [T19_V2_WIP_HANDOFF.md](recipe-catalog/T19_V2_WIP_HANDOFF.md).
 
