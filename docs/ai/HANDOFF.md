@@ -15,9 +15,8 @@
   workspace lacks effective capability to publish workflow-changing commits and
   GitHub rejected the push. Hosted CI for the application code has **NOT
   happened**. [PR #52](https://github.com/vn-tako2/Frigo-dev/pull/52)
-  (`docs/t19-v2-safe-stop-handoff`, head `16b3148ee199c19cd6befa0da8f2b02cc9ce7c60`) is
-  **documentation-only**; its `validate` run does not exercise the application
-  code. **Production rollout is NOT eligible to start.** The application
+  (`docs/t19-v2-safe-stop-handoff`) is **documentation-only**; its `validate`
+  run does not exercise the application code. **Production rollout is NOT eligible to start.** The application
   branch's final local HEAD token is `0a04209e512d19293ed56a19d3fd51eb29ffefcd` (≠ the docs branch
   head); the portable bundle/patch artifacts exist only in the original
   workspace. Production untouched (no deploy, no mode/percent change, no D1

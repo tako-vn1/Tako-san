@@ -17,7 +17,8 @@ Published truth (independently verified):
 
 ```text
 remote feat/t19-recipe-authority-cutover-v2 = ABSENT (application code is NOT reviewable from GitHub)
-docs/t19-v2-safe-stop-handoff (remote) = 16b3148ee199c19cd6befa0da8f2b02cc9ce7c60   # documentation only
+docs/t19-v2-safe-stop-handoff (remote) = the docs branch head; it advances with each
+   documentation correction (PR #52 is its only PR), so always read it with `git ls-remote`# documentation only
 PR #52 = open, documentation only; its validate run certifies DOCS, not the T19 application code
 hosted CI for the T19 application code = HAS NOT HAPPENED (no application PR exists)
 production rollout = NOT ELIGIBLE to start
@@ -39,8 +40,11 @@ branch=feat/t19-recipe-authority-cutover-v2 (LOCAL ONLY; absent from remote)
 worktree_clean=true
 
 SHA identities (tokens; the two branch heads are DIFFERENT and must never be conflated):
-application_branch_final_local_HEAD=0a04209e512d19293ed56a19d3fd51eb29ffefcd   # feat/t19-recipe-authority-cutover-v2 (local)
-docs_only_remote_branch_HEAD=16b3148ee199c19cd6befa0da8f2b02cc9ce7c60            # docs/t19-v2-safe-stop-handoff on GitHub
+application_branch_final_local_HEAD=0a04209e512d19293ed56a19d3fd51eb29ffefcd   # feat/t19-recipe-authority-cutover-v2 (LOCAL, immutable at safe stop)
+docs_only_remote_branch_HEAD=advances with every documentation correction (was 16b3148ee199c19cd6befa0da8f2b02cc9ce7c60 at first
+  publication, 7a3ee58b7c6b3f3d90ebcb1dafe4e1d1744d13fd after the truth correction); read it live with
+  git ls-remote origin refs/heads/docs/t19-v2-safe-stop-handoff
+  # it is NEVER the application branch HEAD token
 ```
 
 Session note: this environment redacts commit SHAs to stable word tokens in
@@ -156,9 +160,10 @@ until the application branch is published and hosted CI is green.
 
 # Takeover contract (publication blocked)
 
-The remote does NOT contain `feat/t19-recipe-authority-cutover-v2`. The GitHub
-remote (`16b3148ee199c19cd6befa0da8f2b02cc9ce7c60` on `docs/t19-v2-safe-stop-handoff`, PR #52) is
-documentation only and does NOT carry the application implementation.
+The remote does NOT contain `feat/t19-recipe-authority-cutover-v2`. The docs
+branch `docs/t19-v2-safe-stop-handoff` (PR #52; its remote head advances with
+each documentation correction, so verify with `git ls-remote`) is documentation
+only and does NOT carry the application implementation.
 
 Portable artifacts:
 
