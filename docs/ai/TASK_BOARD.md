@@ -19,7 +19,11 @@
   Turnstile and no-production-leak contracts.
 - [done] Focused 165/165; full Vitest 185 files / 4238 tests; lint, typecheck,
   migration smoke and build PASS. No migration or workflow change.
-- [pending] Open review-only PR; do not merge or deploy.
+- [done] Review-only [PR #50](https://github.com/vn-tako1/Frigo-dev/pull/50)
+  opened; hosted validate `35685553412` passed on `eec404a`; PR was
+  `MERGEABLE` / `CLEAN`.
+- [next] Require fresh exact-head CI after the final docs receipt; do not merge
+  or deploy.
 - [blocked] Provision Worker secret `RESEND_API_KEY`, verify fixed sender/domain
   in both providers, and supply an authorized test inbox before real delivery
   can be certified. See `T18E_OTP_DELIVERY_RECOVERY.md`.

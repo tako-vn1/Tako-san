@@ -10,6 +10,7 @@ Status: `T18E_OTP_RESEND_SECRET_REQUIRED`
 - Repository: `vn-tako1/Frigo-dev`
 - Starting main and production SHA: `66627ffea890dad1cec4e31674449775a940c660`
 - Branch: `feat/t18e-otp-email-delivery-recovery`
+- Review-only PR: `https://github.com/vn-tako1/Frigo-dev/pull/50`
 - Production URL: `https://frigo.tungjpstore.net`
 - No Google Sign-In, Google OAuth, GIS, CSP, client ID, or iOS behavior changed.
 - No migration, workflow change, production mutation, merge, or production deploy.
@@ -138,6 +139,9 @@ No secret value was printed, stored, or committed.
 - `pnpm check:migrations`: PASS (`migration-smoke=ok`)
 - `pnpm build`: PASS
 - `git diff --check`: PASS before documentation checkpoint
+- Hosted PR CI run `35685553412` on publication head `eec404a`:
+  `validate` PASS; PR reported `MERGEABLE` / `CLEAN`. The final documentation
+  receipt triggers a fresh exact-head CI check before handoff.
 - `pnpm audit --audit-level high`: reports the unchanged lockfile baseline of
   21 advisories (6 high) in Wrangler/Miniflare Undici, jsdom ws, and build-time
   sharp paths. No dependency changed in T18E; remediation requires a separate

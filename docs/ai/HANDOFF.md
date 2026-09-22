@@ -24,6 +24,10 @@
 - **Verification:** focused 165/165; full Vitest 185 files / 4238 tests; lint,
   typecheck, migration smoke and build PASS. Audit reports the unchanged
   lockfile baseline of 21 advisories / 6 high; no dependency changed.
+- **PR/CI:** review-only [PR #50](https://github.com/vn-tako1/Frigo-dev/pull/50)
+  is OPEN. Hosted validate run `35685553412` passed on publication head
+  `eec404a`; PR was `MERGEABLE` / `CLEAN`. Wait for fresh exact-head CI after
+  the final documentation receipt. Do not merge.
 - **Safety:** no migration, workflow, payment, Google, production config, D1,
   deploy, merge, or random test email. Real inbox delivery is NOT RUN.
 - **Next:** operator verifies `no-reply@tungjpstore.net` in Cloudflare Email

@@ -12,8 +12,11 @@
   failure, and honest readiness semantics.
 - Focused 165/165 and full Vitest 185 files / 4238 tests PASS; lint, typecheck,
   migration smoke and build PASS. No migration, workflow or production change.
-- Next: open review-only PR; operator provisions `RESEND_API_KEY`, verifies the
-  fixed sender/domain in both providers, supplies an authorized inbox, and runs
+- Review-only PR #50 is OPEN; hosted validate `35685553412` passed on
+  publication head `eec404a` and the PR was `MERGEABLE` / `CLEAN`. Require
+  fresh exact-head CI after the final docs receipt; do not merge or deploy.
+- Next: operator provisions `RESEND_API_KEY`, verifies the fixed sender/domain
+  in both providers, supplies an authorized inbox, and runs
   controlled staging then separately authorized production delivery checks.
   Evidence: `docs/ai/T18E_OTP_DELIVERY_RECOVERY.md`.
 

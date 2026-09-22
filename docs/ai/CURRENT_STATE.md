@@ -26,6 +26,9 @@ and production `devOtp` suppression remain intact. No Google file changed.
 Focused auth/email coverage is **6 files / 165 tests PASS**; full Vitest is
 **185 files / 4238 tests PASS**. Lint, typecheck, migration smoke and build pass.
 The unchanged dependency audit baseline still reports 21 advisories / 6 high.
+Review-only [PR #50](https://github.com/vn-tako1/Frigo-dev/pull/50) is OPEN;
+publication head `eec404a` passed hosted validate run `35685553412` and was
+`MERGEABLE` / `CLEAN`. Final docs publication requires its own exact-head CI.
 No migration, workflow, merge, staging, production deploy, secret mutation, or
 real email was performed. Next: provision `RESEND_API_KEY`, confirm sender
 authorization in both providers, supply an authorized test inbox, and complete
