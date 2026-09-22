@@ -1,14 +1,13 @@
-**Current: T18E_OTP_PROVIDER_CONFIG_REQUIRED.**
+**Current: T18E_OTP_TEST_RECIPIENT_REQUIRED.**
 
 - Exact repository/base/production: `1368281478`, `vn-tako1/Frigo-dev`,
   `66627ffea890dad1cec4e31674449775a940c660`.
 - Isolated branch `feat/t18e-otp-email-delivery-recovery` is pushed; Google
   Sign-In files and behavior are untouched.
 - `SEND_EMAIL` and the operator-authorized `RESEND_API_KEY` secret are present;
-  the supplied key authenticates. Resend domain verification remains pending
-  because the public `rsend` CNAME targets the old global endpoint rather than
-  the configured ap-northeast-1 endpoint. Current Cloudflare sender authority
-  and primary failure category remain UNKNOWN.
+  the supplied key authenticates. The operator completed DNS correction and
+  Resend reports the domain plus all three sending records as verified. Current
+  Cloudflare sender authority and primary failure category remain UNKNOWN.
 - Provider recovery is hardened and tested: Workers Email -> Resend -> fail
   closed, sanitized categories/logs, production invalidation on every delivery
   failure, and honest readiness semantics.
@@ -17,8 +16,7 @@
 - Review-only PR #50 is OPEN; hosted validate `35685553412` passed on
   publication head `eec404a` and the PR was `MERGEABLE` / `CLEAN`. Require
   fresh exact-head CI after the final docs receipt; do not merge or deploy.
-- Next: operator corrects the `rsend` DNS target, completes Resend domain
-  verification, verifies the fixed sender in Cloudflare Email Service,
+- Next: operator verifies the fixed sender in Cloudflare Email Service,
   supplies an authorized inbox, and runs
   controlled staging then separately authorized production delivery checks.
   Evidence: `docs/ai/T18E_OTP_DELIVERY_RECOVERY.md`.

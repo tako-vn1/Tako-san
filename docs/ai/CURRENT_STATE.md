@@ -1,6 +1,6 @@
 # Frigo / Takosan current authority — 2026-09-22
 
-## T18E — `T18E_OTP_PROVIDER_CONFIG_REQUIRED`
+## T18E — `T18E_OTP_TEST_RECIPIENT_REQUIRED`
 
 Repository ID `1368281478` resolves to `vn-tako1/Frigo-dev`; exact starting
 main and production are `66627ffea890dad1cec4e31674449775a940c660`.
@@ -12,11 +12,11 @@ The production `SEND_EMAIL` binding is present, but current sender authority
 and the exact failure category could not be read with the available Cloudflare
 OAuth scopes. The operator-authorized production `RESEND_API_KEY` secret is now
 present and authenticates successfully without its value being printed or
-stored. Resend domain `tungjpstore.net` is still pending because the public
-`rsend` CNAME targets the old global endpoint instead of the configured
-ap-northeast-1 endpoint. T18E does not fabricate a primary root cause: current
-Workers Email sender authorization remains UNKNOWN until an operator verifies
-the account or a sanitized production event is captured.
+stored. The operator completed the DNS correction; Resend now reports
+`tungjpstore.net`, DKIM, and both SPF-purpose records as verified. T18E does not
+fabricate a primary root cause: current Workers Email sender authorization
+remains UNKNOWN until an operator verifies the account or a sanitized
+production event is captured.
 
 Code now classifies and logs provider failures without recipient/OTP/body data,
 falls through from Workers Email to Resend, distinguishes Resend quota/rate/
@@ -34,8 +34,8 @@ publication head `eec404a` passed hosted validate run `35685553412` and was
 `MERGEABLE` / `CLEAN`. Final docs publication requires its own exact-head CI.
 No migration, workflow, merge, staging, production deploy, or real email was
 performed. The only production mutation was the explicitly authorized
-`RESEND_API_KEY` secret upload. Next: correct the `rsend` DNS target, complete
-Resend domain verification, confirm Cloudflare sender authorization, supply an
+`RESEND_API_KEY` secret upload; the operator separately completed Resend DNS
+verification. Next: confirm Cloudflare sender authorization, supply an
 authorized test inbox, and complete staging then separately authorized
 production delivery verification. Full evidence:
 [T18E_OTP_DELIVERY_RECOVERY.md](T18E_OTP_DELIVERY_RECOVERY.md).

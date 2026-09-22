@@ -1,6 +1,6 @@
 # Frigo / Takosan current task board — 2026-09-22
 
-## T18E — `T18E_OTP_PROVIDER_CONFIG_REQUIRED` (2026-09-22)
+## T18E — `T18E_OTP_TEST_RECIPIENT_REQUIRED` (2026-09-22)
 
 - [done] Verified stable repository ID, exact base/production `66627ff`, and
   created/pushed `feat/t18e-otp-email-delivery-recovery` without rebasing or
@@ -26,11 +26,11 @@
   `MERGEABLE` / `CLEAN`.
 - [next] Require fresh exact-head CI after the final docs receipt; do not merge
   or deploy.
-- [blocked] Resend domain remains pending: `rsend.tungjpstore.net` still targets
-  the old global endpoint and must point to `rsend-apne1.forge.rmta.net` for the
-  configured region. Complete domain verification, verify the fixed sender in
-  Cloudflare Email Service, and supply an authorized test inbox before real
-  delivery can be certified. See `T18E_OTP_DELIVERY_RECOVERY.md`.
+- [done] Operator completed the DNS correction; Resend reports
+  `tungjpstore.net`, DKIM, and both SPF-purpose records as verified.
+- [blocked] Verify the fixed sender in Cloudflare Email Service and supply an
+  authorized test inbox before real delivery can be certified. See
+  `T18E_OTP_DELIVERY_RECOVERY.md`.
 
 ## T18D — `T18D_READY_FOR_REVIEW` (2026-09-22)
 

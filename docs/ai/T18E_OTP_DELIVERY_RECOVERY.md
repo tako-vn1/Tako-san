@@ -2,7 +2,7 @@
 
 Date: 2026-09-22
 
-Status: `T18E_OTP_PROVIDER_CONFIG_REQUIRED`
+Status: `T18E_OTP_TEST_RECIPIENT_REQUIRED`
 
 ## Scope and boundaries
 
@@ -46,13 +46,11 @@ observed** and is not fabricated. Sender authorization for
 `no-reply@tungjpstore.net` in the production Cloudflare account remains
 `UNKNOWN` in this task.
 
-The supplied Resend key authenticates successfully, but the Resend sending
-domain remains `pending`. Public DNS matches the expected DKIM and `send`
-records, while `rsend.tungjpstore.net` still points to the older
-`rsend.forge.rmta.net`; the configured ap-northeast-1 domain requires
-`rsend-apne1.forge.rmta.net`. A Resend domain verification refresh returned
-HTTP 200 but correctly remained pending. Production fallback therefore cannot
-yet be certified for arbitrary recipients.
+The supplied Resend key authenticates successfully. The operator completed the
+DNS correction and Resend now reports `tungjpstore.net` plus its DKIM and both
+SPF-purpose records as `verified`. No email was sent during configuration, so
+inbox delivery and OTP verification still require an explicitly authorized
+test recipient.
 
 Historical T16 evidence proved that the old subdomain sender
 `no-reply@frigo.tungjpstore.net` was unauthorized and that the current apex
@@ -74,13 +72,11 @@ but it is not treated as proof of current sender authorization or inbox delivery
 
 - `RESEND_API_KEY` Worker secret present: YES
 - API authentication: PASS
-- Sending-domain state: PENDING
+- Sending-domain state: VERIFIED
 - Fallback router implemented: YES
 - Deterministic fallback tests: PASS
 - Real provider test: NOT RUN
-- Required provider setup: update the `rsend.tungjpstore.net` CNAME to the
-  Resend ap-northeast-1 target, then complete domain verification for the fixed
-  From identity before using Resend for arbitrary recipients.
+- Provider setup: `tungjpstore.net` and all reported sending records VERIFIED
 
 No secret value was printed, stored, logged, or committed.
 
@@ -171,15 +167,12 @@ A random address was not selected and no production request was generated.
 
 ## Remaining operator action
 
-1. Update DNS CNAME `rsend.tungjpstore.net` from the old Resend target to
-   `rsend-apne1.forge.rmta.net`, then re-run Resend domain verification until
-   `tungjpstore.net` is verified.
-2. Confirm in the production Cloudflare account that `tungjpstore.net` and the
+1. Confirm in the production Cloudflare account that `tungjpstore.net` and the
    fixed sender `no-reply@tungjpstore.net` are authorized for Email Service.
-3. Supply an explicitly authorized test inbox outside source control.
-4. After review and merge, require exact-main CI and automatic staging, then run
+2. Supply an explicitly authorized test inbox outside source control.
+3. After review and merge, require exact-main CI and automatic staging, then run
    the controlled staging OTP smoke if provider configuration is available.
-5. Separately authorize any production deploy. After deployment, run one
+4. Separately authorize any production deploy. After deployment, run one
    controlled registration or reset delivery, verify the received OTP, and
    confirm replay rejection without recording the code.
 

@@ -1,17 +1,16 @@
 # Frigo / Takosan current handoff — 2026-09-22
 
-## T18E — `T18E_OTP_PROVIDER_CONFIG_REQUIRED`
+## T18E — `T18E_OTP_TEST_RECIPIENT_REQUIRED`
 
 - **Base/branch:** repository `1368281478` / `vn-tako1/Frigo-dev`; exact base
   and production `66627ffea890dad1cec4e31674449775a940c660`; branch
   `feat/t18e-otp-email-delivery-recovery`.
 - **Observed production state:** `SEND_EMAIL` and the operator-authorized
-  `RESEND_API_KEY` secret are present; the supplied key authenticates. Resend
-  domain `tungjpstore.net` remains pending because `rsend.tungjpstore.net`
-  points to the old global endpoint instead of the required ap-northeast-1
-  endpoint. Current Cloudflare sender onboarding and the exact primary-provider
-  rejection category remain UNKNOWN. Do not claim sender or recipient rejection
-  without a sanitized event.
+  `RESEND_API_KEY` secret are present; the supplied key authenticates. The
+  operator completed DNS correction and Resend reports `tungjpstore.net`, DKIM,
+  and both SPF-purpose records as verified. Current Cloudflare sender onboarding
+  and the exact primary-provider rejection category remain UNKNOWN. Do not claim
+  sender or recipient rejection without a sanitized event.
 - **Implementation:** Workers Email -> Resend -> fail-closed is preserved;
   Resend HTTP/body categories are sanitized; final provider failures log only
   event/provider/category/purpose/environment; unexpected router rejection
@@ -32,9 +31,8 @@
 - **Safety:** no migration, workflow, payment, Google, D1, deploy, merge, or
   random test email. The only production mutation was the explicitly authorized
   Resend secret upload. Real inbox delivery is NOT RUN.
-- **Next:** update the `rsend` CNAME to `rsend-apne1.forge.rmta.net`, complete
-  Resend domain verification, verify `no-reply@tungjpstore.net` in Cloudflare
-  Email Service, and supply an authorized test recipient. Then review/merge,
+- **Next:** verify `no-reply@tungjpstore.net` in Cloudflare Email Service and
+  supply an authorized test recipient. Then review/merge,
   exact-main CI, automatic staging and controlled staging delivery; production
   deploy remains separately authorized. See
   [T18E_OTP_DELIVERY_RECOVERY.md](T18E_OTP_DELIVERY_RECOVERY.md).
