@@ -3,11 +3,19 @@
 # STATUS
 
 ```text
-T19_V2_SAFE_STOP_PUBLISHED
+T19_V2_SAFE_STOP_PUBLICATION_BLOCKED
 ```
 
-(Branch published and remote-SHA verified; production untouched. Not
-`T19_COMPLETE`: no production D1 cutover has happened.)
+All valid T19 work is committed locally (working tree clean) and preserved in
+portable artifacts, but **the branch could not be pushed**: the GitHub App
+credential refuses any ref that creates/updates
+`.github/workflows/deploy.yml` ("refusing to allow a GitHub App to create or
+update workflow ... without `workflows` permission"). A safe credential refresh
+(`credential_control rotate`) was attempted and did not change the scope. Per
+the safe-stop contract the workflow change was NOT stripped to force the push.
+A docs-only branch (`docs/t19-v2-safe-stop-handoff`) carrying this handoff and
+the T19 V2 documentation IS published; the application branch exists only
+locally and in the artifacts below. Production untouched. Not `T19_COMPLETE`.
 
 # Repository
 
@@ -17,7 +25,7 @@ repository_full_name=vn-tako2/Frigo-dev
 origin_url=https://github.com/vn-tako2/Frigo-dev.git
 canonical_main=4677ebb (short) — `git rev-parse` prints 4677ebbabbb580b9045423350da719acaf8f5742
 session_start_sha=4677ebbabbb580b9045423350da719acaf8f5742 (HEAD == origin/main at session start)
-branch=feat/t19-recipe-authority-cutover-v2
+branch=feat/t19-recipe-authority-cutover-v2 (LOCAL ONLY; push blocked, see STATUS)
 worktree_clean=true
 ```
 
@@ -139,11 +147,27 @@ NEXT:
    each gate decided by the workflow's machine proof; rollback = redeploy mode=shadow.
 ```
 
-# Takeover contract
+# Takeover contract (publication blocked)
 
-```text
-Expected HEAD after fetch: the token/SHA printed in the final safe-stop report
-(and `git ls-remote origin feat/t19-recipe-authority-cutover-v2`).
-If HEAD differs: STOP and reconcile before continuing.
-Production mutations in this session: none.
-```
+The remote does NOT contain `feat/t19-recipe-authority-cutover-v2`. Recover in
+one of these ways, in order:
+
+1. **Restore from the portable artifacts** (held in THIS workspace at
+   `.artifacts/`; they are gitignored and not on GitHub):
+   - `.artifacts/t19-v2-safe-stop.bundle` (git bundle of the full branch;
+     SHA-256 as printed in the final safe-stop report; ~350 MB)
+   - `.artifacts/t19-v2-safe-stop.patch` (`git format-patch origin/main..HEAD`)
+   Restore: `git fetch .artifacts/t19-v2-safe-stop.bundle feat/t19-recipe-authority-cutover-v2 && git checkout -b feat/t19-recipe-authority-cutover-v2 FETCH_HEAD`
+   (or `git am < .artifacts/t19-v2-safe-stop.patch` on a fresh branch from main).
+2. **Re-apply the patch from GitHub**: the docs-only branch
+   `docs/t19-v2-safe-stop-handoff` carries this handoff and the T19 V2 docs;
+   the application code must come from the artifacts or be re-implemented from
+   this document's file list.
+3. If an operator grants the installation `workflows` permission, re-push:
+   `git push origin feat/t19-recipe-authority-cutover-v2` from the restored
+   workspace, then verify `git ls-remote origin` equals local HEAD.
+
+Expected final local HEAD: `0b416a29f60f2bb4afa36f6928f71f55c523223d` (`git rev-parse` token for
+the docs commit on top of the application checkpoint; commits listed in the
+final safe-stop report). If a restored HEAD differs: STOP and reconcile.
+Production mutations in this session: **none**.
