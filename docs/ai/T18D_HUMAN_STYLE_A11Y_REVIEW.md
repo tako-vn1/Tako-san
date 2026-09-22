@@ -11,10 +11,10 @@ not a `T18D_READY_FOR_REVIEW` or actual assistive-technology certification.
 - Exact expected main/base: `07ace57241f8270b2458610979c709bb69b9a65a`
 - Branch: `feat/t18d-a11y-human-style-hardening`
 - CI #151 / `35584884792`: SUCCESS
-- Staging Deploy #53 / `35585265322`: SUCCESS; exact SHA verified
+- Staging Deploy #53 / `35585265322`: SUCCESS; run head matches exact base
 - Production: SKIPPED and untouched
 - Checkpoints: `13ccb70` (scan), `bf764cc` (recipe tabs), `5ffcabd`
-  (cooking)
+  (cooking), `7568fb2` (focused certification/application freeze)
 
 ## Methodology
 
@@ -82,7 +82,7 @@ sequence.
 
 ## Additional scoped findings
 
-Six additional P2 findings are resolved in the current implementation:
+Seven additional P2 findings are resolved in the current implementation:
 
 1. Scan capture errors now use `role="alert"` (`ScanPage`).
 2. Visual-only selected filters now expose `aria-pressed` (grouped
@@ -96,6 +96,9 @@ Six additional P2 findings are resolved in the current implementation:
 6. Voice-recognition capability failure is no longer silent: the
    `voice-chef` non-`no-speech` `onError` callback stops automatic restart and
    reports capability state; voice commands and business actions are unchanged.
+7. A completed timer no longer exposes an active pause action: `aria-disabled`
+   retains focus, a page-level terminal-state guard prevents misleading pause
+   feedback, and Reset remains available. Duration/store/tick logic is unchanged.
 
 Two P3 observations remain deliberately deferred: shopping repeated delete
 buttons have generic names, and settings cache-cleared feedback has no
@@ -125,51 +128,74 @@ changes.
 
 ## 27-screen review
 
-These are **CODE_ONLY: PASS_WITH_NOTE** dispositions pending the primary
-agent's complete browser evidence and final roll-up. They do not claim
-VoiceOver/NVDA execution.
+Every row received source-level reasoning over first meaningful heading,
+landmarks, names, truthful roles/states, errors/success, updates, focus order,
+native activation, modal entry/trap/Escape/return where present, decorative
+content, loading, and unavailable states. Keyboard dispositions combine native
+control/shared-focus inspection with executed targeted browser interactions;
+they do not claim an exhaustive manual keystroke traversal of every state.
+Six-width settled-screen automation is recorded separately below.
 
-| ID | Route | Semantic / keyboard / dynamic disposition | Note |
-|---:|---|---|---|
-| 01 | `/landing` | CODE_ONLY: PASS_WITH_NOTE — heading, public actions, order | Static entry; browser pending |
-| 02 | `/auth` | CODE_ONLY: PASS_WITH_NOTE — labels, native form, loading/error | Auth contract protected |
-| 03 | `/auth/verify` | CODE_ONLY: PASS_WITH_NOTE — OTP fields, resend order, status | TTL/resend unchanged |
-| 04 | `/onboarding/household` | CODE_ONLY: PASS_WITH_NOTE — heading, native choices, submit state | Browser pending |
-| 05 | `/onboarding/preferences` | CODE_ONLY: PASS_WITH_NOTE — groups, choices, save/error | Persistence unchanged |
-| 06 | `/onboarding/goals` | CODE_ONLY: PASS_WITH_NOTE — goal group, native navigation, completion | Browser pending |
-| 07 | `/` | CODE_ONLY: PASS_WITH_NOTE — h1, landmark, primary actions, loading | No Home redesign |
-| 08 | `/scan` | CODE_ONLY: PASS_WITH_NOTE — capture, pressed mode, alert, isolated stage | Capture P2 resolved |
-| 09 | `/scan/:id/review` | CODE_ONLY: PASS_WITH_NOTE — review controls, lifecycle status, focus | Normal confirm still routes fridge |
-| 10 | `/fridge` | CODE_ONLY: PASS_WITH_NOTE — heading, rows, controls, pressed filters | Inventory logic unchanged |
-| 11 | `/fridge/:id` | CODE_ONLY: PASS_WITH_NOTE — lot labels, edit order, expiry errors | Browser pending |
-| 12 | `/recipes` | CODE_ONLY: PASS_WITH_NOTE — filters, cards, loading/empty states | Pressed-filter P2 resolved |
-| 13 | `/recipes/:slug` | CODE_ONLY: PASS_WITH_NOTE — tablist, roving keys, panels, Tab exit | Checkpoint B; browser pending |
-| 14 | `/cook/:slug` | CODE_ONLY: PASS_WITH_NOTE — progress, step, timer, voice, completion focus | Highest-priority dynamic surface |
-| 15 | `/shopping` | CODE_ONLY: PASS_WITH_NOTE — checkbox names, form, row actions | Generic delete name is deferred P3 |
-| 16 | `/planner` | CODE_ONLY: PASS_WITH_NOTE — heading, plan actions, async states | Planner unchanged |
-| 17 | `/planner/:planId/meal/:slotId` | CODE_ONLY: PASS_WITH_NOTE — meal, ingredients, edit/navigation | Browser pending |
-| 18 | `/planner/:planId/shopping` | CODE_ONLY: PASS_WITH_NOTE — purchase controls, async states | Business behavior unchanged |
-| 19 | `/me` | CODE_ONLY: PASS_WITH_NOTE — profile heading, actions, navigation | Browser pending |
-| 20 | `/me/preferences` | CODE_ONLY: PASS_WITH_NOTE — groups, native controls, save/error | No speculative status |
-| 21 | `/me/household` | CODE_ONLY: PASS_WITH_NOTE — sharing labels, member actions, feedback | Isolation unchanged |
-| 22 | `/settings/planning` | CODE_ONLY: PASS_WITH_NOTE — labels, native controls, save/error | Planner settings unchanged |
-| 23 | `/notifications` | CODE_ONLY: PASS_WITH_NOTE — heading, list, read actions, state | Browser pending |
-| 24 | `/settings/notifications` | CODE_ONLY: PASS_WITH_NOTE — heading, controls, save/error | Browser pending |
-| 25 | `/settings/app` | CODE_ONLY: PASS_WITH_NOTE — settings, PWA/cache behavior | Cache-cleared status deferred P3 |
-| 26 | `/settings/privacy` | CODE_ONLY: PASS_WITH_NOTE — heading, destructive actions, dialogs | Session/privacy unchanged |
-| 27 | `/plus` | CODE_ONLY: PASS_WITH_NOTE — plan heading, actions, payment status | Payment authority protected |
+| ID | Route | Semantic | Keyboard | Dynamic | Notes |
+|---:|---|---|---|---|---|
+| 01 | `/landing` | PASS | PASS | PASS | Main/h1, native CTAs, guest failure alert |
+| 02 | `/auth` | PASS | PASS | PASS_WITH_NOTE | Labels, pressed mode, errors/status; external GSI not exercised |
+| 03 | `/auth/verify` | PASS | PASS | PASS | Named six-digit group, delivery/error/status; OTP authority untouched |
+| 04 | `/onboarding/household` | PASS | PASS | PASS | Heading, progressbar, native household choices |
+| 05 | `/onboarding/preferences` | PASS | PASS | PASS | Grouped native inputs and selected state |
+| 06 | `/onboarding/goals` | PASS | PASS | PASS | Named goals, progress, completion/error feedback |
+| 07 | `/` | PASS | PASS | PASS_WITH_NOTE | H1, progress, pressed filters; async variants inspected, not exhaustive |
+| 08 | `/scan` | PASS | PASS | PASS | Stage-only status, capture alert; synthetic upload, no real OCR |
+| 09 | `/scan/:id/review` | PASS | PASS | PASS | Lifecycle, retry separation, controls, narrow lost-focus restoration |
+| 10 | `/fridge` | PASS | PASS | PASS | H1, row controls, alerts, pressed category filters |
+| 11 | `/fridge/:id` | PASS | PASS | PASS_WITH_NOTE | Named lot controls and status; all domain error variants not replayed |
+| 12 | `/recipes` | PASS | PASS | PASS | Named cards/search, pressed filters, loading/empty semantics |
+| 13 | `/recipes/:slug` | PASS | PASS | PASS | Automatic tabs, real associations, roving focus, normal Tab exit |
+| 14 | `/cook/:slug` | PASS | PASS | PASS_WITH_NOTE | Steps/timer/progress/voice/completion; microphone and speech accuracy untested |
+| 15 | `/shopping` | PASS | PASS | PASS_WITH_NOTE | Checkbox name/state and Space work; generic delete naming deferred P3 |
+| 16 | `/planner` | PASS | PASS | PASS_WITH_NOTE | H1, native language/actions, loading/error; no algorithm certification |
+| 17 | `/planner/:planId/meal/:slotId` | PASS | PASS | PASS_WITH_NOTE | Heading context, ingredients, links, labelled modal; not all async variants |
+| 18 | `/planner/:planId/shopping` | PASS | PASS | PASS_WITH_NOTE | Named purchase controls, alert/status; business algorithms out of scope |
+| 19 | `/me` | PASS | PASS | PASS_WITH_NOTE | H1, real account links, labelled logout dialog; real account changes untested |
+| 20 | `/me/preferences` | PASS | PASS | PASS | Fieldsets, pressed choices, save/error/status |
+| 21 | `/me/household` | PASS | PASS | PASS_WITH_NOTE | Truthful unavailable sharing state; no fabricated member actions |
+| 22 | `/settings/planning` | PASS | PASS | PASS | Named choices, checkbox/pressed state, save feedback |
+| 23 | `/notifications` | PASS | PASS | PASS_WITH_NOTE | Heading/sections, honest empty/error states; live delivery not exercised |
+| 24 | `/settings/notifications` | PASS | PASS | PASS | Named switches, checked state and descriptions |
+| 25 | `/settings/app` | PASS | PASS | PASS_WITH_NOTE | Native settings/install dialog; cache-cleared feedback deferred P3 |
+| 26 | `/settings/privacy` | PASS | PASS | NOT_APPLICABLE | Informational h1/sections; decorative icons hidden; no destructive dialog |
+| 27 | `/plus` | PASS | PASS | PASS_WITH_NOTE | Pressed plans, alerts/status, labelled modal; synthetic payment boundary only |
+
+Overall human-style disposition: **14 PASS / 13 PASS_WITH_NOTE / 0 FAIL**.
+Independent final source review: **P0/P1/P2 open = 0/0/0**; seven added P2s
+resolved, two P3 observations explicitly deferred.
 
 ## Automated evidence
 
-- Focused serial browser checkpoint: **10 PASS / 4 FAIL**; genuine CTA-focus
+- Focused serial desktop rerun: **14/14 PASS**, strict axe clean, 39.9s.
+  `PORT=5173 T18C_ARTIFACT_DIR=.hoplite/artifacts/t18d/focused-green pnpm exec
+  playwright test --config=playwright.t18c.config.ts t18d-human-a11y.e2e.ts
+  --project=desktop-1440`.
+- Earlier serial browser checkpoint: **10 PASS / 4 FAIL**; genuine CTA-focus
   issue fixed. Two paused-clock axe hangs and a filter locator collision were
-  harness issues and are fixed; rerun is pending.
+  harness issues and are fixed; full focused rerun passed without suppressions.
 - Earlier browser checkpoint: **5 PASS / 5 FAIL**; genuine completion heading
   h1-to-h3 issue addressed; current path/assertion supports h2/h3.
-- Focused unit tests: **4 files / 60 PASS**, including three voice-boundary
-  tests. Expected full total: **185 files / 4226 tests**, full run pending.
-- T17/T18C browser suites, final strict axe, full lint, typecheck, migration
-  smoke, build, final diff check, and exact final Git/PR values: **PENDING**.
+- Focused unit tests: **4 files / 60 PASS**, including three voice-boundary tests.
+- Serial `pnpm lint`, `pnpm typecheck`, `pnpm test` (**185 files / 4226 PASS**,
+  331.37s), `pnpm check:migrations` (`migration-smoke=ok`), `pnpm build`: PASS.
+  Full gate logs: `.hoplite/artifacts/t18d/full-*.log`, 2026-09-22 00:07–00:14 UTC.
+- `node scripts/t17/style-residuals.mjs`: **39 allowlisted / 0 unjustified**;
+  `node scripts/t17/contrast-audit.mjs`: **33/33 PASS**.
+- Direct agent-browser check: recipe ArrowRight changes focus/selection/panel;
+  cooking Enter advances to step 2/5 while focus stays on Next. Screenshot
+  `.hoplite/artifacts/t18d/recipe-keyboard.png` inspected; no browser errors.
+- A first six-width matrix was deliberately stopped at case 96 before the
+  terminal timer-control correction; it is not counted as final certification.
+  Final focused rerun first returned 13/14: axe sampled the existing 250 ms
+  entrance fade (4.48:1 interpolated text, not settled #8F5307). The focused
+  helper now matches T18C's 350 ms settled-color audit; no rule/token changed.
+- Six-width T17/T18C/T18D/payment matrix and final Git/PR values: **PENDING**.
 - Prior CI/staging and T18C counts are historical and are not relabeled as
   T18D evidence.
 
@@ -208,4 +234,3 @@ VoiceOver/NVDA execution.
 - Merge/deploy/production/migration/real payment: **NO**.
 
 **Final status:** `PENDING PRIMARY CERTIFICATION` (not `T18D_COMPLETE`).
-

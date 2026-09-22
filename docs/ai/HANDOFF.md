@@ -41,6 +41,19 @@
 - **Next:** Finish serial full gates and six-width browser matrix; finalize
   review report/independent review and open review-only PR. Do not merge/deploy.
 
+### Final timer-control correction — 2026-09-22
+
+The first full gate pass was **185 files / 4226 Vitest PASS** (331.37s), with
+lint/typecheck/migration smoke/build PASS. During AX-tree inspection, the
+completed timer still offered an active pause control. This seventh P2 is
+fixed at the UI boundary: `aria-disabled` retains focus, the terminal-state
+toggle is inert, Reset works, and duration/store/ticks remain unchanged.
+The first 354-case matrix was deliberately stopped at case 96; it is not
+final evidence. A 13/14 focused attempt sampled an existing entrance fade;
+the strict helper now uses T18C's 350 ms settling convention, no suppression.
+The focused gate, all five repository gates, then the complete six-width
+matrix are rerunning serially under `.hoplite/artifacts/t18d/final/`.
+
 ## T18C final handoff — `T18C_READY_FOR_REVIEW`
 
 - **Task:** Continue existing T18C, not a restart. Repository ID `1368281478`

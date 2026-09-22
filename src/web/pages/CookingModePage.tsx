@@ -102,6 +102,7 @@ export const CookingModePage: React.FC = () => {
   };
 
   const toggleStepTimer = () => {
+    if (useCookingStore.getState().timerSecondsRemaining === 0) return;
     const pausing = useCookingStore.getState().isTimerRunning;
     toggleTimer();
     setTimerAnnouncement((previous) => ({
@@ -475,7 +476,9 @@ export const CookingModePage: React.FC = () => {
                       ref={timerToggleRef}
                       onClick={toggleStepTimer}
                       className="p-2 rounded-lg bg-white border border-semantic-border shadow-xs hover:bg-semantic-background-subtle text-semantic-text-secondary tap-target flex items-center justify-center transition-colors"
-                      aria-label={isTimerRunning ? 'Tạm dừng hẹn giờ' : 'Tiếp tục hẹn giờ'}
+                      aria-disabled={timerSecondsRemaining === 0}
+                      aria-label={timerSecondsRemaining === 0 ? 'Hẹn giờ đã kết thúc'
+                        : isTimerRunning ? 'Tạm dừng hẹn giờ' : 'Tiếp tục hẹn giờ'}
                     >
                       {isTimerRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                     </button>

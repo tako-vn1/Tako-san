@@ -36,6 +36,9 @@ test.afterEach(async ({ page }, info) => {
 });
 
 async function strictAxe(page: Page) {
+  // Match the T18C gate: audit settled colors, not the 250 ms entrance fade.
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(350);
   expect(await page.locator('[role="status"], [aria-live]').evaluateAll((nodes) =>
     nodes.filter((node) => node.parentElement?.closest('[role="status"], [aria-live]')).length,
   ), 'no nested live announcement sources').toBe(0);
@@ -410,14 +413,28 @@ test.describe('T18D cooking mode announcements and controls', () => {
 
     await page.getByRole('button', { name: 'Tạm dừng hẹn giờ', exact: true }).click();
     await page.getByRole('button', { name: 'Tiếp tục hẹn giờ', exact: true }).click();
+    const toggle = page.getByRole('button', { name: 'Tạm dừng hẹn giờ', exact: true });
+    await toggle.focus();
     // Let React commit each scheduled tick; fastForward deliberately skips intervals.
     for (let remaining = shortest * 60 - 1; remaining >= 0; remaining -= 1) {
       await page.clock.runFor(1000);
       await expect(countdown).toHaveText(`${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`);
     }
     await expect(timerStatus).toHaveText('Hẹn giờ đã kết thúc.');
+    const finished = page.getByRole('button', { name: 'Hẹn giờ đã kết thúc', exact: true });
+    await expect(finished).toHaveAttribute('aria-disabled', 'true');
+    await expect(finished).toBeFocused();
+    await observeLiveChanges(page, '[data-testid="cooking-timer-status"]');
+    await finished.press('Space');
+    await finished.press('Enter');
+    await expect(timerStatus).toHaveAttribute('data-live-changes', '0');
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Đặt lại hẹn giờ', exact: true })).toBeFocused();
     await page.clock.resume();
     await strictAxe(page);
+    await page.getByRole('button', { name: 'Đặt lại hẹn giờ', exact: true }).press('Enter');
+    await expect(timerStatus).toHaveText('Đã đặt lại hẹn giờ.');
+    await expect(page.getByRole('button', { name: 'Tạm dừng hẹn giờ', exact: true })).toHaveAttribute('aria-disabled', 'false');
   });
 
   test('announces listening state and heard commands through the speech boundary only', async ({ page }) => {

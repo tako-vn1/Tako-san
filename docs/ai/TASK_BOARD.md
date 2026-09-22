@@ -1,6 +1,21 @@
 # Frigo / Takosan current task board — 2026-09-21
 
-**Current: T18C_READY_FOR_REVIEW**, application freeze `6f8f6f4`.
+## T18D — final browser certification in progress (2026-09-22)
+
+- [done] Exact stable-ID/base gate; CI #151/staging #53 success, production
+  skipped; requested branch pushed. Checkpoints A/B/C/D through `7568fb2`.
+- [done] Scan, recipe tabs and cooking semantics, seven review-added P2s;
+  independent source review P0/P1/P2 = 0/0/0, two P3 observations deferred.
+- [done] 27-screen semantic review: 14 PASS / 13 PASS_WITH_NOTE / 0 FAIL.
+- [done] Focused browser 14/14, Vitest 185 files / 4226 PASS,
+  lint/typecheck/migration smoke/build, style 39/0, contrast 33/33.
+- [pending] Six-width 354-case browser matrix; final docs and review-only PR.
+- No merge/deploy; preserve T18C composition and protected business contracts.
+  VoiceOver/NVDA NOT PERFORMED. Exact commands: `T18D_HUMAN_STYLE_A11Y_REVIEW.md`.
+
+## Historical T18C receipt
+
+**Previous: T18C_READY_FOR_REVIEW**, application freeze `6f8f6f4`.
 
 - [done] Existing branch/repository ID `1368281478` preserved; matching upstream,
   unchanged base, pre-existing workspace settings excluded.
@@ -1445,16 +1460,3 @@ rolling `qwen3.7-flash` alias is canary-only.
 - [in progress] Direct board comparison and source-led presentation findings;
   full T17 regressions, final fixes/evidence/gates/PR remain pending.
 - **T18C_PARTIAL**; no merge/deploy/T18D. VoiceOver/NVDA NOT PERFORMED.
-# T18D — human-style accessibility hardening (in progress)
-
-- [done] Exact stable-ID/base gate, CI #151/staging #53 success, production
-  skipped, no overlapping UI PR; requested new branch pushed.
-- [done] Checkpoint A scan live-region/lifecycle fixes; 3 files / 57 Vitest PASS.
-- [done] B recipe tabs pushed; C cooking dynamic semantics implemented;
-  typecheck/scoped lint and 35 cooking/session regressions PASS.
-- [pending] D deterministic browser
-  regressions, 27-screen review, full validation, independent review, review PR.
-- [done] D focused browser 14/14 PASS; added 3 voice-boundary unit regressions.
-  Review-added semantic/focus defects corrected; six-width/full gates running.
-- No merge/deploy; preserve protected business boundaries and T18C composition.
-

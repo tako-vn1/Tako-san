@@ -1,4 +1,17 @@
-**Current: T18C_READY_FOR_REVIEW**, application freeze `6f8f6f4`.
+**Current: T18D — final browser certification in progress.**
+
+- [done] Stable ID `1368281478`, base `07ace57241f8270b2458610979c709bb69b9a65a`, requested branch
+  created/pushed; checkpoints A/B/C/D published through `7568fb2`.
+- [done] Original four findings fixed; seven additional P2s closed, two P3s
+  deferred. 27-screen semantic review: 14 PASS / 13 PASS_WITH_NOTE / 0 FAIL.
+- [done] Focused browser 14/14, full Vitest 185 files / 4226 PASS;
+  lint/typecheck/migration smoke/build PASS; style 39/0, contrast 33/33.
+- [pending] Six-width 354-case browser matrix, final receipt, review-only PR.
+- No merge/deploy; VoiceOver/NVDA NOT PERFORMED. See `docs/ai/HANDOFF.md`.
+
+## Historical T18C receipt
+
+**Previous: T18C_READY_FOR_REVIEW**, application freeze `6f8f6f4`.
 
 - [done] 27/27 source-backed direct comparisons at all six widths: **2 PASS /
   25 PASS_WITH_DOCUMENTED_DIFFERENCE**, zero unresolved P0/P1/P2.
@@ -444,12 +457,3 @@ violations and overflow**. Approved source ZIP is now available and direct
 comparison is underway: [provenance](docs/ai/T18C_SOURCE_PROVENANCE.md).
 Final source-led fixes, regressions, full gates and PR remain pending.
 Original baseline and workspace settings preserved; no merge/deploy/T18D.
-# T18D — human-style accessibility hardening (in progress)
-
-Exact base `07ace57241f8270b2458610979c709bb69b9a65a` verified in repository ID `1368281478`.
-Requested branch pushed; scan stage/lifecycle checkpoint passes 57 regressions.
-Recipe tabs, cooking announcements, browser/full gates and review-only PR next.
-Implementation checkpoints A/B/C pushed; focused T18D browser 14/14 PASS.
-Review-added semantic gaps fixed. Full serial gates and six-width matrix next.
-No merge/deploy. See `docs/ai/HANDOFF.md` for exact checks and limitations.
-

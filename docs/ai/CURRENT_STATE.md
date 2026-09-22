@@ -28,6 +28,12 @@ Review-added capture/filter/heading/focus/capability/presentation-timer gaps
 fixed without backend, command-action, polling or quantity changes. Initial
 focused failures and repairs are recorded in the T18D report; no rules disabled.
 Next: serial full gates, six-width browser matrix, final independent review/PR.
+First full gates passed (185 files / 4226 tests, 331.37s; lint/typecheck,
+migration smoke/build). A seventh review-added P2, the completed timer's
+misleading active pause control, is now fixed without changing ticking.
+The initial matrix was intentionally stopped at case 96. Final focused/full
+gates/matrix are rerunning serially; see HANDOFF for the entrance-fade test
+settling correction and exact evidence paths.
 VoiceOver/NVDA not performed. Pre-existing `.hoplite/settings.json` modification
 preserved and excluded. Managed isolated Preview restored through project
 overrides; setup tool refused an idle-ready lease, safe setup commands run
