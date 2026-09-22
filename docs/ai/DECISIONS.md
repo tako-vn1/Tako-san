@@ -1,5 +1,66 @@
 # Architecture Decisions
 
+## ADR-030 — One recipe authority for the Meal Planner, stored-plan authority identity, reviewed full-D1 release state and protected release evidence (T19 V2)
+
+**Status:** Accepted 2026-09-22 (branch `feat/t19-recipe-authority-cutover-v2`; production remains `static`, untouched)
+
+**Context:** ADR-026 made the Recipe API/Week/Shopping/Cooking read one
+`RecipeAuthoritySnapshot`, but the Meal Planner still loaded the raw D1 catalog
+via `loadMealPlanningSnapshot()`. With the 500-recipe ledger applied and
+production configured `static`/`shadow`, the planner could plan, suggest and
+swap recipes the Recipe API did not list and cooking could not resolve; planner
+catalog fingerprints also hashed the whole D1 catalog, so invisible D1-only
+edits staled static plans. The release path (`release-check.mjs` + Deploy
+workflow) explicitly rejected `d1`, and public readiness could not certify
+recipe authority.
+
+**Decision:**
+1. `loadMealPlanningSnapshot(db, scope, time, authoritySnapshot)` now takes the
+   request's effective authority snapshot; `projectPlannerCatalogOnAuthority`
+   (`packages/db/src/planner-catalog-authority.ts`) projects D1 planner facts
+   onto that universe — `d1` ⇒ fenced D1 rows, `static` ⇒ static definitions and
+   steps plus D1 supplementary facts (classifications, nutrition rows, families,
+   ingredient IDs) keyed by visible recipe ID only. The planner universe is
+   exactly the authority's recipe set; alternatives/swap/regenerate never expose
+   an invisible recipe (invisible swaps are `REPLACEMENT_NOT_FOUND`; invisible
+   locks are dropped on regenerate, never substituted in place).
+2. `MealPlanningServiceOptions.recipeAuthority(scope)` is required and installed
+   by route composition from deployment config + deterministic household canary;
+   request input never reaches it.
+3. Stored plans persist `source_json.data.authority {source, fingerprint,
+   recipeCount}` (envelope version stays 1; pre-T19 rows without it still
+   decode). An authority-source change is a typed revalidation: freshness reason
+   `catalog_authority_changed`, `CATALOG_AUTHORITY_CHANGED` (409) on swap and
+   shopping, regenerate as the only recovery path. Historical plan data is never
+   mutated.
+4. Planner catalog fingerprints hash only authority-visible recipes, steps and
+   nutrition rows: a D1-only edit cannot stale a static plan; a D1-visible edit
+   correctly stales a D1 plan.
+5. Reviewed release states become `static`/`shadow`/`canary`/`d1` with canary
+   percent ∈ {1,2,5,25} (new 25 staging step) and percent 0 required elsewhere;
+   `RECIPE_CATALOG_CUTOVER_ENABLED` is derived (true iff `canary|d1`), never an
+   input. `d1` means every household is served the verified D1 release; runtime
+   fallback semantics (verified D1 or static with diagnostics) are unchanged.
+6. Observability: `/health/ready` gains a sanitized `recipeAuthority` summary
+   (mode/cutover/percent/global source/fallback/release ID/expected count). A
+   protected `GET /api/v1/health/recipe-authority` (bearer `RELEASE_VERIFY_TOKEN`
+   Worker secret, constant-time compare, 404 when unset) returns machine-readable
+   evidence that `release-check.mjs authority` verifies against the approved
+   manifest — deployed SHA, mode/percent/cutover, D1 readiness, served count and
+   release fingerprint, no fallback. No PII, no secrets, no household data; no
+   customer account is required for release certification.
+7. Non-terminating aggregate shopping demand (e.g. two 2-serving meals of a
+   3-serving recipe) is reported `unresolved`
+   (`UNRESOLVED_PURCHASE_QUANTITY`, unknown budget) instead of throwing at the
+   T05 exact-quantity boundary; rounding remains forbidden.
+
+**Consequences:** T14D/T14F authority tests keep passing with the planner added
+to the parity set; T19 cross-flow, fingerprint, persistence, observability and
+release-state tests pin the behavior. Stored pre-T19 plans revalidate through
+the catalog fingerprint until regenerated. Production rollout is operator-driven
+through the reviewed Deploy workflow (shadow → canary 1/5/25 → d1), each gate
+machine-verified; rollback is redeploying `mode=shadow`/`static`.
+
 ## ADR-027 — Reviewed Bulk Recipe Imports and Catalog Release Manifests (T14E)
 
 **Status:** Accepted 2026-09-17; remediated 2026-09-17 after independent review (nutrition evidence persistence, complete

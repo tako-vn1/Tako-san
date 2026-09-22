@@ -1,5 +1,27 @@
 # Frigo / Takosan current handoff — 2026-09-22
 
+## T19 V2 — recipe authority cutover (safe stop)
+
+- **Base/branch:** repository ID `1368281478` (`vn-tako2/Frigo-dev`); exact
+  canonical main `4677ebb` (`4677ebbabbb580b9045423350da719acaf8f5742`); branch
+  `feat/t19-recipe-authority-cutover-v2`.
+- **State:** `T19_V2_SAFE_STOP_PUBLISHED`. Application authority unification
+  (Recipe API = Planner = Shopping = Cooking under one `resolveRecipeAuthority`),
+  authority-scoped fingerprints, stored-plan authority identity with typed
+  revalidation, reviewed full-D1 release states (`static|shadow|canary{1,2,5,25}|d1`,
+  derived cutover), protected recipe-authority release evidence. Production
+  untouched (no deploy, no mode/percent change, no D1 access).
+- **Verification (current session):** `pnpm lint`, `pnpm typecheck`,
+  `pnpm check:migrations`, `pnpm build`, full Vitest **567 files / 4294 tests
+  PASS**, `pnpm recipe:import:check` (`rel-bd00a4f53fcaeee4`, 500 recipes),
+  `git diff --check`. Full-suite counts are current-session, not historical.
+- **Blocked on:** hosted CI green, `RELEASE_VERIFY_TOKEN` (+ staging twin)
+  provisioning, GitHub `production` Environment approval, Cloudflare credentials.
+- **Next:** staged rollout through the reviewed Deploy workflow
+  (shadow → verify → canary 1 → 5 → 25 → d1), rollback = redeploy `shadow`.
+- **Canonical handoff:**
+  [T19_V2_WIP_HANDOFF.md](recipe-catalog/T19_V2_WIP_HANDOFF.md).
+
 ## Google Safari profile recovery + registration-only Turnstile
 
 - **Base/branch:** repository `vn-tako1/Frigo-dev`; exact canonical base

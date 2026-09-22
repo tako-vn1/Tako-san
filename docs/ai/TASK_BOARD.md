@@ -1,5 +1,17 @@
 # Frigo / Takosan current task board — 2026-09-22
 
+## T19 V2 — recipe authority cutover (safe stop 2026-09-22)
+
+- [done] Reproduced the split-authority defect on unmodified main (planner D1-only recipe under static; 404 detail/cook).
+- [done] Fenced the planner to `resolveRecipeAuthority` (`projectPlannerCatalogOnAuthority`); alternatives/swap/regenerate authority-clean; fingerprint scoped to the visible universe; stored plan authority identity + `CATALOG_AUTHORITY_CHANGED`.
+- [done] Cross-flow D1-only recipe test (planner → swap → shopping → detail → cook start/complete), all-mode matrix incl. D1-fallback-together and authority spoofing.
+- [done] Release state machine `static|shadow|canary{1,2,5,25}|d1` with derived cutover; deploy workflow authority-proof steps; smoke validates the authority summary.
+- [done] Public sanitized `recipeAuthority` readiness + protected `/health/recipe-authority` release evidence (bearer token, no PII).
+- [done] Verification: lint, typecheck, migration smoke, build, full Vitest 567 files / 4294 PASS, `recipe:import:check` 500 = rel-bd00a4f53fcaeee4.
+- [blocked] Production rollout: requires hosted CI, `RELEASE_VERIFY_TOKEN`/`STAGING_RELEASE_VERIFY_TOKEN` provisioning, GitHub `production` Environment approval, Cloudflare credentials. Production unchanged.
+- [next] Hosted CI on the PR → operator provisioning → staged rollout (shadow → canary 1 → 5 → 25 → d1) via the reviewed Deploy workflow. Handoff: `docs/ai/recipe-catalog/T19_V2_WIP_HANDOFF.md`.
+- [not-started] T20 Meal Composition V2 (blocked until `T19_COMPLETE`).
+
 ## Google Safari profile recovery + registration-only Turnstile
 
 - [done] Reproduced normal-profile failure and private/clean-profile success in
