@@ -1,5 +1,33 @@
 # Frigo / Takosan current handoff — 2026-09-22
 
+## Google Safari profile recovery + registration-only Turnstile
+
+- **Base/branch:** repository `vn-tako1/Frigo-dev`; exact canonical base
+  `8dc9198918837cb15f4a7ddf4f9029875b015091`; isolated branch
+  `codex/google-safari-turnstile`.
+- **Root cause:** the PWA service worker intercepted cross-origin GIS loads.
+  After a blocker rejected the first load, its default cache fallback resolved
+  no response and left the normal WebKit profile stuck; a clean/private profile
+  worked. Clearing service-worker/cache state recovered immediately.
+- **Fix:** `public/sw.js` bypasses every cross-origin request before
+  `respondWith`; Google GIS and Turnstile therefore use the browser network
+  stack. Same-origin uncached failure no longer resolves null.
+- **Turnstile scope:** only `/auth/register` renders and verifies Turnstile.
+  Login, forgot-password and resend do not challenge again. Auth rate limiting,
+  resend cooldown, CSRF, OTP digest/single-use/expiry, and production config
+  fail-closed behavior remain. Unknown/verified register/login resend addresses
+  receive a generic no-op response and no email/OTP.
+- **Evidence:** focused 124/124; full Vitest 185 files / 4242 tests; lint,
+  typecheck, migration smoke, build and diff check pass. Candidate WebKit smoke
+  with active service worker + first GIS request blocked recovered through the
+  retry button; Google iframe 362x44, warning absent, login CAPTCHA frames 0,
+  registration CAPTCHA frames 1.
+- **Known unrelated baseline:** `pnpm audit --prod` reports two moderate React
+  Router 6 advisories; no dependency changed.
+- **Next:** publish PR, require exact-head hosted `validate`, merge only when
+  green, then verify production release SHA/service worker and repeat WebKit
+  smoke. See [GOOGLE_SAFARI_TURNSTILE_RECOVERY.md](GOOGLE_SAFARI_TURNSTILE_RECOVERY.md).
+
 ## T18E — `T18E_OTP_TEST_RECIPIENT_REQUIRED`
 
 - **Base/branch:** repository `1368281478` / `vn-tako1/Frigo-dev`; exact base

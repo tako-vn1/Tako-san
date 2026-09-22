@@ -1,7 +1,6 @@
 import React, { useId, type RefObject } from 'react';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { Button } from '../../components/common/Button';
-import { TurnstileWidget } from '../../components/common/TurnstileWidget';
 import { AuthField } from './AuthField';
 import { GoogleAuthSection } from './GoogleAuthSection';
 
@@ -10,9 +9,6 @@ interface LoginModeProps {
   googleStatus: 'idle' | 'loading' | 'ready' | 'unavailable';
   googleClientId: string | null;
   onRetryGoogle: () => void;
-  turnstileSiteKey: string | null;
-  turnstileGeneration: number;
-  onTurnstileToken: (token: string | null) => void;
   email: string;
   onEmailChange: (value: string) => void;
   password: string;
@@ -29,9 +25,6 @@ export const LoginMode: React.FC<LoginModeProps> = ({
   googleStatus,
   googleClientId,
   onRetryGoogle,
-  turnstileSiteKey,
-  turnstileGeneration,
-  onTurnstileToken,
   email,
   onEmailChange,
   password,
@@ -59,10 +52,6 @@ export const LoginMode: React.FC<LoginModeProps> = ({
     </div>
 
     <form onSubmit={onSubmit} className="space-y-3">
-      {turnstileSiteKey && (
-        <TurnstileWidget key={turnstileGeneration} siteKey={turnstileSiteKey} onToken={onTurnstileToken} />
-      )}
-
       <AuthField
         label="Email"
         icon={Mail}

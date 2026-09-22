@@ -1,13 +1,9 @@
 import React, { useId } from 'react';
 import { Eye, EyeOff, KeyRound, Mail } from 'lucide-react';
 import { Button } from '../../components/common/Button';
-import { TurnstileWidget } from '../../components/common/TurnstileWidget';
 
 interface ForgotPasswordModeProps {
   forgotOtpRequested: boolean;
-  turnstileSiteKey: string | null;
-  turnstileGeneration: number;
-  onTurnstileToken: (token: string | null) => void;
   email: string;
   onEmailChange: (value: string) => void;
   onRequestOtp: (e: React.FormEvent) => void;
@@ -27,9 +23,6 @@ interface ForgotPasswordModeProps {
 
 export const ForgotPasswordMode: React.FC<ForgotPasswordModeProps> = ({
   forgotOtpRequested,
-  turnstileSiteKey,
-  turnstileGeneration,
-  onTurnstileToken,
   email,
   onEmailChange,
   onRequestOtp,
@@ -53,9 +46,6 @@ export const ForgotPasswordMode: React.FC<ForgotPasswordModeProps> = ({
   <div className="mt-5 space-y-4">
     {!forgotOtpRequested && (
       <form onSubmit={onRequestOtp} className="space-y-3">
-        {turnstileSiteKey && (
-          <TurnstileWidget key={turnstileGeneration} siteKey={turnstileSiteKey} onToken={onTurnstileToken} />
-        )}
         <div>
           <label htmlFor={emailId} className="block text-xs font-semibold text-semantic-text-secondary mb-1">Email đăng ký tài khoản</label>
           <div className="relative">

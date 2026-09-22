@@ -199,7 +199,7 @@ export const authApi = {
     }
   },
 
-  resendOtp: async (email: string, purpose: string, turnstileToken?: string | null) => {
+  resendOtp: async (email: string, purpose: string) => {
     try {
       return await fetchJson<{
         success: boolean;
@@ -210,7 +210,7 @@ export const authApi = {
         '/auth/resend-otp',
         {
           method: 'POST',
-          body: JSON.stringify({ email, purpose, turnstileToken }),
+          body: JSON.stringify({ email, purpose }),
         },
       );
     } catch (err: any) {
@@ -220,11 +220,11 @@ export const authApi = {
     }
   },
 
-  login: async (email: string, password: string, turnstileToken?: string | null) => {
+  login: async (email: string, password: string) => {
     try {
       return await fetchJson<{ success: boolean; user: AuthResponseUser }>('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password, turnstileToken }),
+        body: JSON.stringify({ email, password }),
       });
     } catch (err: any) {
       // SEC-04: never fake a login session — surface the real error.
@@ -233,13 +233,13 @@ export const authApi = {
     }
   },
 
-  forgotPassword: async (email: string, turnstileToken?: string | null) => {
+  forgotPassword: async (email: string) => {
     try {
       return await fetchJson<{ success: boolean; message: string; devOtp?: string }>(
         '/auth/forgot-password',
         {
           method: 'POST',
-          body: JSON.stringify({ email, turnstileToken }),
+          body: JSON.stringify({ email }),
         },
       );
     } catch (err: any) {

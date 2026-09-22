@@ -111,7 +111,7 @@ export const AuthPage: React.FC = () => {
     };
   }, []);
 
-  // SEC-6: Turnstile bot protection (inactive when server has no site key)
+  // SEC-6: account creation is the single user-visible Turnstile boundary.
   const [turnstileSiteKey, setTurnstileSiteKey] = useState<string | null>(null);
   const [googleClientId, setGoogleClientId] = useState<string | null | undefined>(undefined);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -350,7 +350,6 @@ export const AuthPage: React.FC = () => {
     }
     const submittedEmail = email;
     const submittedPassword = password;
-    const submittedTurnstileToken = turnstileToken;
     const request = beginAuthRequest();
     setIsLoading(true);
     setErrorMessage(null);
@@ -358,7 +357,7 @@ export const AuthPage: React.FC = () => {
     setOtpDigits(EMPTY_OTP);
 
     try {
-      const res = await api.login(submittedEmail, submittedPassword, submittedTurnstileToken);
+      const res = await api.login(submittedEmail, submittedPassword);
       if (!request.canApply()) return;
       if (res.success && res.user) {
         setAuthSession({
@@ -388,8 +387,6 @@ export const AuthPage: React.FC = () => {
       }
     } finally {
       if (request.isLatest()) {
-        setTurnstileToken(null);
-        setTurnstileGeneration((value) => value + 1);
         setIsLoading(false);
       }
     }
@@ -572,10 +569,6 @@ export const AuthPage: React.FC = () => {
   // Resend OTP
   const handleResendOtp = async () => {
     if (resendCountdown > 0 || isResending) return;
-    if (turnstileSiteKey && !turnstileToken) {
-      setErrorMessage('Vui lòng hoàn tất xác minh chống bot trước khi gửi lại mã.');
-      return;
-    }
     const isCurrent = capturePrivateSession();
     const routeGeneration = routeGenerationRef.current;
     const canApply = () =>
@@ -584,7 +577,7 @@ export const AuthPage: React.FC = () => {
     setErrorMessage(null);
     setSuccessMessage(null);
     try {
-      const res = await api.resendOtp(email, otpPurpose, turnstileToken);
+      const res = await api.resendOtp(email, otpPurpose);
       if (res.success && canApply()) {
         setDevOtp(res.devOtp || null);
         setResendCountdown(60);
@@ -616,8 +609,6 @@ export const AuthPage: React.FC = () => {
       }
     } finally {
       if (canApply()) {
-        setTurnstileToken(null);
-        setTurnstileGeneration((value) => value + 1);
         setIsResending(false);
       }
     }
@@ -636,7 +627,7 @@ export const AuthPage: React.FC = () => {
     setForgotOtpRequested(false);
     setOtpDigits(['', '', '', '', '', '']);
     try {
-      const res = await api.forgotPassword(email, turnstileToken);
+      const res = await api.forgotPassword(email);
       if (res.success) {
         if (res.devOtp) setDevOtp(res.devOtp);
         setForgotOtpRequested(true);
@@ -647,8 +638,6 @@ export const AuthPage: React.FC = () => {
     } catch (err: any) {
       setErrorMessage(apiErrorMessage(err, 'Không thể tạo yêu cầu đặt lại mật khẩu lúc này'));
     } finally {
-      setTurnstileToken(null);
-      setTurnstileGeneration((value) => value + 1);
       setIsLoading(false);
     }
   };
@@ -785,9 +774,6 @@ export const AuthPage: React.FC = () => {
             googleStatus={googleStatus}
             googleClientId={googleClientId ?? null}
             onRetryGoogle={retryGoogle}
-            turnstileSiteKey={turnstileSiteKey}
-            turnstileGeneration={turnstileGeneration}
-            onTurnstileToken={handleTurnstileToken}
             email={email}
             onEmailChange={setEmail}
             password={password}
@@ -824,9 +810,6 @@ export const AuthPage: React.FC = () => {
         )}
         {mode === 'otp_verify' && verifyContext && (
           <OtpMode
-            turnstileSiteKey={turnstileSiteKey}
-            turnstileGeneration={turnstileGeneration}
-            onTurnstileToken={handleTurnstileToken}
             otpDigits={otpDigits}
             otpInputsRef={otpInputsRef}
             onOtpChange={handleOtpChange}
@@ -840,7 +823,6 @@ export const AuthPage: React.FC = () => {
             isResending={isResending}
             resendCountdown={resendCountdown}
             onResend={() => void handleResendOtp()}
-            turnstileToken={turnstileToken}
             delivered={verifyContext.delivered}
             expiresAt={verifyContext.expiresAt}
             errorMessage={errorMessage}
@@ -850,9 +832,6 @@ export const AuthPage: React.FC = () => {
         {mode === 'forgot_password' && (
           <ForgotPasswordMode
             forgotOtpRequested={forgotOtpRequested}
-            turnstileSiteKey={turnstileSiteKey}
-            turnstileGeneration={turnstileGeneration}
-            onTurnstileToken={handleTurnstileToken}
             email={email}
             onEmailChange={setEmail}
             onRequestOtp={handleRequestForgotOtp}

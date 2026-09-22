@@ -17,7 +17,6 @@ vi.mock('../../src/worker/services/email', () => ({
 
 const ORIGIN = 'https://browser-security.example.test';
 const PASSWORD = 'browser-security-test-password';
-const TURNSTILE_TOKEN = 'isolated-browser-challenge';
 const account = (id: string) => ({
   id, email: `${id}@example.test`, displayName: id, householdId: `hh_${id}`,
 });
@@ -64,8 +63,8 @@ interface BrowserRequest {
   status: number;
 }
 
-// Only browser storage/transport and external Turnstile are emulated. Routes,
-// cookie authentication, client guards, outbox and migrated SQLite are real.
+// Only browser storage/transport is emulated. Routes, cookie authentication,
+// client guards, outbox and migrated SQLite are real.
 class BrowserTransport {
   cookie = '';
   offline = false;
@@ -77,11 +76,6 @@ class BrowserTransport {
 
   fetch = async (input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> => {
     const url = new URL(String(input), ORIGIN);
-    if (url.href === 'https://challenges.cloudflare.com/turnstile/v0/siteverify') {
-      expect(init.method).toBe('POST');
-      expect((init.body as FormData).get('response')).toBe(TURNSTILE_TOKEN);
-      return Response.json({ success: true });
-    }
     if (url.origin !== ORIGIN) throw new Error(`Unexpected external request: ${url.origin}`);
     if (this.offline) throw new TypeError('Isolated browser offline');
     const headers = new Headers(init.headers);
@@ -112,7 +106,7 @@ let client: Client;
 let inventoryBaseline: ReturnType<typeof storedInventory>;
 
 async function login(user = A) {
-  const result = await client.api.login(user.email, PASSWORD, TURNSTILE_TOKEN);
+  const result = await client.api.login(user.email, PASSWORD);
   expect(result.success).toBe(true);
   expect(result).not.toHaveProperty('token');
   expect(result.user).toMatchObject(user);

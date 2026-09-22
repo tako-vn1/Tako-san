@@ -381,21 +381,47 @@ describe('cookie authentication and production CSRF', () => {
     expect(result.json.code).toBe('CSRF_ORIGIN_DENIED');
   });
 
-  it('fails closed when Turnstile is configured and no valid widget token is supplied', async () => {
+  it('fails closed when registration has no valid Turnstile token', async () => {
     const outbound = vi.fn();
     vi.stubGlobal('fetch', outbound);
-    for (const route of ['register', 'login', 'forgot-password', 'resend-otp']) {
-      const result = await request(`/auth/${route}`, {
-        withoutTurnstile: true,
-        body: { name: 'Auth Test', email: EMAIL, password: PASSWORD },
-        env: { TURNSTILE_SECRET_KEY: 'integration-turnstile-secret' },
-      });
-      expect(result.status).toBe(403);
-      expect(result.json.code).toBe('TURNSTILE_FAILED');
-    }
+    const result = await request('/auth/register', {
+      withoutTurnstile: true,
+      body: { name: 'Auth Test', email: EMAIL, password: PASSWORD },
+      env: { TURNSTILE_SECRET_KEY: 'integration-turnstile-secret' },
+    });
+    expect(result.status).toBe(403);
+    expect(result.json.code).toBe('TURNSTILE_FAILED');
     expect(outbound).not.toHaveBeenCalled();
     expect(sendEmail).not.toHaveBeenCalled();
     expect(db.query('SELECT * FROM auth_accounts WHERE email = ?', EMAIL)).toEqual([]);
+  });
+
+  it('does not require another Turnstile challenge for login, password recovery, or OTP resend', async () => {
+    const registration = await register();
+    vi.mocked(fetch).mockClear();
+
+    const resend = await request('/auth/resend-otp', {
+      withoutTurnstile: true,
+      body: { email: EMAIL, purpose: 'register' },
+    });
+    expect(resend.status).toBe(200);
+
+    const verified = await verify(deliveredCode());
+    expect(verified.status).toBe(200);
+
+    const login = await request('/auth/login', {
+      withoutTurnstile: true,
+      body: { email: EMAIL, password: PASSWORD },
+    });
+    expect(login.status).toBe(200);
+
+    const forgot = await request('/auth/forgot-password', {
+      withoutTurnstile: true,
+      body: { email: EMAIL },
+    });
+    expect(forgot.status).toBe(200);
+    expect(registration.code).toMatch(/^\d{6}$/);
+    expect(fetch).not.toHaveBeenCalled();
   });
 });
 
@@ -642,11 +668,6 @@ describe('D1-authoritative OTP verification', () => {
     });
     expect(result.status).toBe(200);
     expect(result.json.devOtp).toMatch(/^\d{6}$/);
-    const verified = await request('/auth/verify-otp', {
-      env: { ENVIRONMENT: 'development' },
-      body: { email: EMAIL, code: result.json.devOtp, purpose: 'register' },
-    });
-    expect(verified.status).toBe(200);
 
     const devLoginResend = await request('/auth/resend-otp', {
       env: { ENVIRONMENT: 'development' },
@@ -660,6 +681,12 @@ describe('D1-authoritative OTP verification', () => {
       body: { email: EMAIL, code: devLoginResend.json.devOtp, purpose: 'login' },
     });
     expect(devLoginVerified.status).toBe(200);
+
+    const verified = await request('/auth/verify-otp', {
+      env: { ENVIRONMENT: 'development' },
+      body: { email: EMAIL, code: result.json.devOtp, purpose: 'register' },
+    });
+    expect(verified.status).toBe(200);
   });
 
   it('fails registration honestly and invalidates the challenge when no provider accepts the OTP', async () => {
@@ -771,17 +798,32 @@ describe('D1-authoritative OTP verification', () => {
     expect(sendEmail).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['register', 'forgot_password'])('requires Turnstile before replacing a %s OTP', async (purpose) => {
+  it.each(['register', 'forgot_password'])('replaces a %s OTP without another Turnstile challenge', async (purpose) => {
     await register();
     const before = db.query('SELECT * FROM auth_otps');
-    const blocked = await request('/auth/resend-otp', {
+    const result = await request('/auth/resend-otp', {
       body: { email: EMAIL, purpose }, withoutTurnstile: true,
     });
-    expect(blocked.status).toBe(403);
-    expect(blocked.json.code).toBe('TURNSTILE_FAILED');
-    expect(blocked.json).not.toHaveProperty('expiresInMinutes');
-    expect(db.query('SELECT * FROM auth_otps')).toEqual(before);
-    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(result.status).toBe(200);
+    expect(result.json.expiresInMinutes).toBe(10);
+    expect(db.query('SELECT * FROM auth_otps')).not.toEqual(before);
+    expect(sendEmail).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(['register', 'login'])('does not issue or email a %s OTP for an unknown account', async (purpose) => {
+    vi.mocked(sendEmail).mockClear();
+    const result = await request('/auth/resend-otp', {
+      withoutTurnstile: true,
+      body: { email: 'unknown@example.com', purpose },
+    });
+    expect(result.status).toBe(200);
+    expect(result.json).toEqual({
+      success: true,
+      message: 'Nếu tài khoản đang chờ xác thực, mã OTP mới sẽ được gửi.',
+      expiresInMinutes: 10,
+    });
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(db.query('SELECT * FROM auth_otps WHERE email = ?', 'unknown@example.com')).toEqual([]);
   });
 
   it('keeps resend available when the optional KV cooldown store is unavailable', async () => {
@@ -1155,8 +1197,11 @@ describe('final auth hardening adversarial regressions', () => {
     expect(db.query("SELECT COUNT(*) AS count FROM sessions_v2 WHERE datetime(last_seen_at) > datetime('now', '-1 minute')")[0].count).toBe(1);
   });
 
-  it.each(['TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY'] as const)('fails closed without production %s even outside the config gate', async (key) => {
-    const result = await request('/auth/forgot-password', { body: { email: EMAIL }, env: { [key]: undefined } });
+  it.each(['TURNSTILE_SITE_KEY', 'TURNSTILE_SECRET_KEY'] as const)('fails registration closed without production %s even outside the config gate', async (key) => {
+    const result = await request('/auth/register', {
+      body: { name: 'Auth Test', email: EMAIL, password: PASSWORD },
+      env: { [key]: undefined },
+    });
     expect(result.status).toBe(403);
     expect(result.json.code).toBe('TURNSTILE_FAILED');
     expect(sendEmail).not.toHaveBeenCalled();

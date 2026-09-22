@@ -1,12 +1,8 @@
 import React, { useEffect, useId, useState } from 'react';
 import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Button } from '../../components/common/Button';
-import { TurnstileWidget } from '../../components/common/TurnstileWidget';
 
 interface OtpModeProps {
-  turnstileSiteKey: string | null;
-  turnstileGeneration: number;
-  onTurnstileToken: (token: string | null) => void;
   otpDigits: string[];
   otpInputsRef: React.MutableRefObject<(HTMLInputElement | null)[]>;
   onOtpChange: (index: number, value: string) => void;
@@ -20,7 +16,6 @@ interface OtpModeProps {
   isResending: boolean;
   resendCountdown: number;
   onResend: () => void;
-  turnstileToken: string | null;
   delivered: boolean | null;
   expiresAt: number | null;
   errorMessage: string | null;
@@ -30,9 +25,6 @@ interface OtpModeProps {
 /** Six-digit verification (screen 03): paste support, no disruptive shaking,
  *  honest transfer-deferred continuation (DEC-012). */
 export const OtpMode: React.FC<OtpModeProps> = ({
-  turnstileSiteKey,
-  turnstileGeneration,
-  onTurnstileToken,
   otpDigits,
   otpInputsRef,
   onOtpChange,
@@ -46,7 +38,6 @@ export const OtpMode: React.FC<OtpModeProps> = ({
   isResending,
   resendCountdown,
   onResend,
-  turnstileToken,
   delivered,
   expiresAt,
   errorMessage,
@@ -74,13 +65,6 @@ export const OtpMode: React.FC<OtpModeProps> = ({
 
   return (
     <div className="mt-6 space-y-5">
-      {turnstileSiteKey && (
-        <TurnstileWidget
-          key={turnstileGeneration}
-          siteKey={turnstileSiteKey}
-          onToken={onTurnstileToken}
-        />
-      )}
       <form onSubmit={onSubmitVerify} className="space-y-4">
         <p id={otpGroupId} className="sr-only">
           Mã OTP 6 chữ số
@@ -170,8 +154,7 @@ export const OtpMode: React.FC<OtpModeProps> = ({
             disabled={
               resendCountdown > 0 ||
               isLoading ||
-              isResending ||
-              Boolean(turnstileSiteKey && !turnstileToken)
+              isResending
             }
             onClick={onResend}
             className="font-semibold text-takosan-green disabled:opacity-40 hover:underline flex items-center gap-1 tap-target cursor-pointer"
@@ -182,9 +165,7 @@ export const OtpMode: React.FC<OtpModeProps> = ({
                 ? 'Đang gửi lại mã…'
                 : resendCountdown > 0
                   ? `Gửi lại sau (${resendCountdown}s)`
-                  : turnstileSiteKey && !turnstileToken
-                    ? 'Đang xác minh…'
-                    : 'Gửi lại mã OTP'}
+                  : 'Gửi lại mã OTP'}
             </span>
           </button>
         </div>
