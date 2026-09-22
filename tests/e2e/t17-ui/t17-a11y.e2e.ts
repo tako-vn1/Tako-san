@@ -21,7 +21,8 @@ async function completeOnboarding(page: Page) {
 
 async function settle(page: Page) {
   await page.locator('main, [role="main"], h1').first().waitFor({ state: 'visible' });
-  await page.evaluate(() => document.fonts.ready.then(() => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 200)))));
+  // Match T18C: allow the existing entrance and enabled-state fades to finish.
+  await page.evaluate(() => document.fonts.ready.then(() => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 350)))));
 }
 
 interface SurfaceReport {
@@ -106,12 +107,13 @@ test.describe('accessibility certification', () => {
       ['app-settings', '/settings/app'], ['privacy', '/settings/privacy'], ['plus', '/plus'],
     ];
     for (const [name, path] of surfaces) {
-      await page.goto(path); await settle(page);
+      await page.goto(path);
       // Scan review polls until the seeded scan is ready; audit the settled state.
       if (name === 'scan-review') await expect(page.getByRole('button', { name: /Xác nhận nguyên liệu/ })).toBeEnabled();
       // Receipt review resolves its scan asynchronously; the disabled-CTA
       // frame is transitional, audit the settled state.
       if (name === 'receipt-review') await expect(page.getByRole('button', { name: /Nhập \d+ món vào Tủ lạnh/ })).toBeEnabled();
+      await settle(page);
       reports.push(await auditSurface(page, name, path));
     }
 

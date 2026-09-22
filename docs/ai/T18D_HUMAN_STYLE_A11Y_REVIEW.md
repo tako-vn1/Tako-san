@@ -1,8 +1,9 @@
 # T18D HUMAN-STYLE ACCESSIBILITY REVIEW
 
-**Draft status:** implementation and focused browser gates are complete.
-Final gates, counts, and review status remain the primary agent's work. This is
-not a `T18D_READY_FOR_REVIEW` or actual assistive-technology certification.
+**Status:** `T18D_READY_FOR_REVIEW`. Implementation is frozen at `d3ef61c`;
+focused, repository, and six-width browser gates are green. Publication is
+review-only; no merge or deployment is authorized. This is not actual
+assistive-technology certification.
 
 ## Base
 
@@ -13,8 +14,9 @@ not a `T18D_READY_FOR_REVIEW` or actual assistive-technology certification.
 - CI #151 / `35584884792`: SUCCESS
 - Staging Deploy #53 / `35585265322`: SUCCESS; run head matches exact base
 - Production: SKIPPED and untouched
+- Implementation freeze: `d3ef61c`
 - Checkpoints: `13ccb70` (scan), `bf764cc` (recipe tabs), `5ffcabd`
-  (cooking), `7568fb2` (focused certification/application freeze)
+  (cooking), `7568fb2` (focused certification), `d3ef61c` (application freeze)
 
 ## Methodology
 
@@ -32,19 +34,22 @@ per-second visual updates.
 
 ### Evidence currently available
 
-- Final focused desktop browser rerun: **14 PASS / 0 FAIL** (39.9s), strict
-  axe clean and accessibility-tree attachments retained in
-  `.hoplite/artifacts/t18d/focused-green`. Six-width regression run pending.
+- Final focused browser run: **14 PASS / 0 FAIL** in **42.8s**, strict axe
+  clean; log: `.hoplite/artifacts/t18d/final/focused.log`.
 - Earlier serial browser run: **10 PASS / 4 FAIL**.
   The genuine failure was lost scan CTA focus; that was fixed. Two apparent
   axe hangs were caused by a paused test clock and were fixed by resuming the
   clock. A filter locator collision was corrected.
 - An earlier **5 PASS / 5 FAIL** run found a genuine completion heading
   h1-to-h3 issue; the current assertion/path now handles the h2/h3 structure.
-- Focused unit run: **4 files / 60 PASS**, including three new voice-boundary
-  tests. Full Vitest is pending; expected count is 185 files / 4226 tests.
-- Full lint/typecheck PASS. Serial full Vitest/migration/build and complete
-  browser gates are running/pending. No counts are inferred from T18C history.
+- Final `pnpm lint`, `pnpm typecheck`, `pnpm test`,
+  `pnpm check:migrations`, and `pnpm build` logs all pass; full Vitest is
+  **185 files / 4226 tests** in **333.25s**. Logs:
+  `.hoplite/artifacts/t18d/final/{lint,typecheck,test,check-migrations,build}.log`.
+- Final six-width browser run: **349 PASS / 5 intentional skips / 0 FAIL**,
+  **354 cases**, **23.3m**, no retries/flakes. All **84 T18D cases PASS**.
+- Fresh style/contrast rerun: **39 allowlisted / 0 unjustified** style
+  residuals and **33/33 PASS** contrast; logs under `final/`.
 
 ## Findings at start
 
@@ -170,67 +175,97 @@ Overall human-style disposition: **14 PASS / 13 PASS_WITH_NOTE / 0 FAIL**.
 Independent final source review: **P0/P1/P2 open = 0/0/0**; seven added P2s
 resolved, two P3 observations explicitly deferred.
 
+The independent second pass rechecked two boundary questions. The pre-existing
+timer store can retain `isTimerRunning` at zero, but the exposed control is now
+truthfully completed/disabled, activation is guarded, focus remains, and Reset
+works; no AT/keyboard defect remains and the protected timer store is unchanged.
+Normal successful scan confirmation still navigates to `/fridge`; the lifecycle
+announcement applies when an authoritative confirmed/refetch state remains on
+the review page. No artificial delay or business-state transition was introduced.
+
 ## Automated evidence
 
-- Focused serial desktop rerun: **14/14 PASS**, strict axe clean, 39.9s.
-  `PORT=5173 T18C_ARTIFACT_DIR=.hoplite/artifacts/t18d/focused-green pnpm exec
-  playwright test --config=playwright.t18c.config.ts t18d-human-a11y.e2e.ts
-  --project=desktop-1440`.
+- Focused final run: **14/14 PASS**, strict axe violations **0**, **42.8s**;
+  `.hoplite/artifacts/t18d/final/focused.log`.
 - Earlier serial browser checkpoint: **10 PASS / 4 FAIL**; genuine CTA-focus
   issue fixed. Two paused-clock axe hangs and a filter locator collision were
   harness issues and are fixed; full focused rerun passed without suppressions.
 - Earlier browser checkpoint: **5 PASS / 5 FAIL**; genuine completion heading
   h1-to-h3 issue addressed; current path/assertion supports h2/h3.
 - Focused unit tests: **4 files / 60 PASS**, including three voice-boundary tests.
-- Serial `pnpm lint`, `pnpm typecheck`, `pnpm test` (**185 files / 4226 PASS**,
-  331.37s), `pnpm check:migrations` (`migration-smoke=ok`), `pnpm build`: PASS.
-  Full gate logs: `.hoplite/artifacts/t18d/full-*.log`, 2026-09-22 00:07–00:14 UTC.
+- Final `pnpm lint`, `pnpm typecheck`, `pnpm test` (**185 files / 4226 PASS**,
+  333.25s), `pnpm check:migrations` (`migration-smoke=ok`), and `pnpm build`:
+  PASS. Logs: `.hoplite/artifacts/t18d/final/{lint,typecheck,test,check-migrations,build}.log`.
+- After the test-only settling correction, `pnpm lint`, `pnpm typecheck`, and
+  `git diff --check` passed again (`lint-settled.log`, `typecheck-settled.log`).
 - `node scripts/t17/style-residuals.mjs`: **39 allowlisted / 0 unjustified**;
   `node scripts/t17/contrast-audit.mjs`: **33/33 PASS**.
 - Direct agent-browser check: recipe ArrowRight changes focus/selection/panel;
   cooking Enter advances to step 2/5 while focus stays on Next. Screenshot
   `.hoplite/artifacts/t18d/recipe-keyboard.png` inspected; no browser errors.
-- A first six-width matrix was deliberately stopped at case 96 before the
-  terminal timer-control correction; it is not counted as final certification.
-  Final focused rerun first returned 13/14: axe sampled the existing 250 ms
-  entrance fade (4.48:1 interpolated text, not settled #8F5307). The focused
-  helper now matches T18C's 350 ms settled-color audit; no rule/token changed.
-- Six-width T17/T18C/T18D/payment matrix and final Git/PR values: **PENDING**.
+- The second full matrix was stopped at approximately case 158 after
+  `t17-a11y.e2e.ts` sampled scan-review entrance opacity and receipt
+  enable-state before the UI settled; that failure context is retained. The
+  parent patched the test to wait **350 ms after** async CTAs become enabled,
+  matching the existing T18C settled-state convention. No axe rule or design
+  token was altered.
+- Final settled matrix: **349 PASS / 5 intentional skips / 0 FAIL**, **354
+  cases** in **23.3m**, one uninterrupted runner exit 0. Log:
+  `.hoplite/artifacts/t18d/final/matrix-settled.log`; machine-readable result:
+  `final/matrix-settled/reports/browser.json`. Exact command:
+
+  ```sh
+  PORT=5173 T18C_ARTIFACT_DIR=.hoplite/artifacts/t18d/final/matrix-settled pnpm exec playwright test --config=playwright.t18c.config.ts t18d-human-a11y.e2e.ts t17-a11y.e2e.ts t17-reduced-motion.e2e.ts t18c-gaps.e2e.ts t18c-matrix.e2e.ts t17-ui.e2e.ts payment-authority.e2e.ts
+  ```
+
+  Widths: **360/390/430/768/1024/1440**. Breakdown: T18D **84**, T17 axe
+  **12**, reduced motion **42**, T17 UI **84**, T18C gaps **67**, T18C matrix
+  **6**, payment regression **54**, all PASS. The existing breakpoint sweep
+  runs once in mobile-390; its other five project instances are intentionally
+  skipped, not missing coverage. No retries or flaky results.
+- Strict axe violations **0** across **162 canonical checks** (27 × 6), plus
+  focused dynamic contracts. One-h1, image-alt, 44×44 targets, navigation
+  `aria-current`, OTP announcements, and labelled dialog entry/trap/Escape/return
+  contracts pass. Axe retains **45 color-contrast incomplete rule records**
+  across the six manifests; these are not violations or an exhaustive contrast
+  certification. Fresh token contrast checks pass 33/33; no exclusions were
+  added beyond the existing external iframe boundary.
 - Prior CI/staging and T18C counts are historical and are not relabeled as
   T18D evidence.
 
 ## Human assistive technology limitation
 
 - Human-style manual semantic review: **PERFORMED**
-- Keyboard/manual interaction simulation: **PERFORMED**
-- Accessibility-tree/ARIA review, including `ariaSnapshot` attachments:
-  **PERFORMED in the focused automation work**
+- Keyboard interaction review/manual interaction simulation: **PERFORMED**
+- Accessibility-tree/ARIA review, including focused `ariaSnapshot`
+  assertions: **PERFORMED**
 - VoiceOver macOS/iOS actual execution: **NOT PERFORMED**
 - NVDA Windows actual execution: **NOT PERFORMED**
 
 ## Remaining risks
 
-- Complete the focused rerun and inspect every attached accessibility tree;
-  current 10/4 is not a final result.
-- Rerun the relevant T17/T18C suites and full repository gates, then record
-  exact final counts and failures.
-- Complete the independent second pass and establish final scoped P0/P1/P2
-  counts. Current code review has six resolved additional P2s and two deferred
-  P3 observations.
-- Commit/push the final documentation checkpoint and open, but do not merge,
-  the review PR. Do not deploy.
+- Two scoped P3 observations remain deferred: shopping repeated delete buttons
+  have generic names, and settings cache-cleared feedback has no dedicated
+  status. No P0/P1/P2 remains open in the independent review.
+- Actual VoiceOver/NVDA, microphone recognition accuracy, real provider delivery,
+  and live payments are not certified. Axe incomplete contrast records remain
+  available for human inspection; approved T18C composition is unchanged.
+- Review-only publication and hosted CI receipt follow this local certification.
+  No merge or deployment is allowed.
 
-## Draft final report
+## Final local report
 
-- Original A/B/C/D: **FIXED in `13ccb70`, `bf764cc`, `5ffcabd`; final browser
-  certification pending**.
-- New P2: **6 resolved** (capture alert; grouped filters; completion heading;
-  stale callbacks; confirm CTA focus; voice failure). P3: **2 deferred**.
-- 27-screen matrix: **27/27 code-only PASS_WITH_NOTE**; final browser roll-up
-  pending.
-- Final SHA, remote SHA, ahead/behind, PR number/state/head/base, axe count,
-  full Vitest count, lint, typecheck, migration smoke, build, and final
-  worktree status: **PENDING primary**.
+- Original A/B/C/D: **FIXED**; application freeze `d3ef61c`.
+- Additional P2: **7 resolved** (capture alert; grouped filters; completion
+  heading; stale callbacks; confirm CTA focus; voice failure; completed-timer
+  control). P3: **2 deferred**.
+- 27-screen human-style review: **14 PASS / 13 PASS_WITH_NOTE / 0 FAIL**;
+  independent review open P0/P1/P2 = **0/0/0**.
+- Focused/repository gates PASS; settled matrix **349 PASS / 5 intentional
+  skips / 0 FAIL**. `git diff --check` PASS. Protected server, migration,
+  workflow, auth/payment/domain boundaries are unchanged.
+- Worktree contains the pre-existing `.hoplite/settings.json` modification;
+  it is preserved and excluded from all T18D commits.
 - Merge/deploy/production/migration/real payment: **NO**.
 
-**Final status:** `PENDING PRIMARY CERTIFICATION` (not `T18D_COMPLETE`).
+**Final status:** `T18D_READY_FOR_REVIEW`.

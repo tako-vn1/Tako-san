@@ -1,17 +1,26 @@
-# Frigo / Takosan current task board — 2026-09-21
+# Frigo / Takosan current task board — 2026-09-22
 
-## T18D — final browser certification in progress (2026-09-22)
+## T18D — `T18D_READY_FOR_REVIEW` (2026-09-22)
 
-- [done] Exact stable-ID/base gate; CI #151/staging #53 success, production
-  skipped; requested branch pushed. Checkpoints A/B/C/D through `7568fb2`.
-- [done] Scan, recipe tabs and cooking semantics, seven review-added P2s;
-  independent source review P0/P1/P2 = 0/0/0, two P3 observations deferred.
-- [done] 27-screen semantic review: 14 PASS / 13 PASS_WITH_NOTE / 0 FAIL.
-- [done] Focused browser 14/14, Vitest 185 files / 4226 PASS,
-  lint/typecheck/migration smoke/build, style 39/0, contrast 33/33.
-- [pending] Six-width 354-case browser matrix; final docs and review-only PR.
-- No merge/deploy; preserve T18C composition and protected business contracts.
-  VoiceOver/NVDA NOT PERFORMED. Exact commands: `T18D_HUMAN_STYLE_A11Y_REVIEW.md`.
+- [done] Stable-ID/base gate; CI #151/staging #53 success, production skipped;
+  branch pushed from exact `07ace57241f8270b2458610979c709bb69b9a65a`; implementation freeze `d3ef61c`.
+- [done] Four original findings and **seven** additional scoped P2s fixed;
+  independent review open P0/P1/P2 = **0/0/0**; two P3 observations deferred.
+- [done] 27-screen semantic review: **14 PASS / 13 PASS_WITH_NOTE / 0 FAIL**.
+- [done] Focused browser **14/14 PASS in 42.8s**, strict axe violations **0**; final
+  repository logs pass with **185 files / 4226 tests in 333.25s**.
+- [done] Settled full matrix: **349 PASS / 5 intentional skips / 0 FAIL**,
+  354 cases in 23.3m; all **84 T18D cases PASS**. Strict axe violations **0**
+  across 162 canonical checks. Duplicate breakpoint instances alone skipped;
+  log `.hoplite/artifacts/t18d/final/matrix-settled.log`, artifacts under
+  `.hoplite/artifacts/t18d/final/matrix-settled/`. The prior run stopped near
+  case 158 on pre-settle scan-review opacity/receipt enable sampling; parent
+  patched a 350ms wait after async CTA enable, with no axe/token changes.
+- [done] Fresh style residuals **39/0**, contrast **33/33**, lint/typecheck and
+  `git diff --check` PASS after test-only settle correction.
+- [next] Review-only PR and hosted CI receipt.
+  No merge/deploy. VoiceOver/NVDA NOT PERFORMED. See
+  `T18D_HUMAN_STYLE_A11Y_REVIEW.md` for exact evidence.
 
 ## Historical T18C receipt
 

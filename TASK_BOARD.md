@@ -1,13 +1,21 @@
-**Current: T18D — final browser certification in progress.**
+**Current: T18D_READY_FOR_REVIEW.**
 
-- [done] Stable ID `1368281478`, base `07ace57241f8270b2458610979c709bb69b9a65a`, requested branch
-  created/pushed; checkpoints A/B/C/D published through `7568fb2`.
-- [done] Original four findings fixed; seven additional P2s closed, two P3s
-  deferred. 27-screen semantic review: 14 PASS / 13 PASS_WITH_NOTE / 0 FAIL.
-- [done] Focused browser 14/14, full Vitest 185 files / 4226 PASS;
-  lint/typecheck/migration smoke/build PASS; style 39/0, contrast 33/33.
-- [pending] Six-width 354-case browser matrix, final receipt, review-only PR.
-- No merge/deploy; VoiceOver/NVDA NOT PERFORMED. See `docs/ai/HANDOFF.md`.
+- T18D implementation freeze: `d3ef61c`, from exact base `07ace57241f8270b2458610979c709bb69b9a65a`.
+- Four original findings and **seven** additional scoped P2s fixed;
+  independent review open P0/P1/P2 = **0/0/0**; two P3 observations deferred.
+- 27-screen human-style review: **14 PASS / 13 PASS_WITH_NOTE / 0 FAIL**.
+- Focused browser: **14/14 PASS in 42.8s**, strict axe clean. Final repository
+  logs pass: **185 files / 4226 tests in 333.25s**.
+- Settled full matrix: **349 PASS / 5 intentional skips / 0 FAIL**, 354 cases
+  in 23.3m; all **84 T18D cases PASS**, strict axe violations **0** across 162
+  canonical checks. Duplicate breakpoint project instances alone skipped.
+  `.hoplite/artifacts/t18d/final/matrix-settled.log` and
+  `.hoplite/artifacts/t18d/final/matrix-settled/`. The prior matrix stopped
+  near case 158 on pre-settle scan-review opacity/receipt enable sampling;
+  parent added a 350ms wait after async CTA enable, with no axe/token changes.
+- Fresh style **39/0**, contrast **33/33**, lint/typecheck/diff checks PASS.
+- Next: review-only PR and hosted CI receipt.
+  No merge/deploy. VoiceOver/NVDA NOT PERFORMED.
 
 ## Historical T18C receipt
 

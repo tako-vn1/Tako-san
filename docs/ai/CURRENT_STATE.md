@@ -1,43 +1,44 @@
-# Frigo / Takosan current authority — 2026-09-21
+# Frigo / Takosan current authority — 2026-09-22
 
-## T18D — in progress
+## T18D — `T18D_READY_FOR_REVIEW`
 
 Stable repository ID `1368281478` verified as `vn-tako1/Frigo-dev`;
 main/base `07ace57241f8270b2458610979c709bb69b9a65a`, CI #151 (`35584884792`) success,
-Deploy #53 (`35585265322`) staging success / production skipped. No open PR
-overlaps the four target UI surfaces. Branch
-`feat/t18d-a11y-human-style-hardening` created from that exact base and pushed.
+Deploy #53 (`35585265322`) staging success / production skipped. Branch
+`feat/t18d-a11y-human-style-hardening` was created from that exact base and
+pushed; implementation freeze is `d3ef61c`. No business/server changes.
 
-Checkpoint A separates scan stage announcements from elapsed ticks and adds
-transition-only review lifecycle status (ready/failed/confirmed), retaining
-poll retry alerts separately. `pnpm exec vitest run
-tests/unit/scan-processing-state.test.tsx tests/unit/t13b-fridge-review.test.tsx
-tests/unit/t13b-fridge-hardening.test.tsx`: **3 files / 57 tests PASS**;
-`git diff --check` PASS. Browser/full gates pending. No business/server changes.
-Recipe tabs now have automatic keyboard activation and labelled panels; cooking
-announcements and contextual controls implemented. `pnpm typecheck` and scoped
-ESLint PASS; cooking-store/client-session regression **2 files / 35 PASS**.
-Focused T18D browser **14/14 PASS** on desktop-1440, including strict axe,
-ARIA tree snapshots, stage/ready/failed/confirmed transitions, automatic tabs,
-step/focus/progress, event-only timers, mock speech error recovery, deduction
-names, filters, and dialog entry/trap/Escape/return. Command:
-`PORT=5173 T18C_ARTIFACT_DIR=.hoplite/artifacts/t18d/focused-green pnpm exec
-playwright test --config=playwright.t18c.config.ts t18d-human-a11y.e2e.ts
---project=desktop-1440`. Additional 3 voice-boundary unit regressions PASS.
-Review-added capture/filter/heading/focus/capability/presentation-timer gaps
-fixed without backend, command-action, polling or quantity changes. Initial
-focused failures and repairs are recorded in the T18D report; no rules disabled.
-Next: serial full gates, six-width browser matrix, final independent review/PR.
-First full gates passed (185 files / 4226 tests, 331.37s; lint/typecheck,
-migration smoke/build). A seventh review-added P2, the completed timer's
-misleading active pause control, is now fixed without changing ticking.
-The initial matrix was intentionally stopped at case 96. Final focused/full
-gates/matrix are rerunning serially; see HANDOFF for the entrance-fade test
-settling correction and exact evidence paths.
-VoiceOver/NVDA not performed. Pre-existing `.hoplite/settings.json` modification
-preserved and excluded. Managed isolated Preview restored through project
-overrides; setup tool refused an idle-ready lease, safe setup commands run
-locally instead (frozen dependencies, Chromium, sqlite3). No deployment.
+The four original human-style findings are fixed. Seven additional scoped P2
+findings are also fixed; independent review open P0/P1/P2 = **0/0/0**. The
+27-screen review is **14 PASS / 13 PASS_WITH_NOTE / 0 FAIL**. Two P3
+observations remain deliberately deferred. Human-style semantic review,
+keyboard interaction review, and accessibility-tree/ARIA review were performed;
+VoiceOver and NVDA were not performed.
+
+Final focused evidence is **14/14 PASS** in **42.8s**, with strict axe
+violations **0**;
+log: `.hoplite/artifacts/t18d/final/focused.log`. Final
+`pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm check:migrations`, and
+`pnpm build` logs all pass; Vitest is **185 files / 4226 tests** in **333.25s**:
+`.hoplite/artifacts/t18d/final/{lint,typecheck,test,check-migrations,build}.log`.
+Fresh style/contrast reruns pass: **39 allowlisted / 0 unjustified** and
+**33/33**. Lint/typecheck also pass after the test-only settling correction.
+
+The second full matrix was stopped at approximately case 158 after
+`t17-a11y.e2e.ts` sampled scan-review entrance opacity and receipt enable-state
+before settle; the error context is retained. The parent patched the test to
+wait 350ms **after** async CTAs become enabled, matching the T18C settled-state
+convention; no axe rule or design token changed. The settled matrix passed
+**349 cases / 5 intentional skips / 0 failures** (354 total, 23.3m) with log
+`.hoplite/artifacts/t18d/final/matrix-settled.log` and artifacts under
+`.hoplite/artifacts/t18d/final/matrix-settled/`.
+
+All **84 T18D cases PASS**; 162 canonical axe checks have **0 violations**.
+The five skips are duplicate project instances of the breakpoint sweep,
+which passes once in mobile-390. Axe contrast incomplete records are retained,
+not silently treated as passes. Full breakdown/commands are in the T18D report.
+Next: review-only PR and hosted CI receipt. Do not merge or deploy. Existing
+`.hoplite/settings.json` modification remains preserved and excluded.
 
 ## Previous T18C receipt (historical; PR #48 is now merged)
 
