@@ -290,3 +290,26 @@ the review page. No artificial delay or business-state transition was introduced
   real payment: **NO**.
 - Next: inspect settled hosted CI and reviewer feedback. Actual VoiceOver/NVDA
   and the two deferred P3 observations remain outside this task's certification.
+
+## Final merge-readiness receipt — 2026-09-22
+
+Verified head `bf05929` matched the remote; base remained `07ace57241f8270b2458610979c709bb69b9a65a`,
+7 ahead / 0 behind main and 0/0 against upstream. Hosted CI run `35677786470`
+completed **SUCCESS** at 02:04:17 UTC: lint, typecheck, full Vitest, migration
+smoke, and build steps all green. PR #49 was **MERGEABLE / CLEAN**, with no
+reviews/comments/unresolved threads; auto-merge remains disabled.
+
+The complete diff and relevant configuration received a final internal release
+audit; **no follow-up introduced by this PR**. Application/configuration matches
+the verified `d3ef61c` freeze; this receipt changes documentation only.
+
+Fresh checks: the four scan/voice unit files listed in HANDOFF passed **60/60**
+tests (4.34s); style residuals **39/0**; contrast **33/33**; worktree and base
+`git diff --check` PASS. Logs are under `.hoplite/artifacts/t18d/readiness/`.
+The previously recorded full/browser evidence remains valid for unchanged code;
+it was not represented as newly rerun. No failures in this pass.
+
+Ready for owner merge permission once latest-head checks remain green. Existing
+`.hoplite/settings.json` work is still excluded. No merge/deploy/remote migration
+or real payment occurred. Status remains `T18D_READY_FOR_REVIEW`; VoiceOver/NVDA
+execution remains outside the certification.
