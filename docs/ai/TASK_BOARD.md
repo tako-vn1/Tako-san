@@ -1,6 +1,33 @@
-# Frigo / Takosan current task board — 2026-09-21
+# Frigo / Takosan current task board — 2026-09-22
 
-**Current: T18C_READY_FOR_REVIEW**, application freeze `6f8f6f4`.
+## T18D — `T18D_READY_FOR_REVIEW` (2026-09-22)
+
+- [done] Stable-ID/base gate; CI #151/staging #53 success, production skipped;
+  branch pushed from exact `07ace57241f8270b2458610979c709bb69b9a65a`; implementation freeze `d3ef61c`.
+- [done] Four original findings and **seven** additional scoped P2s fixed;
+  independent review open P0/P1/P2 = **0/0/0**; two P3 observations deferred.
+- [done] 27-screen semantic review: **14 PASS / 13 PASS_WITH_NOTE / 0 FAIL**.
+- [done] Focused browser **14/14 PASS in 42.8s**, strict axe violations **0**; final
+  repository logs pass with **185 files / 4226 tests in 333.25s**.
+- [done] Settled full matrix: **349 PASS / 5 intentional skips / 0 FAIL**,
+  354 cases in 23.3m; all **84 T18D cases PASS**. Strict axe violations **0**
+  across 162 canonical checks. Duplicate breakpoint instances alone skipped;
+  log `.hoplite/artifacts/t18d/final/matrix-settled.log`, artifacts under
+  `.hoplite/artifacts/t18d/final/matrix-settled/`. The prior run stopped near
+  case 158 on pre-settle scan-review opacity/receipt enable sampling; parent
+  patched a 350ms wait after async CTA enable, with no axe/token changes.
+- [done] Fresh style residuals **39/0**, contrast **33/33**, lint/typecheck and
+  `git diff --check` PASS after test-only settle correction.
+- [done] Review-only [PR #49](https://github.com/vn-tako1/Frigo-dev/pull/49)
+  OPEN; publication checkpoint `fe1b5d4` pushed. Auto-fix enabled, auto-merge off.
+- [next] Hosted CI/review settlement; initial `validate` IN_PROGRESS in run
+  `35677663372` at 01:57 UTC, no unresolved threads then.
+  No merge/deploy. VoiceOver/NVDA NOT PERFORMED. See
+  `T18D_HUMAN_STYLE_A11Y_REVIEW.md` for exact evidence.
+
+## Historical T18C receipt
+
+**Previous: T18C_READY_FOR_REVIEW**, application freeze `6f8f6f4`.
 
 - [done] Existing branch/repository ID `1368281478` preserved; matching upstream,
   unchanged base, pre-existing workspace settings excluded.

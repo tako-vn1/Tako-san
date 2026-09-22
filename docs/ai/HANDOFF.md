@@ -1,4 +1,60 @@
-# Frigo / Takosan current handoff — 2026-09-21
+# Frigo / Takosan current handoff — 2026-09-22
+
+## T18D — `T18D_READY_FOR_REVIEW`
+
+- **Task/base:** Human-style semantic hardening, not redesign; repository ID
+  `1368281478`, `vn-tako1/Frigo-dev`, exact base `07ace57241f8270b2458610979c709bb69b9a65a` verified.
+  Branch `feat/t18d-a11y-human-style-hardening` was created and pushed;
+  implementation freeze is `d3ef61c`.
+- **Scope/result:** The four original findings and seven additional scoped P2s
+  are fixed. Independent review open P0/P1/P2 = **0/0/0**; two P3
+  observations are deliberately deferred. The 27-screen disposition is
+  **14 PASS / 13 PASS_WITH_NOTE / 0 FAIL**.
+- **Evidence:** Final focused browser evidence is **14/14 PASS** in **42.8s**,
+  strict axe clean; `.hoplite/artifacts/t18d/final/focused.log`. Final
+  `lint`, `typecheck`, `test`, `check:migrations`, and `build` logs pass;
+  Vitest is **185 files / 4226 tests** in **333.25s** under
+  `.hoplite/artifacts/t18d/final/{lint,typecheck,test,check-migrations,build}.log`.
+  Fresh style residuals **39 allowlisted / 0 unjustified** and contrast
+  **33/33 PASS** were rerun under `final/`; lint/typecheck pass again after
+  the test-only settling correction. `git diff --check` PASS.
+- **Matrix recovery:** The second full matrix stopped at approximately case
+  158 when `t17-a11y.e2e.ts` sampled scan-review entrance opacity and receipt
+  enable-state before settle; failure context is retained. The parent patched
+  the test to wait 350ms **after** async CTAs become enabled, matching T18C's
+  settled-state convention. No axe rules or design tokens changed.
+- **Final matrix:** **349 PASS / 5 intentional skips / 0 FAIL**, 354 total in
+  23.3m, exit 0, no retries/flakes. All 84 T18D cases pass. The five skips are
+  duplicate project instances of the once-passing mobile-390 breakpoint sweep.
+  Strict axe violations **0** across 162 canonical checks; 45 incomplete
+  contrast rule records retained. Exact command and suite counts in the report.
+  Log:
+  `.hoplite/artifacts/t18d/final/matrix-settled.log`, artifacts
+  `.hoplite/artifacts/t18d/final/matrix-settled/`.
+- **Boundaries/limitations:** No business/server/schema/workflow change, remote
+  write, merge, or deployment. Human-style semantic, keyboard, and
+  accessibility-tree/ARIA review were performed; VoiceOver/NVDA actual
+  execution was not performed. Existing settings-file modification remains
+  preserved and excluded.
+- **Publication:** [PR #49](https://github.com/vn-tako1/Frigo-dev/pull/49) OPEN
+  to `main`, review-only; verified checkpoint `fe1b5d4` matched remote (6 ahead /
+  0 behind main, 0/0 vs upstream). Initial hosted `validate` IN_PROGRESS in run
+  `35677663372` at 01:57 UTC; no unresolved review threads then. Auto-fix loop
+  enabled, auto-merge disabled. This receipt is a subsequent doc-only checkpoint.
+- **Next:** Inspect settled hosted CI and review feedback via the enabled loop.
+  Do not merge, deploy, run remote migrations, or begin production promotion.
+
+### T18D failure history — 2026-09-22
+
+An earlier full gate pass recorded **185 files / 4226 Vitest PASS** in
+331.37s. During AX-tree inspection, the completed timer still offered an
+active pause control; this seventh P2 was fixed at the UI boundary with
+`aria-disabled` focus retention, an inert terminal toggle, and working Reset,
+without changing duration/store/ticks. An earlier 354-case matrix stopped at
+case 96, and an earlier 13/14 focused attempt sampled an existing entrance
+fade; neither is final evidence. The current final gates are recorded as
+185 files / 4226 tests in 333.25s, and the settled matrix status and artifacts
+are documented in the current T18D section above.
 
 ## T18C final handoff — `T18C_READY_FOR_REVIEW`
 

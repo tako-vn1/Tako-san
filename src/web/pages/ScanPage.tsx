@@ -82,15 +82,21 @@ export const ScanPage: React.FC = () => {
     const commandId = commandRef.current.id;
     const sessionIsCurrent = capturePrivateSession();
     const isCurrent = () => sessionIsCurrent() && commandRef.current?.id === commandId;
+    const stageTimers: ReturnType<typeof setTimeout>[] = [];
+    const scheduleStage = (stage: ScanProcessingStage, text: string, delay: number) => {
+      stageTimers.push(setTimeout(() => {
+        if (isCurrent()) { setProcessingStage(stage); setProcessing(true, text); }
+      }, delay));
+    };
     inFlight.current = true;
     setErrorMsg(null);
     if (activeTab === 'receipt') {
       setProcessingStage('uploading');
       setProcessing(true, 'Đang quét hóa đơn mua sắm...');
       try {
-        setTimeout(() => { if (isCurrent()) { setProcessingStage('queued'); setProcessing(true, 'Đã nhận ảnh, đang xếp hàng xử lý...'); } }, 450);
-        setTimeout(() => { if (isCurrent()) { setProcessingStage('analyzing'); setProcessing(true, 'AI Vision đang nhận diện tên hàng & đơn giá...'); } }, 1100);
-        setTimeout(() => { if (isCurrent()) { setProcessingStage('validating'); setProcessing(true, 'Bóc tách mặt hàng và kiểm tra đối chiếu...'); } }, 2200);
+        scheduleStage('queued', 'Đã nhận ảnh, đang xếp hàng xử lý...', 450);
+        scheduleStage('analyzing', 'AI Vision đang nhận diện tên hàng & đơn giá...', 1100);
+        scheduleStage('validating', 'Bóc tách mặt hàng và kiểm tra đối chiếu...', 2200);
 
         const receiptRes = await api.scanReceipt(base64, commandId);
 
@@ -102,6 +108,7 @@ export const ScanPage: React.FC = () => {
         setErrorMsg(scanFailureMessage(error, 'Không thể bóc tách hóa đơn. Vui lòng thử lại với ảnh rõ nét hơn!'));
         setProcessing(false);
       } finally {
+        stageTimers.forEach(clearTimeout);
         inFlight.current = false;
       }
       return;
@@ -110,9 +117,9 @@ export const ScanPage: React.FC = () => {
     setProcessing(true, 'Đang tải ảnh lên...');
     setProcessingStage('uploading');
     try {
-      setTimeout(() => { if (isCurrent()) { setProcessingStage('queued'); setProcessing(true, 'Đã nhận ảnh, đang xếp hàng xử lý...'); } }, 450);
-      setTimeout(() => { if (isCurrent()) { setProcessingStage('analyzing'); setProcessing(true, 'AI Vision đang nhận diện nguyên liệu...'); } }, 1100);
-      setTimeout(() => { if (isCurrent()) { setProcessingStage('validating'); setProcessing(true, 'Chuẩn hóa định lượng & kiểm tra độ tươi...'); } }, 2200);
+      scheduleStage('queued', 'Đã nhận ảnh, đang xếp hàng xử lý...', 450);
+      scheduleStage('analyzing', 'AI Vision đang nhận diện nguyên liệu...', 1100);
+      scheduleStage('validating', 'Chuẩn hóa định lượng & kiểm tra độ tươi...', 2200);
 
       const scanRes = await api.scanFridge(base64, activeTab, commandId);
 
@@ -124,6 +131,8 @@ export const ScanPage: React.FC = () => {
       setErrorMsg(scanFailureMessage(error, 'Không thể xử lý ảnh hoặc nhận diện thất bại. Vui lòng thử lại!'));
       setProcessing(false);
     } finally {
+      // Delayed presentation stages must not restart processing after failure.
+      stageTimers.forEach(clearTimeout);
       inFlight.current = false;
     }
   };
@@ -200,7 +209,7 @@ export const ScanPage: React.FC = () => {
         </div>
 
         {errorMsg && (
-          <div className="mt-3 bg-semantic-danger/25 border border-semantic-danger/50 rounded-xl p-3 text-xs text-white flex items-center gap-2 max-w-sm w-full">
+          <div role="alert" className="mt-3 bg-semantic-danger/25 border border-semantic-danger/50 rounded-xl p-3 text-xs text-white flex items-center gap-2 max-w-sm w-full">
             <AlertCircle className="w-4 h-4 shrink-0 text-white" />
             <span>{errorMsg}</span>
             <button className="underline shrink-0" onClick={() => {

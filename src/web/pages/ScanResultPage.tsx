@@ -66,6 +66,8 @@ const ScanReview: React.FC<{ effectiveScanId: string }> = ({ effectiveScanId }) 
   }, []);
 
   const [isConfirming, setIsConfirming] = useState(false);
+  const confirmBarRef = useRef<HTMLDivElement>(null);
+  const restoreConfirmFocus = useRef(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [isManualAddOpen, setIsManualAddOpen] = useState(false);
   const [addName, setAddName] = useState('');
@@ -84,6 +86,30 @@ const ScanReview: React.FC<{ effectiveScanId: string }> = ({ effectiveScanId }) 
   const canEdit = matchesScan && scanStatus === 'ready' && !isConfirming;
   const isConfirmed = matchesScan && scanStatus === 'confirmed';
   const acceptedCount = items.filter((item) => !item.rejected).length;
+  const announcedStatus = useRef<string | null>(null);
+  const [lifecycleAnnouncement, setLifecycleAnnouncement] = useState('');
+
+  useEffect(() => {
+    if (isConfirming || !restoreConfirmFocus.current) return;
+    restoreConfirmFocus.current = false;
+    // Native disabled buttons can drop focus during confirmation; never override a new focus target.
+    if (document.activeElement === document.body) {
+      confirmBarRef.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
+    }
+  }, [isConfirming, isConfirmed]);
+
+  useEffect(() => {
+    // Snapshot counts at transitions, not on every edit to the review list.
+    if (announcedStatus.current === scanStatus) return;
+    announcedStatus.current = scanStatus;
+    setLifecycleAnnouncement(scanStatus === 'ready'
+      ? `Kết quả quét đã sẵn sàng. Có ${items.length} nguyên liệu cần kiểm tra.`
+      : scanStatus === 'confirmed'
+        ? `Đã xác nhận ${acceptedCount} nguyên liệu.`
+        : scanStatus === 'failed'
+          ? `Bản quét không thể xử lý. ${loadError ?? pollError ?? 'Vui lòng thử lại.'}`
+          : '');
+  }, [scanStatus, items.length, acceptedCount, loadError, pollError]);
 
   useEffect(() => {
     if (!effectiveScanId || scanStatus !== 'pending') return;
@@ -146,6 +172,7 @@ const ScanReview: React.FC<{ effectiveScanId: string }> = ({ effectiveScanId }) 
       && useScanStore.getState().scanId === effectiveScanId;
     if (!active()) return;
     setConfirmError(null);
+    restoreConfirmFocus.current = confirmBarRef.current?.contains(document.activeElement) ?? false;
     setIsConfirming(true);
     try {
       await api.confirmScan(effectiveScanId, items);
@@ -208,8 +235,11 @@ const ScanReview: React.FC<{ effectiveScanId: string }> = ({ effectiveScanId }) 
 
       <div className="px-4 pt-3 space-y-4">
         {scanStatus === 'pending' && <ScanProcessingState stage="analyzing" kind="fridge" compact />}
-        {confirmError && <p role="alert" className="text-sm text-semantic-danger-strong">{confirmError}</p>}
-        {loadError && <p role="alert" className="text-sm text-semantic-danger-strong">
+        <p role="status" aria-live="polite" aria-atomic="true" className="sr-only" data-testid="scan-lifecycle-status">
+          {lifecycleAnnouncement}
+        </p>
+        {confirmError && <p role={isConfirmed ? undefined : 'alert'} className="text-sm text-semantic-danger-strong">{confirmError}</p>}
+        {loadError && <p role={scanStatus === 'failed' ? undefined : 'alert'} className="text-sm text-semantic-danger-strong">
           {loadError}
           {effectiveScanId && <button className="ml-2 underline tap-target" onClick={() => {
             setLoadError(null);
@@ -221,7 +251,7 @@ const ScanReview: React.FC<{ effectiveScanId: string }> = ({ effectiveScanId }) 
         <div className={scanStatus === 'failed'
           ? 'bg-semantic-danger-soft border border-semantic-danger/30 rounded-xl p-3.5 flex items-start gap-3'
           : 'bg-takosan-mint/80 border border-takosan-mint-deep/70 rounded-xl p-3.5 flex items-start gap-3'}
-          role={isConfirmed ? 'status' : undefined}>
+          >
           {scanStatus === 'failed'
             ? <AlertCircle className="w-5 h-5 text-semantic-danger shrink-0 mt-0.5" />
             : <CheckCircle2 className="w-5 h-5 text-takosan-green shrink-0 mt-0.5" />}
@@ -251,7 +281,7 @@ const ScanReview: React.FC<{ effectiveScanId: string }> = ({ effectiveScanId }) 
           </div>
         </div>
         {pollError && (
-          <div role="alert" className="rounded-xl border border-semantic-warning/30 bg-semantic-warning-soft px-3 py-2 text-xs text-semantic-warning-strong flex items-center justify-between gap-3">
+          <div role={scanStatus === 'pending' ? 'alert' : undefined} className="rounded-xl border border-semantic-warning/30 bg-semantic-warning-soft px-3 py-2 text-xs text-semantic-warning-strong flex items-center justify-between gap-3">
             <span>{pollError}</span>
             <div className="flex items-center gap-2 shrink-0">
               {scanStatus === 'pending' && (
@@ -393,7 +423,7 @@ const ScanReview: React.FC<{ effectiveScanId: string }> = ({ effectiveScanId }) 
 
       {/* Fixed Confirm CTA Bar */}
       <div className="fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px))] sm:bottom-0 left-0 right-0 sm:left-20 lg:left-64 p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] bg-white/95 backdrop-blur-md border-t border-semantic-border z-40 shadow-lg">
-        <div className="mx-auto w-full max-w-[var(--content-wide)]">
+        <div ref={confirmBarRef} className="mx-auto w-full max-w-[var(--content-wide)]">
           {isConfirmed ? <Button fullWidth size="lg" onClick={() => navigate('/fridge')}>
             Xem tủ lạnh
           </Button> : <Button
