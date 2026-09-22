@@ -50,7 +50,11 @@ async function issueAndSendOtp(
 
   const { subject, html, text } = buildOtpEmail(otpCode, purpose);
   const deliver = async () => {
-    const result = await sendEmail(env, { to: email, subject, html, text });
+    const result = await sendEmail(env, { to: email, subject, html, text, purpose }).catch(() => ({
+      sent: false as const,
+      provider: 'none' as const,
+      error: 'provider_unavailable' as const,
+    }));
     if (!result.sent) {
       if (env.ENVIRONMENT === 'production') {
         await db.prepare("UPDATE auth_otps SET used = 1, used_at = datetime('now') WHERE id = ? AND used = 0")
@@ -58,13 +62,24 @@ async function issueAndSendOtp(
           .run()
           .catch(() => console.error(JSON.stringify({ event: 'otp_invalidation_failed' })));
       }
-      console.error(JSON.stringify({ event: 'otp_delivery_failed', provider: result.provider, category: result.error }));
+      console.error(JSON.stringify({
+        event: 'otp_delivery_failed',
+        provider: result.provider,
+        category: result.error,
+        purpose,
+        environment: env.ENVIRONMENT || 'development',
+      }));
     }
     return result;
   };
   if (scheduleDelivery) {
     scheduleDelivery(deliver().then(() => {}).catch(() => {
-      console.error(JSON.stringify({ event: 'otp_delivery_failed' }));
+      console.error(JSON.stringify({
+        event: 'otp_delivery_failed',
+        category: 'provider_unavailable',
+        purpose,
+        environment: env.ENVIRONMENT || 'development',
+      }));
     }));
     return { code: otpCode, emailSent: false, provider: 'scheduled' };
   }

@@ -60,7 +60,11 @@ healthRoutes.get('/health/ready', async (c) => {
         // particular, a native AI binding alone is not an OCR capability when
         // its explicit fallback flag is disabled.
         ai: getAIServiceStatus(env),
-        email: env.SEND_EMAIL || env.RESEND_API_KEY ? 'configured' : 'disabled',
+        email: {
+          providerConfigured: Boolean(env.SEND_EMAIL || env.RESEND_API_KEY),
+          // Readiness is side-effect free, so it cannot certify inbox delivery.
+          deliveryVerified: false,
+        },
         rateLimiting: env.CACHE
           ? env.RATE_LIMIT_ENFORCEMENT === 'fail-closed'
             ? 'kv-fail-closed'
