@@ -1,5 +1,36 @@
 # Frigo / Takosan current authority — 2026-09-22
 
+## T19 V2 — one recipe authority + 500-recipe D1 cutover (safe stop)
+
+**Current: `T19_V2_SAFE_STOP_PUBLICATION_BLOCKED`.** Branch
+`feat/t19-recipe-authority-cutover-v2` (from canonical main `4677ebb`,
+`4677ebbabbb580b9045423350da719acaf8f5742`; repository ID `1368281478`, `vn-tako2/Frigo-dev`)
+is **local/artifact-only and ABSENT from the remote**: the credential/token used
+by the authoring workspace lacks effective capability to publish
+workflow-changing commits, and GitHub rejected the push. The split-authority
+defect is **fixed locally and
+verified**: the Meal Planner now plans from the same `resolveRecipeAuthority`
+snapshot as Recipe API/Week/Shopping/Cooking (`projectPlannerCatalogOnAuthority`),
+stored plans carry an authority identity with typed `CATALOG_AUTHORITY_CHANGED`
+revalidation, planner catalog fingerprints are authority-scoped, the release
+path accepts the reviewed `static|shadow|canary{1,2,5,25}|d1` states, and
+readiness/protected-evidence endpoints expose machine-verifiable authority
+proof. Current-session verification: `pnpm lint`, `pnpm typecheck`,
+`pnpm check:migrations`, `pnpm build`, full Vitest **567 files / 4294 tests PASS**,
+`pnpm recipe:import:check` (`rel-bd00a4f53fcaeee4`, 500 recipes), `git diff --check`.
+Hosted CI for the T19 **application** code has **NOT happened** (no
+application PR exists); [PR #52](https://github.com/vn-tako2/Frigo-dev/pull/52)
+is documentation-only and its `validate` run certifies the documentation, not
+the application code. **Production rollout is NOT eligible to start.**
+Production was **not** touched: no deploy, no mode/percent change, no D1 access.
+Remaining, in order: workspace/artifact takeover → publish the application
+branch → application PR + hosted CI → `RELEASE_VERIFY_TOKEN` provisioning →
+staged rollout (shadow → canary → d1) through the reviewed Deploy workflow.
+Canonical handoff:
+[T19_V2_WIP_HANDOFF.md](recipe-catalog/T19_V2_WIP_HANDOFF.md); architecture:
+[T19_V2_RECIPE_AUTHORITY_CUTOVER.md](recipe-catalog/T19_V2_RECIPE_AUTHORITY_CUTOVER.md)
+and ADR-030.
+
 ## Google Safari profile recovery + registration-only Turnstile
 
 Production base `8dc9198918837cb15f4a7ddf4f9029875b015091` was reproduced with

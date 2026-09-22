@@ -1,5 +1,19 @@
 # Frigo / Takosan current task board — 2026-09-22
 
+## T19 V2 — recipe authority cutover (safe stop 2026-09-22)
+
+- [done] Reproduced the split-authority defect on unmodified main (planner D1-only recipe under static; 404 detail/cook).
+- [done] Fenced the planner to `resolveRecipeAuthority` (`projectPlannerCatalogOnAuthority`); alternatives/swap/regenerate authority-clean; fingerprint scoped to the visible universe; stored plan authority identity + `CATALOG_AUTHORITY_CHANGED`.
+- [done] Cross-flow D1-only recipe test (planner → swap → shopping → detail → cook start/complete), all-mode matrix incl. D1-fallback-together and authority spoofing.
+- [done] Release state machine `static|shadow|canary{1,2,5,25}|d1` with derived cutover; deploy workflow authority-proof steps; smoke validates the authority summary.
+- [done] Public sanitized `recipeAuthority` readiness + protected `/health/recipe-authority` release evidence (bearer token, no PII).
+- [done] Verification: lint, typecheck, migration smoke, build, full Vitest 567 files / 4294 PASS, `recipe:import:check` 500 = rel-bd00a4f53fcaeee4.
+- [blocked] **Publication:** `feat/t19-recipe-authority-cutover-v2` is local/artifact-only and ABSENT from the remote (credential cannot publish workflow-changing commits; push rejected). Status `T19_V2_SAFE_STOP_PUBLICATION_BLOCKED`.
+- [blocked] Hosted CI for the application code has NOT happened (no application PR). [PR #52](https://github.com/vn-tako2/Frigo-dev/pull/52) is documentation-only; its `validate` pass certifies the docs, not the code.
+- [blocked] Production rollout is NOT eligible to start; production unchanged.
+- [next] Takeover steps A–F: obtain original workspace/artifacts → restore exact application branch (HEAD token `0a04209e512d19293ed56a19d3fd51eb29ffefcd`) → verify → publish branch → verify remote SHA → only then application PR, hosted CI, `RELEASE_VERIFY_TOKEN` provisioning, staged rollout (shadow → canary 1 → 5 → 25 → d1). Handoff: `docs/ai/recipe-catalog/T19_V2_WIP_HANDOFF.md`.
+- [not-started] T20 Meal Composition V2 (blocked until `T19_COMPLETE`).
+
 ## Google Safari profile recovery + registration-only Turnstile
 
 - [done] Reproduced normal-profile failure and private/clean-profile success in
