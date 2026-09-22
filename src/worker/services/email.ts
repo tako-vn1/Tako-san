@@ -4,8 +4,7 @@
  * Primary: Cloudflare Email Service (send_email binding, Paid plan) — no API
  *          key or third party. The sending domain must be onboarded before
  *          arbitrary recipients are accepted.
- * Fallback 1: Resend HTTP API (if RESEND_API_KEY secret is configured)
- * Fallback 2: Cloudflare MailChannels (free, no key — subject to CF policy)
+ * Fallback: Resend HTTP API (if RESEND_API_KEY secret is configured)
  *
  * Provider details are deliberately reduced to stable categories. Never retain
  * recipients, subjects, message bodies, OTPs, or provider exception text.
@@ -19,6 +18,7 @@ export interface SendEmailParams {
   html: string;
   text?: string;
   fromName?: string;
+  purpose?: 'register' | 'forgot_password' | 'login';
 }
 
 export interface EmailResult {
@@ -35,13 +35,45 @@ const FROM_EMAIL = 'no-reply@tungjpstore.net';
 
 function classifyWorkersEmailError(error: unknown): EmailResult['error'] {
   const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
-  const message = error instanceof Error ? error.message : '';
+  const message = error instanceof Error ? error.message.toLowerCase() : '';
   if (code === 'E_SENDER_NOT_VERIFIED' || code === 'E_SENDER_DOMAIN_NOT_AVAILABLE') return 'sender_not_verified';
   if (message.includes('email sending not authorized for subdomain')) return 'sender_not_verified';
-  if (code === 'E_RECIPIENT_NOT_ALLOWED') return 'recipient_not_allowed';
+  if (code === 'E_RECIPIENT_NOT_ALLOWED' || code === 'E_RECIPIENT_SUPPRESSED') return 'recipient_not_allowed';
   if (code === 'E_RATE_LIMIT_EXCEEDED') return 'rate_limited';
   if (code === 'E_DAILY_LIMIT_EXCEEDED') return 'daily_limit';
   return 'provider_unavailable';
+}
+
+async function classifyResendError(response: Response): Promise<EmailResult['error']> {
+  const body = await response.json().catch(() => null) as { name?: unknown; message?: unknown } | null;
+  const name = typeof body?.name === 'string' ? body.name.toLowerCase() : '';
+  const message = typeof body?.message === 'string' ? body.message.toLowerCase() : '';
+
+  if (response.status === 429) {
+    return name === 'daily_quota_exceeded' || name === 'monthly_quota_exceeded'
+      ? 'daily_limit'
+      : 'rate_limited';
+  }
+  if (response.status === 403 && name === 'validation_error') {
+    if (message.includes('only send testing emails')) return 'recipient_not_allowed';
+    if (message.includes('domain is not verified') || message.includes('verify a domain')) return 'sender_not_verified';
+  }
+  return 'provider_unavailable';
+}
+
+function logDeliveryFailure(
+  env: Env,
+  params: SendEmailParams,
+  provider: EmailResult['provider'],
+  category: EmailResult['error'],
+): void {
+  console.error(JSON.stringify({
+    event: 'email_delivery_failed',
+    provider,
+    category,
+    ...(params.purpose ? { purpose: params.purpose } : {}),
+    ...(env.ENVIRONMENT ? { environment: env.ENVIRONMENT } : {}),
+  }));
 }
 
 export async function sendEmail(
@@ -65,7 +97,7 @@ export async function sendEmail(
       return { sent: true, provider: 'workers-email', messageId: result.messageId };
     } catch (error) {
       workersFailure = classifyWorkersEmailError(error);
-      console.error(JSON.stringify({ event: 'email_delivery_failed', provider: 'workers-email', category: workersFailure }));
+      logDeliveryFailure(env, params, 'workers-email', workersFailure);
       // fall through to HTTP providers
     }
   }
@@ -95,19 +127,21 @@ export async function sendEmail(
         const body = await res.json().catch(() => ({})) as { id?: string };
         return { sent: true, provider: 'resend', ...(body.id ? { messageId: body.id } : {}) };
       }
-      const error = res.status === 429 ? 'rate_limited' : 'provider_unavailable';
+      const error = await classifyResendError(res);
+      logDeliveryFailure(env, params, 'resend', error);
       return { sent: false, provider: 'resend', error };
     } catch {
-      return { sent: false, provider: 'resend', error: 'provider_unavailable' };
+      const error = 'provider_unavailable';
+      logDeliveryFailure(env, params, 'resend', error);
+      return { sent: false, provider: 'resend', error };
     }
   }
 
-  // 2. MailChannels fallback removed: Cloudflare ended free MailChannels
-  // support for Workers (returns HTTP 401 since 2024). Configure RESEND_API_KEY
-  // as a Wrangler secret for a reliable HTTP fallback instead.
-  return env.SEND_EMAIL
+  const result: EmailResult = env.SEND_EMAIL
     ? { sent: false, provider: 'workers-email', error: workersFailure || 'provider_unavailable' }
     : { sent: false, provider: 'none', error: 'not_configured' };
+  if (!env.SEND_EMAIL) logDeliveryFailure(env, params, result.provider, result.error);
+  return result;
 }
 
 /**

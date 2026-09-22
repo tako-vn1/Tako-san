@@ -224,8 +224,14 @@ model and capture a non-PII live smoke before deployment; mock-AI tests and the
 isolated preview do not verify live provider availability.
 
 Warnings (reported, non-blocking): no email provider (`SEND_EMAIL` binding or
-`RESEND_API_KEY`). The retired `PLUS_GRANT_SECRET` binding is ignored and cannot
-enable a grant. Turnstile is not optional in
+`RESEND_API_KEY`). Provider presence is configuration evidence only; it does
+not prove sender authorization or inbox delivery. Cloudflare Email Service and
+Resend must each authorize the fixed transactional identity
+`no-reply@tungjpstore.net` before that provider can deliver OTP mail. Provision
+the optional production fallback only as a Worker secret with
+`wrangler secret put RESEND_API_KEY`; never place the value in Wrangler vars,
+`.dev.vars`, frontend code, logs, or source control. The retired
+`PLUS_GRANT_SECRET` binding is ignored and cannot enable a grant. Turnstile is not optional in
 production: either missing/blank key is fatal, including when both are absent.
 Explicit development/staging may omit the pair; configured secrets still enforce
 verification. Login, registration, forgot-password and OTP resend require tokens.
@@ -237,6 +243,8 @@ verification. Login, registration, forgot-password and OTP resend require tokens
 - `GET /api/v1/health/ready` — sanitized readiness for load balancers and
   operators: `status` ∈ `ok | degraded | unhealthy` (HTTP 200 / 200 / 503),
   per-service states (`database`, `queue`, `ai`, `email`, `rateLimiting`),
+  where `email.providerConfigured` reports only binding/secret presence and
+  `email.deliveryVerified` remains false because readiness performs no send,
   config issue codes, and deployment traceability (`version`, `commit` from
   the `GIT_COMMIT` var). Unauthenticated but sanitized by construction — no
   secrets, tokens, or binding IDs.

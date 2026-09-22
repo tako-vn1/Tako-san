@@ -679,6 +679,44 @@ describe('D1-authoritative OTP verification', () => {
     expect(result.response.headers.get('Set-Cookie')).toBeNull();
     expect(otp().used).toBe(1);
     expect(db.query('SELECT is_verified FROM auth_accounts WHERE email = ?', EMAIL)[0].is_verified).toBe(0);
+    expect((await verify(deliveredCode())).status).toBe(400);
+  });
+
+  it('keeps a registration OTP usable when the secondary provider accepts delivery', async () => {
+    vi.mocked(sendEmail).mockResolvedValueOnce({ sent: true, provider: 'resend', messageId: 'fallback-message' } as any);
+    const registration = await request('/auth/register', {
+      body: { name: 'Auth Test', email: EMAIL, password: PASSWORD },
+    });
+    expect(registration.status).toBe(200);
+    expect(registration.json).toMatchObject({ success: true, expiresInMinutes: 10 });
+    expect(registration.json).not.toHaveProperty('devOtp');
+    expect(otp().used).toBe(0);
+
+    const verified = await verify(deliveredCode());
+    expect(verified.status).toBe(200);
+    expect(otp().used).toBe(1);
+    expect(db.query('SELECT is_verified FROM auth_accounts WHERE email = ?', EMAIL)[0].is_verified).toBe(1);
+  });
+
+  it('recovers from initial registration delivery failure through a secured resend', async () => {
+    vi.mocked(sendEmail).mockResolvedValueOnce({ sent: false, provider: 'workers-email', error: 'provider_unavailable' } as any);
+    const initial = await request('/auth/register', {
+      body: { name: 'Auth Test', email: EMAIL, password: PASSWORD },
+    });
+    expect(initial.status).toBe(503);
+    const failedCode = deliveredCode();
+    expect(otp().used).toBe(1);
+
+    nextOtpDiffersFrom(failedCode);
+    const resend = await request('/auth/resend-otp', {
+      body: { email: EMAIL, purpose: 'register' },
+    });
+    expect(resend.status).toBe(200);
+    expect(resend.json).toMatchObject({ success: true, expiresInMinutes: 10 });
+    const replacement = deliveredCode();
+    expect(replacement).not.toBe(failedCode);
+    expect((await verify(failedCode)).status).toBe(400);
+    expect((await verify(replacement)).status).toBe(200);
   });
 
   it('fails resend honestly and leaves the newly generated challenge unusable', async () => {
@@ -1076,8 +1114,10 @@ describe('final auth hardening adversarial regressions', () => {
     vi.mocked(sendEmail).mockRejectedValueOnce(new Error(sensitive));
     const known = await request('/auth/forgot-password', { body: { email: EMAIL } });
     const unknown = await request('/auth/forgot-password', { body: { email: 'nobody@example.com' } });
+    await Promise.all(scheduled);
     expect(known.status).toBe(200);
     expect(known.json).toEqual(unknown.json);
+    expect(otp('forgot_password').used).toBe(1);
     expect(JSON.stringify(log.mock.calls)).not.toContain(sensitive);
     expect(JSON.stringify(log.mock.calls)).not.toContain(EMAIL);
   });

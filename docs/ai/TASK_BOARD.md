@@ -1,5 +1,37 @@
 # Frigo / Takosan current task board — 2026-09-22
 
+## T18E — `T18E_OTP_TEST_RECIPIENT_REQUIRED` (2026-09-22)
+
+- [done] Verified stable repository ID, exact base/production `66627ff`, and
+  created/pushed `feat/t18e-otp-email-delivery-recovery` without rebasing or
+  touching concurrent Google work.
+- [done] Confirmed `SEND_EMAIL` binding present; subsequently provisioned the
+  operator-supplied `RESEND_API_KEY` as a production Worker secret without
+  printing, storing, or committing its value. API authentication PASS.
+- [blocked] Current sender authorization and production failure category remain
+  UNKNOWN: available Cloudflare OAuth lacks stored Observability/Email Sending
+  scope. No root cause was fabricated.
+- [done] Hardened Workers Email -> Resend -> fail-closed routing, sanitized
+  Resend/Cloudflare classification and structured diagnostics, and unexpected
+  exception invalidation.
+- [done] Readiness now separates provider configuration from delivery
+  verification without sending email.
+- [done] Certified registration, failure invalidation, fallback, resend
+  recovery, forgot-password anti-enumeration, verify/single-use/expiry,
+  Turnstile and no-production-leak contracts.
+- [done] Focused 165/165; full Vitest 185 files / 4238 tests; lint, typecheck,
+  migration smoke and build PASS. No migration or workflow change.
+- [done] Review-only [PR #50](https://github.com/vn-tako1/Frigo-dev/pull/50)
+  opened; hosted validate `35685553412` passed on `eec404a`; PR was
+  `MERGEABLE` / `CLEAN`.
+- [next] Require fresh exact-head CI after the final docs receipt; do not merge
+  or deploy.
+- [done] Operator completed the DNS correction; Resend reports
+  `tungjpstore.net`, DKIM, and both SPF-purpose records as verified.
+- [blocked] Verify the fixed sender in Cloudflare Email Service and supply an
+  authorized test inbox before real delivery can be certified. See
+  `T18E_OTP_DELIVERY_RECOVERY.md`.
+
 ## T18D — `T18D_READY_FOR_REVIEW` (2026-09-22)
 
 - [done] Stable-ID/base gate; CI #151/staging #53 success, production skipped;

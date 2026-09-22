@@ -98,6 +98,10 @@ describe('health endpoints', () => {
     const body = (await response.json()) as Record<string, unknown>;
     expect(body.status).toBe('ok');
     expect((body.services as Record<string, unknown>).database).toBe('ok');
+    expect((body.services as Record<string, unknown>).email).toEqual({
+      providerConfigured: true,
+      deliveryVerified: false,
+    });
     expect(body.commit).toBe('abc1234def5678');
   });
 
@@ -123,6 +127,10 @@ describe('health endpoints', () => {
     expect(response.status).toBe(200);
     const body = (await response.json()) as Record<string, unknown>;
     expect(body.status).toBe('degraded');
+    expect((body.services as Record<string, unknown>).email).toEqual({
+      providerConfigured: false,
+      deliveryVerified: false,
+    });
   });
 
   it('readiness reports unhealthy when the database is unreachable', async () => {

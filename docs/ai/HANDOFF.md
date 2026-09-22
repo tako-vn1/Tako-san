@@ -1,5 +1,42 @@
 # Frigo / Takosan current handoff — 2026-09-22
 
+## T18E — `T18E_OTP_TEST_RECIPIENT_REQUIRED`
+
+- **Base/branch:** repository `1368281478` / `vn-tako1/Frigo-dev`; exact base
+  and production `66627ffea890dad1cec4e31674449775a940c660`; branch
+  `feat/t18e-otp-email-delivery-recovery`.
+- **Observed production state:** `SEND_EMAIL` and the operator-authorized
+  `RESEND_API_KEY` secret are present; the supplied key authenticates. The
+  operator completed DNS correction and Resend reports `tungjpstore.net`, DKIM,
+  and both SPF-purpose records as verified. Current Cloudflare sender onboarding
+  and the exact primary-provider rejection category remain UNKNOWN. Do not claim
+  sender or recipient rejection without a sanitized event.
+- **Implementation:** Workers Email -> Resend -> fail-closed is preserved;
+  Resend HTTP/body categories are sanitized; final provider failures log only
+  event/provider/category/purpose/environment; unexpected router rejection
+  still invalidates production OTP; readiness separates configuration presence
+  from delivery verification.
+- **Contracts:** registration success/failure, fallback success, secured resend
+  after initial failure, forgot-password anti-enumeration, single-use/replay,
+  expiry, cooldown, Turnstile, digest-only storage and production `devOtp`
+  suppression are certified. Client UX already remained truthful; no AuthPage
+  or Google source changed.
+- **Verification:** focused 165/165; full Vitest 185 files / 4238 tests; lint,
+  typecheck, migration smoke and build PASS. Audit reports the unchanged
+  lockfile baseline of 21 advisories / 6 high; no dependency changed.
+- **PR/CI:** review-only [PR #50](https://github.com/vn-tako1/Frigo-dev/pull/50)
+  is OPEN. Hosted validate run `35685553412` passed on publication head
+  `eec404a`; PR was `MERGEABLE` / `CLEAN`. Wait for fresh exact-head CI after
+  the final documentation receipt. Do not merge.
+- **Safety:** no migration, workflow, payment, Google, D1, deploy, merge, or
+  random test email. The only production mutation was the explicitly authorized
+  Resend secret upload. Real inbox delivery is NOT RUN.
+- **Next:** verify `no-reply@tungjpstore.net` in Cloudflare Email Service and
+  supply an authorized test recipient. Then review/merge,
+  exact-main CI, automatic staging and controlled staging delivery; production
+  deploy remains separately authorized. See
+  [T18E_OTP_DELIVERY_RECOVERY.md](T18E_OTP_DELIVERY_RECOVERY.md).
+
 ## T18D — `T18D_READY_FOR_REVIEW`
 
 - **Task/base:** Human-style semantic hardening, not redesign; repository ID

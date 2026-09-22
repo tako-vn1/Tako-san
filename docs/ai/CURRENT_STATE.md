@@ -1,5 +1,45 @@
 # Frigo / Takosan current authority — 2026-09-22
 
+## T18E — `T18E_OTP_TEST_RECIPIENT_REQUIRED`
+
+Repository ID `1368281478` resolves to `vn-tako1/Frigo-dev`; exact starting
+main and production are `66627ffea890dad1cec4e31674449775a940c660`.
+Branch `feat/t18e-otp-email-delivery-recovery` contains the provider router,
+fail-closed auth, readiness semantics, and regression coverage. Production is
+unchanged.
+
+The production `SEND_EMAIL` binding is present, but current sender authority
+and the exact failure category could not be read with the available Cloudflare
+OAuth scopes. The operator-authorized production `RESEND_API_KEY` secret is now
+present and authenticates successfully without its value being printed or
+stored. The operator completed the DNS correction; Resend now reports
+`tungjpstore.net`, DKIM, and both SPF-purpose records as verified. T18E does not
+fabricate a primary root cause: current Workers Email sender authorization
+remains UNKNOWN until an operator verifies the account or a sanitized
+production event is captured.
+
+Code now classifies and logs provider failures without recipient/OTP/body data,
+falls through from Workers Email to Resend, distinguishes Resend quota/rate/
+sender/recipient failures, invalidates production OTPs even after an unexpected
+router exception, and reports readiness as `providerConfigured` separately from
+`deliveryVerified=false`. Registration, resend recovery, reset
+anti-enumeration, single use, expiry, cooldown, Turnstile, digest-only storage,
+and production `devOtp` suppression remain intact. No Google file changed.
+
+Focused auth/email coverage is **6 files / 165 tests PASS**; full Vitest is
+**185 files / 4238 tests PASS**. Lint, typecheck, migration smoke and build pass.
+The unchanged dependency audit baseline still reports 21 advisories / 6 high.
+Review-only [PR #50](https://github.com/vn-tako1/Frigo-dev/pull/50) is OPEN;
+publication head `eec404a` passed hosted validate run `35685553412` and was
+`MERGEABLE` / `CLEAN`. Final docs publication requires its own exact-head CI.
+No migration, workflow, merge, staging, production deploy, or real email was
+performed. The only production mutation was the explicitly authorized
+`RESEND_API_KEY` secret upload; the operator separately completed Resend DNS
+verification. Next: confirm Cloudflare sender authorization, supply an
+authorized test inbox, and complete staging then separately authorized
+production delivery verification. Full evidence:
+[T18E_OTP_DELIVERY_RECOVERY.md](T18E_OTP_DELIVERY_RECOVERY.md).
+
 ## T18D — `T18D_READY_FOR_REVIEW`
 
 Stable repository ID `1368281478` verified as `vn-tako1/Frigo-dev`;
