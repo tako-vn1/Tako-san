@@ -17,7 +17,17 @@ tests/unit/t13b-fridge-hardening.test.tsx`: **3 files / 57 tests PASS**;
 Recipe tabs now have automatic keyboard activation and labelled panels; cooking
 announcements and contextual controls implemented. `pnpm typecheck` and scoped
 ESLint PASS; cooking-store/client-session regression **2 files / 35 PASS**.
-Next: focused/browser/full gates and 27-screen semantic/independent review.
+Focused T18D browser **14/14 PASS** on desktop-1440, including strict axe,
+ARIA tree snapshots, stage/ready/failed/confirmed transitions, automatic tabs,
+step/focus/progress, event-only timers, mock speech error recovery, deduction
+names, filters, and dialog entry/trap/Escape/return. Command:
+`PORT=5173 T18C_ARTIFACT_DIR=.hoplite/artifacts/t18d/focused-green pnpm exec
+playwright test --config=playwright.t18c.config.ts t18d-human-a11y.e2e.ts
+--project=desktop-1440`. Additional 3 voice-boundary unit regressions PASS.
+Review-added capture/filter/heading/focus/capability/presentation-timer gaps
+fixed without backend, command-action, polling or quantity changes. Initial
+focused failures and repairs are recorded in the T18D report; no rules disabled.
+Next: serial full gates, six-width browser matrix, final independent review/PR.
 VoiceOver/NVDA not performed. Pre-existing `.hoplite/settings.json` modification
 preserved and excluded. Managed isolated Preview restored through project
 overrides; setup tool refused an idle-ready lease, safe setup commands run

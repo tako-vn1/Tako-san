@@ -140,6 +140,7 @@ export const RecipesPage: React.FC = () => {
                 <button
                   key={cat.label}
                   onClick={() => setCategoryFilter(cat.id)}
+                  aria-pressed={isActive}
                   className={clsx(
                     'px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-tap flex items-center gap-1.5 tap-target cursor-pointer border shadow-xs',
                     isActive
@@ -159,6 +160,7 @@ export const RecipesPage: React.FC = () => {
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-4 px-4">
           <button
             onClick={() => setNoBuyOnly(!noBuyOnly)}
+            aria-pressed={noBuyOnly}
             className={clsx(
               'px-3 py-1.5 rounded-full text-xs font-heading font-semibold transition-tap whitespace-nowrap flex items-center gap-1.5 tap-target shadow-xs cursor-pointer',
               noBuyOnly
@@ -172,6 +174,7 @@ export const RecipesPage: React.FC = () => {
 
           <button
             onClick={() => setUnder20MinsOnly(!under20MinsOnly)}
+            aria-pressed={under20MinsOnly}
             className={clsx(
               'px-3 py-1.5 rounded-full text-xs font-heading font-semibold transition-tap whitespace-nowrap flex items-center gap-1.5 tap-target shadow-xs cursor-pointer',
               under20MinsOnly
@@ -188,6 +191,7 @@ export const RecipesPage: React.FC = () => {
             <button
               key={reg.label}
               onClick={() => setRegionFilter(reg.id)}
+              aria-pressed={regionFilter === reg.id}
               className={clsx(
                 'px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-tap tap-target cursor-pointer border',
                 regionFilter === reg.id
@@ -204,6 +208,7 @@ export const RecipesPage: React.FC = () => {
             <button
               key={c.label}
               onClick={() => setCuisineFilter(c.id)}
+              aria-pressed={cuisineFilter === c.id}
               className={clsx(
                 'px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-tap tap-target cursor-pointer border',
                 cuisineFilter === c.id

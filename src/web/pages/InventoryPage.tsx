@@ -193,6 +193,7 @@ export const InventoryPage: React.FC = () => {
             <button
               key={c.id}
               onClick={() => setFilterCategory(c.id)}
+              aria-pressed={filterCategory === c.id}
               className={clsx(
                 'px-4 py-2 rounded-full text-xs font-heading font-bold whitespace-nowrap transition-tap tap-target cursor-pointer',
                 filterCategory === c.id

@@ -449,5 +449,7 @@ Original baseline and workspace settings preserved; no merge/deploy/T18D.
 Exact base `07ace57241f8270b2458610979c709bb69b9a65a` verified in repository ID `1368281478`.
 Requested branch pushed; scan stage/lifecycle checkpoint passes 57 regressions.
 Recipe tabs, cooking announcements, browser/full gates and review-only PR next.
+Implementation checkpoints A/B/C pushed; focused T18D browser 14/14 PASS.
+Review-added semantic gaps fixed. Full serial gates and six-width matrix next.
 No merge/deploy. See `docs/ai/HANDOFF.md` for exact checks and limitations.
 

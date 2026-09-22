@@ -44,7 +44,7 @@ export const CookingModePage: React.FC = () => {
   const [heardText, setHeardText] = useState<string | null>(null);
   const [confirmExit, setConfirmExit] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
-  const [timerAnnouncement, setTimerAnnouncement] = useState('');
+  const [timerAnnouncement, setTimerAnnouncement] = useState({ text: '', sequence: 0 });
   const [listeningAnnouncement, setListeningAnnouncement] = useState('');
   const timerToggleRef = useRef<HTMLButtonElement>(null);
   const completionHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -77,7 +77,7 @@ export const CookingModePage: React.FC = () => {
         tickTimer();
       }, 1000);
     } else if (timerSecondsRemaining === 0) {
-      setTimerAnnouncement('Hẹn giờ đã kết thúc.');
+      setTimerAnnouncement((previous) => ({ text: 'Hẹn giờ đã kết thúc.', sequence: previous.sequence + 1 }));
       audioEffects.playTimerAlertSound();
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate([200, 100, 200, 100, 400]);
@@ -86,7 +86,7 @@ export const CookingModePage: React.FC = () => {
     return () => clearInterval(interval);
   }, [isTimerRunning, timerSecondsRemaining, tickTimer]);
 
-  useEffect(() => { setTimerAnnouncement(''); }, [currentStepIndex]);
+  useEffect(() => { setTimerAnnouncement({ text: '', sequence: 0 }); }, [currentStepIndex]);
 
   useEffect(() => {
     if (isCompletedView) completionHeadingRef.current?.focus();
@@ -95,13 +95,19 @@ export const CookingModePage: React.FC = () => {
   const startStepTimer = (seconds: number) => {
     const starting = useCookingStore.getState().timerSecondsRemaining === null;
     setTimer(seconds);
-    setTimerAnnouncement(starting ? 'Đã bắt đầu hẹn giờ.' : 'Đã đặt lại hẹn giờ.');
+    setTimerAnnouncement((previous) => ({
+      text: starting ? 'Đã bắt đầu hẹn giờ.' : 'Đã đặt lại hẹn giờ.',
+      sequence: previous.sequence + 1,
+    }));
   };
 
   const toggleStepTimer = () => {
     const pausing = useCookingStore.getState().isTimerRunning;
     toggleTimer();
-    setTimerAnnouncement(pausing ? 'Đã tạm dừng hẹn giờ.' : 'Đã tiếp tục hẹn giờ.');
+    setTimerAnnouncement((previous) => ({
+      text: pausing ? 'Đã tạm dừng hẹn giờ.' : 'Đã tiếp tục hẹn giờ.',
+      sequence: previous.sequence + 1,
+    }));
   };
 
   // Clean up voice on unmount
@@ -168,7 +174,7 @@ export const CookingModePage: React.FC = () => {
         },
         onError: () => {
           setIsListening(false);
-          setListeningAnnouncement('Không thể bật trợ lý rảnh tay. Bạn vẫn có thể dùng các nút điều khiển.');
+          setListeningAnnouncement('Trợ lý rảnh tay đã tắt. Không thể nghe khẩu lệnh; bạn vẫn có thể dùng các nút điều khiển.');
         },
       });
     }
@@ -261,10 +267,10 @@ export const CookingModePage: React.FC = () => {
 
           <div className="space-y-2.5 pt-2">
             <div className="flex items-center justify-between">
-              <h3 className="font-heading font-bold text-sm text-semantic-text-primary flex items-center gap-1.5">
+              <h2 className="font-heading font-bold text-sm text-semantic-text-primary flex items-center gap-1.5">
                 <Refrigerator className="w-4 h-4 text-takosan-green" />
                 <span>Cập nhật số lượng trong tủ lạnh</span>
-              </h3>
+              </h2>
               <span className="text-xs text-semantic-text-muted font-medium">Tự động trừ đồ</span>
             </div>
 
@@ -279,9 +285,9 @@ export const CookingModePage: React.FC = () => {
                   className="bg-white rounded-xl p-3.5 flex items-center justify-between border border-semantic-border shadow-xs"
                 >
                   <div>
-                    <h4 className="font-heading font-semibold text-sm text-semantic-text-primary">
+                    <h3 className="font-heading font-semibold text-sm text-semantic-text-primary">
                       {d.name}
-                    </h4>
+                    </h3>
                     <p className="text-xs text-semantic-text-muted mt-0.5">
                       Ban đầu: {d.currentQuantity} {d.unit} &rarr; Còn: {d.remainingQuantity} {d.unit}
                     </p>
@@ -339,7 +345,7 @@ export const CookingModePage: React.FC = () => {
         {`Bước ${currentStepIndex + 1} trên ${activeRecipe.steps.length}. ${currentStep.instruction}`}
       </p>
       <p role="status" aria-live="polite" aria-atomic="true" className="sr-only" data-testid="cooking-timer-status">
-        {timerAnnouncement}
+        <span key={timerAnnouncement.sequence}>{timerAnnouncement.text}</span>
       </p>
       <p role="status" aria-live="polite" aria-atomic="true" className="sr-only" data-testid="cooking-listening-status">
         {listeningAnnouncement}

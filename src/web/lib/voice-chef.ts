@@ -149,6 +149,10 @@ class VoiceSousChef {
       recognition.onerror = (event: any) => {
         if (event.error !== 'no-speech') {
           console.warn('Speech recognition event:', event.error);
+          if (this.isListening) {
+            this.isListening = false;
+            callbacks.onError?.(event);
+          }
         }
       };
 

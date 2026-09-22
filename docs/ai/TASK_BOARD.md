@@ -1454,5 +1454,7 @@ rolling `qwen3.7-flash` alias is canary-only.
   typecheck/scoped lint and 35 cooking/session regressions PASS.
 - [pending] D deterministic browser
   regressions, 27-screen review, full validation, independent review, review PR.
+- [done] D focused browser 14/14 PASS; added 3 voice-boundary unit regressions.
+  Review-added semantic/focus defects corrected; six-width/full gates running.
 - No merge/deploy; preserve protected business boundaries and T18C composition.
 

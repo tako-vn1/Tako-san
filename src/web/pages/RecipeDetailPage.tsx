@@ -192,6 +192,7 @@ export const RecipeDetailPage: React.FC = () => {
               aria-controls={tab.panelId}
               tabIndex={activeTab === tab.id ? 0 : -1}
               onClick={() => setActiveTab(tab.id)}
+              onFocus={() => setActiveTab(tab.id)}
               onKeyDown={(event) => {
                 let nextIndex: number | undefined;
                 if (event.key === 'ArrowRight') nextIndex = (tabIndex + 1) % RECIPE_TABS.length;
@@ -210,7 +211,7 @@ export const RecipeDetailPage: React.FC = () => {
                 tabRefs.current[tab.id] = element;
               }}
               className={clsx(
-                'flex-1 py-2 rounded-lg text-xs font-heading font-bold transition-tap tap-target',
+                'flex-1 py-2 rounded-lg text-xs font-heading font-bold transition-tap tap-target focus-visible:outline-none focus-visible:shadow-t17-focus',
                 activeTab === tab.id
                   ? 'bg-white text-takosan-green shadow-xs'
                   : 'text-semantic-text-secondary hover:text-semantic-text-primary'
@@ -228,7 +229,7 @@ export const RecipeDetailPage: React.FC = () => {
           aria-labelledby="recipe-detail-tab-steps"
           tabIndex={0}
           hidden={activeTab !== 'steps'}
-          className="space-y-3 pt-1"
+          className="space-y-3 pt-1 focus-visible:outline-none focus-visible:shadow-t17-focus"
         >
           {/* tabIndex provides a direct keyboard entry point for text-only panels. */}
           {activeTab === 'steps' && (
@@ -270,7 +271,7 @@ export const RecipeDetailPage: React.FC = () => {
           aria-labelledby="recipe-detail-tab-ingredients"
           tabIndex={0}
           hidden={activeTab !== 'ingredients'}
-          className="bg-white rounded-2xl p-4 border border-semantic-border shadow-xs space-y-3"
+          className="bg-white rounded-2xl p-4 border border-semantic-border shadow-xs space-y-3 focus-visible:outline-none focus-visible:shadow-t17-focus"
         >
           {activeTab === 'ingredients' && (
             <>
@@ -366,7 +367,7 @@ export const RecipeDetailPage: React.FC = () => {
           aria-labelledby="recipe-detail-tab-nutrition"
           tabIndex={0}
           hidden={activeTab !== 'nutrition'}
-          className="bg-white rounded-2xl p-4 border border-semantic-border shadow-xs space-y-3"
+          className="bg-white rounded-2xl p-4 border border-semantic-border shadow-xs space-y-3 focus-visible:outline-none focus-visible:shadow-t17-focus"
         >
           {activeTab === 'nutrition' && (
             <>

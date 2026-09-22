@@ -1,6 +1,6 @@
 # Frigo / Takosan current handoff — 2026-09-21
 
-## T18D checkpoints A–C — in progress
+## T18D checkpoints A–D — certification in progress
 
 - **Task/base:** Human-style semantic hardening, not redesign; repository ID
   `1368281478`, `vn-tako1/Frigo-dev`, exact base `07ace57241f8270b2458610979c709bb69b9a65a` verified.
@@ -24,7 +24,22 @@
 - **Boundaries/database:** No business/server/schema/workflow change; no remote
   writes, merge or deploy. Historical CI #151 and staging #53 green; production
   skipped. Actual VoiceOver/NVDA not performed.
-- **Next:** Checkpoints B/C/D, independent review, gates, review-only PR.
+- **Focused evidence:** `PORT=5173
+  T18C_ARTIFACT_DIR=.hoplite/artifacts/t18d/focused-green pnpm exec playwright
+  test --config=playwright.t18c.config.ts t18d-human-a11y.e2e.ts
+  --project=desktop-1440` **14/14 PASS**, strict axe clean, ARIA tree attachments.
+  Follow-up `pnpm exec vitest run tests/unit/scan-processing-state.test.tsx
+  tests/unit/t13b-fridge-review.test.tsx tests/unit/t13b-fridge-hardening.test.tsx
+  tests/unit/voice-chef-a11y.test.ts`: **4 files / 60 PASS**.
+- **Follow-ups:** Capture alerts/filter states; stage-display timer cleanup;
+  completion heading order; native-disabled confirmation focus recovery only
+  when dropped to body; truthful voice capability failures without changing
+  command delegates; repeated explicit timer resets announce, ticks do not.
+- **Browser failures/recovery:** First serial expanded run 10 PASS / 4 FAIL:
+  genuine confirm-focus loss fixed; paused-clock axe hangs (2) and filter
+  locator collision corrected. Full focused rerun 14/14 PASS, not a suppression.
+- **Next:** Finish serial full gates and six-width browser matrix; finalize
+  review report/independent review and open review-only PR. Do not merge/deploy.
 
 ## T18C final handoff — `T18C_READY_FOR_REVIEW`
 
