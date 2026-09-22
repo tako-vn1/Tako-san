@@ -1,5 +1,37 @@
 # Frigo / Takosan current authority — 2026-09-22
 
+## T18E — `T18E_OTP_RESEND_SECRET_REQUIRED`
+
+Repository ID `1368281478` resolves to `vn-tako1/Frigo-dev`; exact starting
+main and production are `66627ffea890dad1cec4e31674449775a940c660`.
+Branch `feat/t18e-otp-email-delivery-recovery` contains the provider router,
+fail-closed auth, readiness semantics, and regression coverage. Production is
+unchanged.
+
+The production `SEND_EMAIL` binding is present, but current sender authority
+and the exact failure category could not be read with the available Cloudflare
+OAuth scopes. `RESEND_API_KEY` is definitively absent, so production has no
+fallback. T18E does not fabricate a primary root cause: current Workers Email
+sender authorization remains UNKNOWN until an operator verifies the account or
+a sanitized production event is captured.
+
+Code now classifies and logs provider failures without recipient/OTP/body data,
+falls through from Workers Email to Resend, distinguishes Resend quota/rate/
+sender/recipient failures, invalidates production OTPs even after an unexpected
+router exception, and reports readiness as `providerConfigured` separately from
+`deliveryVerified=false`. Registration, resend recovery, reset
+anti-enumeration, single use, expiry, cooldown, Turnstile, digest-only storage,
+and production `devOtp` suppression remain intact. No Google file changed.
+
+Focused auth/email coverage is **6 files / 165 tests PASS**; full Vitest is
+**185 files / 4238 tests PASS**. Lint, typecheck, migration smoke and build pass.
+The unchanged dependency audit baseline still reports 21 advisories / 6 high.
+No migration, workflow, merge, staging, production deploy, secret mutation, or
+real email was performed. Next: provision `RESEND_API_KEY`, confirm sender
+authorization in both providers, supply an authorized test inbox, and complete
+staging then separately authorized production delivery verification. Full
+evidence: [T18E_OTP_DELIVERY_RECOVERY.md](T18E_OTP_DELIVERY_RECOVERY.md).
+
 ## T18D — `T18D_READY_FOR_REVIEW`
 
 Stable repository ID `1368281478` verified as `vn-tako1/Frigo-dev`;

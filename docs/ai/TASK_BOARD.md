@@ -1,5 +1,29 @@
 # Frigo / Takosan current task board — 2026-09-22
 
+## T18E — `T18E_OTP_RESEND_SECRET_REQUIRED` (2026-09-22)
+
+- [done] Verified stable repository ID, exact base/production `66627ff`, and
+  created/pushed `feat/t18e-otp-email-delivery-recovery` without rebasing or
+  touching concurrent Google work.
+- [done] Confirmed `SEND_EMAIL` binding present and `RESEND_API_KEY` absent.
+- [blocked] Current sender authorization and production failure category remain
+  UNKNOWN: available Cloudflare OAuth lacks stored Observability/Email Sending
+  scope. No root cause was fabricated.
+- [done] Hardened Workers Email -> Resend -> fail-closed routing, sanitized
+  Resend/Cloudflare classification and structured diagnostics, and unexpected
+  exception invalidation.
+- [done] Readiness now separates provider configuration from delivery
+  verification without sending email.
+- [done] Certified registration, failure invalidation, fallback, resend
+  recovery, forgot-password anti-enumeration, verify/single-use/expiry,
+  Turnstile and no-production-leak contracts.
+- [done] Focused 165/165; full Vitest 185 files / 4238 tests; lint, typecheck,
+  migration smoke and build PASS. No migration or workflow change.
+- [pending] Open review-only PR; do not merge or deploy.
+- [blocked] Provision Worker secret `RESEND_API_KEY`, verify fixed sender/domain
+  in both providers, and supply an authorized test inbox before real delivery
+  can be certified. See `T18E_OTP_DELIVERY_RECOVERY.md`.
+
 ## T18D — `T18D_READY_FOR_REVIEW` (2026-09-22)
 
 - [done] Stable-ID/base gate; CI #151/staging #53 success, production skipped;

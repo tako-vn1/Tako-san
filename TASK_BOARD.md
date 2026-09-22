@@ -1,4 +1,23 @@
-**Current: T18D_READY_FOR_REVIEW.**
+**Current: T18E_OTP_RESEND_SECRET_REQUIRED.**
+
+- Exact repository/base/production: `1368281478`, `vn-tako1/Frigo-dev`,
+  `66627ffea890dad1cec4e31674449775a940c660`.
+- Isolated branch `feat/t18e-otp-email-delivery-recovery` is pushed; Google
+  Sign-In files and behavior are untouched.
+- `SEND_EMAIL` is present; `RESEND_API_KEY` is absent. Current Cloudflare sender
+  authorization and primary failure category remain UNKNOWN because the
+  available OAuth scope cannot query stored logs or Email Sending onboarding.
+- Provider recovery is hardened and tested: Workers Email -> Resend -> fail
+  closed, sanitized categories/logs, production invalidation on every delivery
+  failure, and honest readiness semantics.
+- Focused 165/165 and full Vitest 185 files / 4238 tests PASS; lint, typecheck,
+  migration smoke and build PASS. No migration, workflow or production change.
+- Next: open review-only PR; operator provisions `RESEND_API_KEY`, verifies the
+  fixed sender/domain in both providers, supplies an authorized inbox, and runs
+  controlled staging then separately authorized production delivery checks.
+  Evidence: `docs/ai/T18E_OTP_DELIVERY_RECOVERY.md`.
+
+**Previous: T18D_READY_FOR_REVIEW.**
 
 - T18D implementation freeze: `d3ef61c`, from exact base `07ace57241f8270b2458610979c709bb69b9a65a`.
 - Four original findings and **seven** additional scoped P2s fixed;
