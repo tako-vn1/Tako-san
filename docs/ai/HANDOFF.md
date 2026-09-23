@@ -1,37 +1,58 @@
 # Frigo / Takosan current handoff — 2026-09-22
 
-## T19 V2 — recipe authority cutover (safe stop)
+## T19 V2 — recipe authority cutover (integration)
 
-- **Base/branch:** repository ID `1368281478` (`vn-tako2/Frigo-dev`); exact
-  canonical main `4677ebb` (`4677ebbabbb580b9045423350da719acaf8f5742`); branch
-  `feat/t19-recipe-authority-cutover-v2`.
-- **State:** `T19_V2_SAFE_STOP_PUBLICATION_BLOCKED`. Application authority unification
+- **Base/branches:** repository ID `1368281478` (`vn-tako3/Frigo-dev`); exact
+  canonical main/integration base `a3b1564`; immutable original branch
+  `feat/t19-recipe-authority-cutover-v2` at `0a04209`; active branch
+  `feat/t19-recipe-authority-cutover-v2-integration`.
+- **State:** `T19_V2_APPLICATION_INTEGRATED_CI_PENDING`. Application authority unification
   (Recipe API = Planner = Shopping = Cooking under one `resolveRecipeAuthority`),
   authority-scoped fingerprints, stored-plan authority identity with typed
   revalidation, reviewed full-D1 release states (`static|shadow|canary{1,2,5,25}|d1`,
   derived cutover), protected recipe-authority release evidence.
-- **Publication truth:** the application branch is **local/artifact-only and
-  ABSENT from the remote** — the credential/token used by the authoring
-  workspace lacks effective capability to publish workflow-changing commits and
-  GitHub rejected the push. Hosted CI for the application code has **NOT
-  happened**. [PR #52](https://github.com/vn-tako2/Frigo-dev/pull/52)
-  (`docs/t19-v2-safe-stop-handoff`) is **documentation-only**; its `validate`
-  run does not exercise the application code. **Production rollout is NOT eligible to start.** The application
-  branch's final local HEAD token is `0a04209e512d19293ed56a19d3fd51eb29ffefcd` (≠ the docs branch
-  head); the portable bundle/patch artifacts exist only in the original
-  workspace. Production untouched (no deploy, no mode/percent change, no D1
-  access).
-- **Verification (current session):** `pnpm lint`, `pnpm typecheck`,
-  `pnpm check:migrations`, `pnpm build`, full Vitest **567 files / 4294 tests
-  PASS**, `pnpm recipe:import:check` (`rel-bd00a4f53fcaeee4`, 500 recipes),
-  `git diff --check`. Full-suite counts are current-session, not historical.
-- **Blocked on (in order):** original workspace/artifact takeover → publishing
-  `feat/t19-recipe-authority-cutover-v2` → application PR + hosted CI →
-  `RELEASE_VERIFY_TOKEN` (+ staging twin) provisioning, GitHub `production`
-  Environment approval, Cloudflare credentials.
-- **Next:** takeover steps A–F in the canonical handoff; only at step F is the
-  staged rollout (shadow → verify → canary 1 → 5 → 25 → d1) via the reviewed
-  Deploy workflow eligible to start. Rollback = redeploy `shadow`.
+- **Publication truth:** the original branch remains published and unchanged
+  at `0a04209`. Application checkpoint `558be74` is integrated from current
+  main (branch commits `8205883` + `553791a` + docs); PR #52 is merged
+  historical documentation. **Safe stop 2026-09-23: the integration branch is
+  publication-blocked** — the GitHub App credential cannot push
+  workflow-changing commits (exact error in the canonical handoff). Recovery
+  artifacts are workspace-only: `.artifacts/t19-current-safe-stop.bundle` and
+  `.artifacts/t19-current-safe-stop.patch`, with SHA-256 values in
+  `.artifacts/t19-current-safe-stop.sha256`. Hosted application CI has not run.
+  Production is untouched.
+- **Verification (current tree):** full Vitest 189 files / 4,364 tests PASS
+  (run A); the final rerun (run B) passed 4,363 with one 5 s contention
+  timeout in the unrelated T13 real-D1 file, which passed 22/22 in isolation;
+  focused 13-file matrix 356 PASS plus 23 snapshot/persistence tests after the
+  last cleanup; release-check 155, D1 certification 32, Worker rollback 10 PASS;
+  `pnpm lint`, `pnpm typecheck` (both), `pnpm check:migrations`, `pnpm build`,
+  `pnpm recipe:import:check` (`rel-bd00a4f53fcaeee4`, 500 recipes) and `git
+  diff --check` PASS. The Wrangler-shaped `release-certify` fixture proves tip
+  0037, 500 recipes, clean foreign keys and `quick_check=ok`.
+- **Final hardening:** planner content/steps always come from the authority
+  snapshot (static reads no D1 rows; d1 enrichment is fenced and degradable);
+  same-source authority drift is typed; shadow and canary release probes
+  exercise D1 so shadow cannot promote on `not_evaluated`; Deploy certifies
+  `wrangler.jsonc` binding, Cloudflare/D1 identity, ledger, catalog identity
+  (ordered IDs, duplicates, `runtime_order`), `foreign_key_check`,
+  `quick_check` read-only before mutation; release ref must equal current
+  main; backwards SHAs, stale/skipped/reverse promotions and unconfirmed
+  downgrades/bootstraps fail; previous and deployed Worker versions must bind
+  the pinned D1; failure or cancellation restores the exact previous version via
+  the Cloudflare API with a complete evidence proof; staging is fail-closed on
+  its proof configuration.
+- **Blocked on (in order):** publication with a workflows-capable credential
+  (owner action) → application PR + exact-head hosted CI/review → normal merge
+  + exact-main CI → verified production identity, release secrets
+  (`RELEASE_VERIFY_TOKEN` production + staging Worker secrets,
+  `STAGING_RELEASE_VERIFY_TOKEN`) and `production` Environment approval.
+- **Next:** the owner (or a `workflows`-granted installation) pushes
+  `git push origin HEAD:feat/t19-recipe-authority-cutover-v2-integration`,
+  verifies the remote SHA equals local HEAD, then the application PR opens. No
+  production action before merge and exact-main certification. T20 stays
+  blocked. Rollback after rollout = reviewed redeploy to `shadow` (or `static`
+  if policy requires it), never data deletion.
 - **Canonical handoff:**
   [T19_V2_WIP_HANDOFF.md](recipe-catalog/T19_V2_WIP_HANDOFF.md).
 

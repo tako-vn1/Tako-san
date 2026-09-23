@@ -1,18 +1,18 @@
 # T19 V2 — One Recipe Authority and the 500-recipe D1 cutover
 
-Status: **T19_CODE_COMPLETE_PRODUCTION_BLOCKED** (see the final section for the
-exact blocker). Safe-stop status: **T19_V2_SAFE_STOP_PUBLICATION_BLOCKED**.
-Branch `feat/t19-recipe-authority-cutover-v2` from canonical main `4677ebb`
-(repository ID `1368281478`, currently `vn-tako2/Frigo-dev`) is
-**local/artifact-only and ABSENT from the remote**: the credential/token used by
-the authoring workspace lacks effective capability to publish workflow-changing
-commits and GitHub rejected the push. Hosted CI for this application code has
-NOT happened; PR #52 validates documentation only. Takeover contract:
-[T19_V2_WIP_HANDOFF.md](T19_V2_WIP_HANDOFF.md).
+Status: **T19_V2_APPLICATION_INTEGRATED_CI_PENDING**. Repository ID
+`1368281478` resolves to `vn-tako3/Frigo-dev`; integration base is current main
+`a3b1564`. The immutable original branch
+`feat/t19-recipe-authority-cutover-v2` is published at `0a04209`; its actual
+application checkpoint `558be74` was integrated without replaying the later
+safe-stop documentation onto
+`feat/t19-recipe-authority-cutover-v2-integration`.
 
-The old unpublished T19 checkpoint (`7ac0433fba748f2c1c4af3988eaae6b08404bf74`) was never available
-to this session and was **not** reconstructed. Everything below is a fresh
-implementation on current code truth.
+Fresh local focused and canonical verification is complete and recorded in
+[T19_V2_WIP_HANDOFF.md](T19_V2_WIP_HANDOFF.md). Hosted CI for the integration
+branch has not run yet. Production is untouched and T20 remains blocked until
+`T19_COMPLETE`. PR #52 and the original publication-blocked record remain
+historical evidence.
 
 ## 1. Root cause (verified before any change)
 
@@ -44,10 +44,11 @@ resolveRecipeAuthority(env, { tenantKey: householdId })   ← ONE decision per o
         └── Meal Planner
               loadMealPlanningSnapshot(db, scope, now, authoritySnapshot)
                     └── projectPlannerCatalogOnAuthority(...)     packages/db/src/planner-catalog-authority.ts
-                          source = d1     → rich D1 catalog fenced to the snapshot's recipe IDs
-                          source = static → definitions/steps from the static snapshot itself
-                                            + D1 supplementary facts keyed by visible ID only
-                                            (classifications, nutrition rows, families, ingredient IDs)
+                          recipe content + steps ALWAYS come from the authority snapshot itself
+                          source = d1     → + D1 planner enrichment (families, classifications,
+                                            provenance, nutrition rows) fenced to the visible IDs;
+                                            enrichment failure keeps the authority universe
+                          source = static → no D1 planner reads at all (static/shadow/canary-outside)
 ```
 
 - `MealPlanningServiceOptions.recipeAuthority(scope)` is **required**; route
@@ -61,17 +62,26 @@ resolveRecipeAuthority(env, { tenantKey: householdId })   ← ONE decision per o
 - Fingerprints: the `catalog` part hashes only authority-visible catalog,
   nutrition rows and steps. A D1-only edit does not stale a static plan; a
   D1-visible edit does stale a D1 plan.
+- Planner recipe definitions and steps are taken from the resolved authority
+  snapshot in every mode, so a later raw D1 read can never race the Recipe
+  API's content view. Under `static`/`shadow`/`canary-outside` the planner
+  batch reads no D1 catalog, nutrition or step rows; under `d1` the D1 rows only
+  add planner enrichment (families of visible recipes, classifications,
+  provenance, nutrition, diagnostics) fenced to the visible universe, and an
+  enrichment read failure degrades to the authority-only D1 projection instead
+  of failing or widening the universe. Hidden D1-only recipes, ingredients,
+  families and diagnostics therefore cannot perturb static planning identity.
 
 ### Mode contracts (all proven by tests)
 
-| Mode | Recipe API | Planner / alternatives / swap | Shopping origin | Cooking |
-| --- | --- | --- | --- | --- |
-| `static` | static 71 | static 71; D1-only swap → 422 | static plan | static (D1-only → 404) |
-| `shadow` | static 71 (D1 compared off-response) | static 71 | static plan | static |
-| `canary` outside cohort | static | static | static | static |
-| `canary` inside cohort (same FNV-1a household bucket + operator cohort as ADR-026) | verified D1 500 | D1 500 | D1 plan | D1 |
-| `d1` | verified D1 500 | D1 500 | D1 plan | D1 |
-| `canary`/`d1` with D1 readiness failure | static fallback | **same** static fallback | static | static |
+| Mode                                                                               | Recipe API                           | Planner / alternatives / swap | Shopping origin | Cooking                |
+| ---------------------------------------------------------------------------------- | ------------------------------------ | ----------------------------- | --------------- | ---------------------- |
+| `static`                                                                           | static 71                            | static 71; D1-only swap → 422 | static plan     | static (D1-only → 404) |
+| `shadow`                                                                           | static 71 (D1 compared off-response) | static 71                     | static plan     | static                 |
+| `canary` outside cohort                                                            | static                               | static                        | static          | static                 |
+| `canary` inside cohort (same FNV-1a household bucket + operator cohort as ADR-026) | verified D1 500                      | D1 500                        | D1 plan         | D1                     |
+| `d1`                                                                               | verified D1 500                      | D1 500                        | D1 plan         | D1                     |
+| `canary`/`d1` with D1 readiness failure                                            | static fallback                      | **same** static fallback      | static          | static                 |
 
 ### Stored plan authority identity (section 11)
 
@@ -102,18 +112,31 @@ cooking deductions are unchanged.
 `scripts/release-check.mjs` (`validateRecipeCatalogRollout`) and
 `.github/workflows/deploy.yml` now accept exactly:
 
-| State | `recipe_catalog_mode` | `recipe_catalog_d1_canary_percent` | derived `RECIPE_CATALOG_CUTOVER_ENABLED` |
-| --- | --- | --- | --- |
-| STATIC | `static` | `0` | `false` |
-| SHADOW | `shadow` | `0` | `false` |
-| CANARY | `canary` | `1` / `2` / `5` / `25` | `true` |
-| D1 | `d1` | `0` | `true` |
+| State  | `recipe_catalog_mode` | `recipe_catalog_d1_canary_percent` | derived `RECIPE_CATALOG_CUTOVER_ENABLED` |
+| ------ | --------------------- | ---------------------------------- | ---------------------------------------- |
+| STATIC | `static`              | `0`                                | `false`                                  |
+| SHADOW | `shadow`              | `0`                                | `false`                                  |
+| CANARY | `canary`              | `1` / `2` / `5` / `25`             | `true`                                   |
+| D1     | `d1`                  | `0`                                | `true`                                   |
 
 Rejected: `static`/`shadow`/`d1` with any non-zero percent, `canary` with `0`
 or any unreviewed percent (`10`, `50`, `100`, `05`, `1.0`, …), and a manifest
 whose cutover flag contradicts its mode. Cutover is derived, never an input.
 `25` is a new reviewed staging step (1 → 5 → 25 → d1); percentages remain
 deterministic per household (`isRecipeCanaryTenant`), never request-random.
+Before production mutation, the workflow authenticates the protected current
+state, confirms `RELEASE_VERIFY_TOKEN` exists in both GitHub and the Worker,
+and snapshots the sole 100% Worker version. Promotions must follow
+shadow → canary 1 → optional 2 / 5 → 25 → d1 on the same exact SHA; stale,
+skipped and reverse dispatches fail. A downgrade requires the explicit rollback
+checkbox, so an old queued dispatch cannot silently undo a later stage.
+Additional gates: the release ref must resolve to the current `origin/main`
+tip (`validateReleaseSource`), a candidate SHA that is not a descendant of the
+currently deployed commit is rejected as moving code backwards even while
+authority stays `static`/`shadow`, bootstrap from an unavailable protected
+endpoint requires the explicit confirmation checkbox, and `shadow → canary-1`
+requires the shadow probe evidence to prove D1 (ready, 500 served, release
+fingerprint) — `shadow` can no longer promote on `not_evaluated` readiness.
 
 ## 4. Observability (T19C)
 
@@ -129,7 +152,12 @@ deterministic per household (`isRecipeCanaryTenant`), never request-random.
   `d1ReadinessCode`, fallback reason, bounded counters. In `canary` the probe is
   resolved as an in-cohort tenant (probe-only percent 100, operator cohort not
   consulted) so D1 readiness is actually exercised; the reported percent stays
-  the configured value. Tests assert the body never matches secret/PII patterns.
+  the configured value. In `shadow` the probe resolves through a probe-local
+  D1 configuration (users keep receiving static) so the protected evidence
+  proves D1 readiness and the release fingerprint before any canary; `static`
+  evidence must report `d1Readiness: not_evaluated`. The public `/health/ready`
+  canary summary also probes in-cohort and reports a real fallback instead of a
+  fabricated `null`. Tests assert the body never matches secret/PII patterns.
 
 ## 5. Post-deploy verification (T19D)
 
@@ -145,8 +173,37 @@ deterministic per household (`isRecipeCanaryTenant`), never request-random.
   `expectedRuntimeFingerprint`, `d1Readiness: ready`, `fallbackReason: null`.
   Any D1 fallback fails the step — a HOLD/ROLLBACK signal, never a pass.
 - The workflow runs it after `wait-for-deployed-release.mjs` and the smoke in
-  both staging (skipped with a notice when `STAGING_RELEASE_VERIFY_TOKEN` is
-  unset) and production (unconditional; `secrets.RELEASE_VERIFY_TOKEN`).
+  both staging and production. Staging is fail-closed: before deploying it
+  requires `STAGING_URL` (exact HTTPS origin), `STAGING_RELEASE_VERIFY_TOKEN`
+  (≥32 chars) and the staging Worker secret `RELEASE_VERIFY_TOKEN`
+  (`wrangler secret list --config wrangler.staging.jsonc`); production uses
+  `secrets.RELEASE_VERIFY_TOKEN` unconditionally.
+- Production pre-deploy certification is read-only and fail-closed:
+  `d1-migration-check.mjs config` (committed `wrangler.jsonc` parsed as JSONC
+  with duplicate-key rejection; exactly one D1 binding `DB → frigo-db` with the
+  pinned database ID), `wrangler whoami` + `d1 list` (+ `d1 info` when the
+  token scope allows) identity, the SELECT-only schema gate, the migration
+  ledger, and `release-certify`: exact recipe count, `runtime_fields` count,
+  `runtime_order` 0..N-1, ordered recipe IDs equal to the release manifest's
+  `orderedRecipeIds`, zero duplicate IDs/slugs, per-recipe completeness, media
+  still pending, the complete release with its runtime fingerprint expectation,
+  `PRAGMA foreign_key_check` empty and `PRAGMA quick_check = ok`. The
+  migration workflow additionally certifies runtime content (`runtime-catalog`:
+  the Worker's own reader → hydrator → fingerprint pipeline over the remote
+  rows must reproduce `expectedRuntimeFingerprint`).
+- Worker identity is proven before and after the mutation: `rollback-target`
+  reads the previous 100% version (`wrangler versions view`) and requires its
+  D1 binding to be `DB` → the pinned production database; `deployed-binding`
+  requires the new active 100% version to carry the same binding and a new
+  deployment ID.
+- Any production deploy or proof failure — including a cancelled run after a
+  successful preflight — restores the preflight-snapshotted version through
+  `scripts/cloudflare-worker-rollback.mjs` (Cloudflare API percentage
+  deployment, bounded deadline, one `force=true` retry only for Cloudflare code
+  10220, token never logged). The proof then requires a new deployment ID, the
+  exact previous version at 100%, its D1 binding, the mutation receipt, and
+  the complete prior protected authority evidence (all stable fields) to be
+  restored within 180 s; a failed rollback keeps the run failed.
 
 ## 6. Catalog truth (verified locally)
 
@@ -162,10 +219,13 @@ regenerated.
 
 Serving-authority rollback is configuration only: dispatch Deploy with
 `recipe_catalog_mode=shadow` (or `static`), percent `0`. The release proof then
-requires `actualSource=static`, served 71, legacy fingerprint, `fallbackReason
-null`. Stored D1-authority plans become `catalog_authority_changed` and must be
+requires the state's evidence contract (`static`: static 71, legacy
+fingerprint, `not_evaluated`; `shadow`: users static while the probe proves D1
+500 with the release fingerprint), `fallbackReason null`. Stored D1-authority
+plans become `catalog_authority_changed` and must be
 regenerated (no data is destroyed). Schema rollback is a different operation and
-is never performed by deletion or ledger edits.
+is never performed by deletion or ledger edits. Automatic Worker-version
+rollback after a failed deployment is described in section 5.
 
 ## 8. Test evidence (this branch)
 
@@ -176,15 +236,28 @@ is never performed by deletion or ledger edits.
   readiness failure (Recipe API + Planner fall back together), authority
   spoofing + cross-household, and D1-only recipe planner → swap → shopping →
   detail → cook start → cook complete (inventory events written; static 404).
-- `tests/integration/t19-planner-authority-persistence.test.ts` — 9 tests:
-  static/d1 planner universes, fingerprint semantics, stored authority identity,
-  typed revalidation, lock dropping on rollback, pre-T19 plan compatibility.
-- `tests/integration/t19-recipe-authority-observability.test.ts` — 13 tests:
+- `tests/integration/t19-planner-authority-persistence.test.ts` — 18 tests:
+  static/d1 planner universes, hidden-family/ingredient fencing, enrichment
+  failure keeping the D1 universe, planner content from the resolved snapshot
+  (not a later raw read), fingerprint semantics incl. same-source drift, stored
+  authority identity, typed revalidation, lock dropping on rollback, pre-T19
+  plan compatibility, one authority resolution per mutation.
+- `tests/integration/t19-recipe-authority-observability.test.ts` — 16 tests:
   public summary per mode, invalid config, D1 fallback truthfulness, protected
-  endpoint auth (404/401), per-mode evidence + release-check proof, HOLD signal
-  on fallback, canary probe semantics, no-leak assertions.
-- `tests/unit/release-check.test.mjs` — 117 tests including the full valid /
-  contradictory state matrix and the T19D proof.
+  endpoint auth (404/401, Bearer scheme required), per-mode evidence +
+  release-check proof, HOLD signal on fallback, canary and shadow probe
+  semantics, no-leak assertions.
+- `tests/unit/release-check.test.mjs` — 155 tests including the full valid /
+  contradictory state matrix, monotonic transition/stale-dispatch/backwards-SHA
+  checks, shadow D1-proof requirement, exact-version + binding + mutation
+  rollback proof, deployed-binding proof, the T19D authority proof and the
+  workflow guardrails (step order, cancellation rollback, staging fail-closed).
+- `tests/unit/d1-migration-check.test.mjs` — 32 tests: JSONC config
+  certification, identity, catalog identity/duplicates/order, runtime-content
+  pipeline, release certification, health checks.
+- `tests/unit/cloudflare-worker-rollback.test.mjs` — 10 tests: input
+  validation, exact request body, transient retries within a deadline, single
+  forced retry on code 10220, no secret leakage.
 - Existing planner suites were adapted only where they depended on synthetic
   D1-only rows being plannable (`fixtureRecipeAuthority` seam; preview fixtures
   now plan from the real catalog); `shopping-hardening` lossy-boundary case now
@@ -195,27 +268,17 @@ Exact commands, counts and the production gate status are in
 
 ## 9. Production status and blocker
 
-Two separate blockers, in order:
-
-1. **Publication blocker (safe stop):** the application branch
-   `feat/t19-recipe-authority-cutover-v2` is local/artifact-only and absent
-   from the remote. The credential/token used by the authoring workspace lacks
-   effective capability to publish workflow-changing commits; GitHub rejected
-   the push. Hosted CI for the application code has NOT happened — PR #52
-   validates documentation only. Recovery is takeover steps A–F in
-   [T19_V2_WIP_HANDOFF.md](T19_V2_WIP_HANDOFF.md).
-2. **Release blocker:** production progression additionally requires the
-   reviewed Deploy workflow (GitHub `production` Environment approval, Cloudflare
-   secrets, and the new `RELEASE_VERIFY_TOKEN` Worker secret + repository
-   secret).
-
-**Production rollout is NOT eligible to start** until (1) the application
-branch is published, (2) an application PR exists and hosted CI is green.
-No production mutation was performed in this session.
+The historical publication blocker is resolved: the immutable original branch
+is on GitHub and the application checkpoint is integrated from current main.
+The current gates are publication of the integration branch, an application PR,
+exact-head hosted CI/review, merge, and exact-main certification. Production
+then requires the reviewed Deploy workflow, GitHub `production` Environment
+approval, verified Cloudflare/D1 identity, and the required release-evidence
+secrets. No production mutation has been performed.
 
 ## 10. T20 handoff (unchanged product scope)
 
 T20 Meal Composition V2 (MealPlan → Day → Meal → components[]; MANUAL /
 ASSISTED / AUTO; `recipe_meal_roles`; simple foods; V1 plan compatibility) is the
-next approved product phase after T19 and starts from final main on
-`feat/t20-meal-composition-v2`. It is not a T19 blocker.
+next approved product phase after `T19_COMPLETE` and starts from final main on
+`feat/t20-meal-composition-v2`. T20 is blocked and has not started.

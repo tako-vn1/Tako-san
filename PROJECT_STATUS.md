@@ -1,5 +1,36 @@
 # Frigo Project Status
 
+## T19 V2 — application integrated; hosted CI pending (2026-09-22)
+
+Stable repository ID `1368281478` resolves to `vn-tako3/Frigo-dev`; current
+main/integration base is `a3b1564`. The immutable original T19 branch is
+published at expected head `0a04209`. Its actual application checkpoint
+`558be74` is integrated on
+`feat/t19-recipe-authority-cutover-v2-integration`, while PR #52's newer
+safe-stop documentation was retained and advanced rather than replayed.
+
+The candidate unifies Recipe API, Planner, alternatives/swap/regenerate,
+shopping and cooking under one effective recipe authority; persists authority
+identity on plans; scopes freshness fingerprints; handles non-terminating
+shopping quantities truthfully; adds reviewed full-D1 release states and
+protected release evidence. Static fingerprints exclude hidden D1-only recipe,
+ingredient, family and diagnostic facts while preserving visible-family planner
+data. Deploy certifies Cloudflare/D1 identity, the ledger and catalog
+identity/integrity read-only before mutation, rejects stale, backwards and
+non-monotonic transitions, and on failure or cancellation restores the exact
+prior Worker version through the Cloudflare API with a complete proof. Full
+Vitest is 189 files / 4,364 tests PASS on the current tree; focused matrix 13
+files / 356 PASS; release-check 155, D1 certification 32 and Worker rollback 10
+unit tests PASS. Lint, typecheck, migration smoke, the 500-recipe import check,
+build and diff check pass. Hosted CI is pending at this checkpoint. Production
+is untouched, and T20 has not started.
+
+**Safe stop 2026-09-23:** branch publication is blocked by the GitHub App
+credential's missing `workflows` permission (exact error and recovery
+artifacts in `docs/ai/recipe-catalog/T19_V2_WIP_HANDOFF.md`). The branch must
+be pushed by the owner or a workflows-capable credential; hosted CI, merge and
+all production gates remain pending after that.
+
 ## T16 — PWA cache and Google recovery deployed to production (2026-09-19)
 
 The stale auth client was traced to a real Service Worker/header mismatch:
