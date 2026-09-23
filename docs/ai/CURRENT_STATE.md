@@ -1,20 +1,32 @@
 # Current takeover receipt - 2026-09-23
 
-**Status: `T19_V2_APPLICATION_PR_PENDING`. Production: `UNTOUCHED`.**
-Repository ID `1368281478` now resolves to `vn-tako4/Frigo-dev`; starting main
-is `a3b1564329932515a047f674e9ab3e5b534716ca`. The exact integration checkpoint
-`62d68196f273e81c8756e29f6a3165769d61837c` is published on
-`feat/t19-recipe-authority-cutover-v2-integration` and verified by local HEAD,
-origin tracking ref and remote ref. Original recovery branch remains immutable
-at `0a04209e512d19293ed56a19d3fd51eb29ffefcd`. PR #52 is already merged.
+**Status: `T19_V2_CODE_COMPLETE_PRODUCTION_BLOCKED`. Production: `UNTOUCHED`.**
+Repository ID `1368281478` is `vn-tako4/Frigo-dev`. Application PR #53 merged
+normally at `03005fcbc39ab3c964393d2091f726088a4be5d0`; exact-head PR CI
+`35810551334` and exact-main CI `35810986000` both PASS (189 files / 4,367 tests).
+Integration reviewed head is `dbf32547a07fbc767e044365866a2bdfc4264cd8`; the
+original recovery branch remains immutable at `0a04209e512d19293ed56a19d3fd51eb29ffefcd`.
 
-The fresh audit, verification counts, probe limitations and next action are in
-`docs/ai/recipe-catalog/T19_V2_TAKEOVER_AUDIT.md`. Hosted CI, merge, exact-main
-certification and production work remain pending. T20 is blocked until
-`T19_COMPLETE`. Earlier publication-blocked statements below are historical,
-not current truth.
+Rechecked after the external merge: main remains `03005fc` and preserves the
+exact recovered checkpoint. PR #54 carries this documentation-only handoff;
+the application must not be reconstructed or republished as another PR.
+Production D1 certification is blocked: this workspace has no Cloudflare API
+token and `pnpm wrangler whoami` reports unauthenticated. Earlier takeover
+evidence recorded missing GitHub verification secrets. Current repository and
+Environment secret/variable listings return HTTP 403, so their present contents
+cannot be independently verified here; Worker-side presence remains unverified.
+Automatic staging run `35811338820` failed BEFORE deployment on the missing
+staging verification secret; its production job was skipped. No deployment,
+migration, secret change, rollout or rollback was performed.
+
+See `docs/ai/recipe-catalog/T19_V2_TAKEOVER_AUDIT.md` for evidence and operator
+steps. Provision the release prerequisites, certify production read-only, then
+use the reviewed rollout workflow and prove rollback. T19 is NOT complete;
+T20 remains blocked. Earlier pending/publication-blocked claims below are
+historical and superseded by this receipt.
 
 ---
+
 
 # Frigo / Takosan current authority — 2026-09-22
 

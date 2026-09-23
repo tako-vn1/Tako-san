@@ -1,3 +1,162 @@
+# Post-merge recheck - 2026-09-23
+
+Status remains `T19_V2_CODE_COMPLETE_PRODUCTION_BLOCKED`. Production is
+`UNTOUCHED`; T20 is NOT STARTED. This recheck continues the existing handoff
+PR #54 rather than opening another application PR or changing merged history.
+
+## Independently refreshed evidence
+
+- `gh api repositories/1368281478`, `git fetch origin --prune`, remote refs and
+  PR #53 confirm `vn-tako4/Frigo-dev`, main `03005fc`, application head `dbf3254`,
+  and immutable recovery ref `0a04209`. `git merge-base --is-ancestor` confirms
+  both `62d6819` and the final integration head are contained in main. The added
+  code diff since `62d6819` is only the three 1/5/25-percent routing regressions;
+  the other additions are handoff documentation.
+- Read hosted jobs, full logs and annotations for PR CI `35810551334`, exact-main
+  CI `35810986000` and the incoming documentation-head CI `35811600094`.
+  Each passed 189 files / 4,367 tests, lint, both typechecks, migration smoke and
+  build. Compared PR/main run SHAs to fetched refs, not just green status names.
+  Annotations are Node action-runtime deprecation and Ubuntu image-transition
+  notices, not failed validation. PR #53 and #54 have no review threads.
+- Read staging run `35811338820` jobs and `--log-failed`: the proof-configuration
+  step failed at 02:41:55 UTC with
+  `STAGING_RELEASE_VERIFY_TOKEN must be configured before deployment`.
+  Build, deploy and smoke were skipped; the production job was skipped.
+- Current `gh secret list --json name` and `gh variable list --json name`, also
+  with `--env production` and `--env staging`, all return HTTP 403
+  `Resource not accessible by integration`. This is a permission limitation,
+  not fresh proof of missing secrets. The earlier inventory below remains
+  historical evidence. Environment metadata still identifies the required
+  production reviewer `vn-taphoanhatung`; no approval was requested or bypassed.
+- Presence-only checks find no local `CLOUDFLARE_API_TOKEN`,
+  `CLOUDFLARE_ACCOUNT_ID`, `RELEASE_VERIFY_TOKEN` or
+  `STAGING_RELEASE_VERIFY_TOKEN`. `pnpm wrangler whoami` reports unauthenticated
+  (despite exit code 0). Live D1/Worker identity and release state remain UNKNOWN.
+- `node scripts/d1-migration-check.mjs config` passes the committed production
+  binding check. This does not certify the live account, binding, ledger,
+  catalog, runtime ordering, foreign keys or quick-check.
+
+## Independent review boundaries
+
+Rechecked authority projection, snapshots, planner persistence, shopping,
+health/probe evidence, both deployment workflows, release state transitions,
+D1 certification and exact-version rollback against the current code and tests.
+No new T19-specific P0/P1/P2 defect was confirmed. In particular, canary
+`globalSource=mixed` describes cohort policy, not measured traffic distribution;
+release verification separately rejects non-D1 `actualSource`, non-null fallback
+and unready D1 evidence. The frozen-environment 1/5/25-percent routing regressions
+are separate from synthetic content/readiness proof, not production evidence.
+
+One inherited P2 precision limitation remains outside the authority change:
+`packages/recipes/src/requirements.ts:46` converts rational serving scaling to a
+number before shopping sees it. A zero-stock three-meal fixture (3-serving
+recipes, requested servings 2, ingredient quantity 1) reports a known aggregate
+`1.9999999999999998` rather than exact `2`. The baseline `a3b1564` accepts the
+same value; that scaling code is unchanged by T19. The two-meal case does reach
+T19's unresolved path rather than the baseline exception. Do not infer general
+end-to-end exactness from the aggregate-output guard. Track serving-scale
+precision in a scoped follow-up before claiming that stronger guarantee; no
+inventory, lot, FEFO or cooking-deduction arithmetic was changed in this recheck.
+The reviewer ran `pnpm vitest run .artifacts/t19-shopping-precision-diagnosis.test.ts`
+(2/2 diagnostic cases passed). That temporary fixture was removed and its raw
+log was not retained; it is not a committed regression or production proof.
+
+## Fresh local verification
+
+Node `v24.19.0`, pnpm `10.26.0`; `pnpm install --frozen-lockfile` passed.
+Application code matches certified main; follow-up changes are documentation only.
+
+- Focused command below: 8 files / 267 tests PASS.
+- Fresh `pnpm test`: 189 files / 4,367 tests PASS, 929.89 seconds; no failed or
+  skipped tests. No isolated rerun or test weakening was needed.
+- `pnpm lint`, `pnpm typecheck`, `pnpm build`: PASS.
+- `pnpm recipe:import:check`: PASS, 500 recipes / 2 batches,
+  release `rel-bd00a4f53fcaeee4`.
+- Local migration smoke was not rerun (`sqlite3` CLI is absent); exact-main
+  hosted migration smoke passed and was inspected. No migrations were changed.
+- `git diff --check`: PASS. Current-receipt consistency assertion: 7/7 PASS.
+  Only the eight existing PR #54 documentation paths changed.
+
+```sh
+pnpm exec vitest run tests/integration/t19-recipe-authority-split.test.ts tests/integration/t19-planner-authority-persistence.test.ts tests/integration/t19-recipe-authority-observability.test.ts tests/unit/release-check.test.mjs tests/unit/d1-migration-check.test.mjs tests/unit/cloudflare-worker-rollback.test.mjs tests/integration/meal-planning-snapshot.test.ts tests/unit/shopping-hardening.test.ts
+```
+
+Raw local verification logs are in `.artifacts/t19-resume/` (gitignored).
+Next: finish the documentation PR under normal repository policy, provision
+authorized Cloudflare read access and verify matching GitHub/Worker release
+secrets through approved controls, then certify current exact-main and live D1
+before any rollout. A later main SHA needs its own main-push CI. No workflow
+dispatch, remote D1 query/migration, deployment, secret change or rollback was
+performed by this recheck. Final D1/500 cross-flow and exact-version rollback
+evidence remain required before `T19_COMPLETE`.
+
+---
+
+# Earlier post-merge takeover state - 2026-09-23
+
+Status: `T19_V2_CODE_COMPLETE_PRODUCTION_BLOCKED`. Production: `UNTOUCHED`.
+
+- Application PR https://github.com/vn-tako4/Frigo-dev/pull/53 is MERGED.
+- Reviewed integration head: `dbf32547a07fbc767e044365866a2bdfc4264cd8`.
+- Application merge / certified main: `03005fcbc39ab3c964393d2091f726088a4be5d0`.
+- PR CI https://github.com/vn-tako4/Frigo-dev/actions/runs/35810551334: PASS.
+- Exact-main CI https://github.com/vn-tako4/Frigo-dev/actions/runs/35810986000: PASS.
+- Both hosted runs passed 189 files / 4,367 tests, lint/typecheck, migration smoke
+  and build. Jobs, logs, annotations and empty review threads were inspected.
+  Annotations concern GitHub Actions Node runtime deprecation and the scheduled
+  Ubuntu image transition; no validation error. Merge used normal protection
+  and exact head matching, preserving the full recovered commit ancestry.
+- `git merge-base --is-ancestor` proves the exact checkpoint and final application
+  head are contained in main. Original recovery branch remains unchanged.
+
+## Production evidence and external blockers
+
+The main checkout's `d1-migration-check.mjs config` passes for DB -> frigo-db /
+`f975ec39-b2c8-4a2a-80e1-0366054599d3`; this is source configuration evidence,
+not proof of the live binding/database. `pnpm wrangler whoami` reports
+"You are not authenticated." `pnpm wrangler d1 list --json` exits 1 because a
+non-interactive environment needs `CLOUDFLARE_API_TOKEN`. No remote D1 ledger,
+catalog, runtime count, foreign keys, quick_check or Worker version was read.
+Those fields remain UNKNOWN, not inferred from fixtures or historical reports.
+
+GitHub repository secrets are empty; production/staging Environment secrets
+contain Cloudflare account/token names only. `RELEASE_VERIFY_TOKEN` and
+`STAGING_RELEASE_VERIFY_TOKEN` are absent. Worker-side secret presence is UNKNOWN.
+Production requires Environment reviewer `vn-taphoanhatung`.
+
+Automatic staging run https://github.com/vn-tako4/Frigo-dev/actions/runs/35811338820
+failed at "Require staging proof configuration before deployment" with
+`STAGING_RELEASE_VERIFY_TOKEN must be configured before deployment`. Build,
+deploy and smoke steps were skipped; production job was skipped. This is an
+observed fail-closed gate, not a production incident or rollout attempt.
+
+Production mutations: **none**. Staging mutations: **none**. Rollback previous
+version/result: UNKNOWN / NOT RUN. T19_COMPLETE is not certified. T20 NOT STARTED.
+
+## Operator next steps
+
+1. Supply authorized Cloudflare read access in the execution environment so the
+   exact account, Worker, DB binding/UUID, full current migration ledger and
+   71+30+399 catalog can be certified. Do not expose credential values in chat.
+2. Provision matching GitHub/Worker verification secrets: production
+   `RELEASE_VERIFY_TOKEN`, staging GitHub `STAGING_RELEASE_VERIFY_TOKEN`, and
+   staging Worker `RELEASE_VERIFY_TOKEN` (at least 32 characters). Verify both
+   smoke origins and Worker-side presence; do not rotate unrelated secrets.
+3. Recheck current main and exact-main CI. Complete read-only D1 certification
+   and obtain the production Environment approval before dispatching the
+   reviewed rollout. Bootstrap/downgrade confirmation follows the reviewed gate.
+4. Verify each stage shadow -> canary 1 -> 5 -> 25 -> d1, representative
+   legacy/pilot/scale cross-flow behavior, and exact previous-version rollback
+   proof. Preserve D1 data. Only then record T19_COMPLETE; T20 remains blocked.
+
+This final documentation receipt is published separately from the application
+branch, so the certified application head and merge SHA remain explicit. Any
+later main change needs its own exact-main CI before production release.
+
+---
+
+## Earlier takeover audit (retained; outcome superseded above)
+
 # T19 V2 takeover audit - 2026-09-23
 
 Status: `T19_V2_APPLICATION_PR_PENDING`. Production: `UNTOUCHED`.
