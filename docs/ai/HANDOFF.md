@@ -1,3 +1,34 @@
+# T19 production read-only certification workflow - 2026-09-23
+
+**Status: `T19_V2_PRODUCTION_CERT_WORKFLOW_PR_PENDING`. Production: `UNTOUCHED`.**
+
+- **Base/branch:** `vn-tako4/Frigo-dev` (ID `1368281478`), main `a4b5d726`,
+  exact-main CI `35817133131` PASS; branch `hoplite/akanthos-df8cfb50`.
+- **Staging:** Deploy `35817440484` attempt 2 SUCCESS, production SKIPPED.
+  Exact-main SHA, static/0/no-cutover, static source, 71 served recipes,
+  `rel-bd00a4f53fcaeee4`, null fallback; machine receipt independently checked.
+- **Changes:** manual `production-certify.yml` plus focused workflow tests.
+  Existing release and D1 algorithms are reused unchanged. Production Environment
+  approval remains mandatory. Read-only SQL/metadata only; no mutation command.
+  Only sanitized manifest artifacts; no secret access for authority proof.
+- **Checks:** focused 236/236, lint, typecheck, local config, migration smoke,
+  build and diff check PASS. Missing sqlite3 initially blocked migration smoke;
+  the existing repository setup repaired it. `pnpm test` exceeded the local
+  600-second command budget (exit 124); no full-suite pass is claimed. Hosted
+  complete-suite CI remains required; all eight workflow blocks pass `bash -n`.
+  Exact commands and structural-vs-IAM safety limits: `CURRENT_STATE.md`.
+- **Next:** review/merge through normal policy, require new exact-main CI, then
+  dispatch Production Read-Only Certification on main with `ref=<full new main>`,
+  `hardened_sha=<owner-approved exact SHA>`,
+  `confirm_read_only_certification=true`. Wait for production Environment approval.
+  Inspect `certification.result=PASS` and the full sanitized receipt; a candidate
+  or partial failure artifact does not certify production. Missing ledger entries
+  must HOLD, never migrate in this workflow. Secret pair remains a separate gate.
+- **Boundary:** agent merge is prohibited; no live certification has run. No
+  deployment, migration, secret/config change or traffic mutation. T20 NOT STARTED.
+
+---
+
 # Release-secret provisioning receipt - 2026-09-23
 
 **Status: `T19_V2_RELEASE_SECRET_PROVISIONING_BLOCKED`. Production: `UNTOUCHED`.**

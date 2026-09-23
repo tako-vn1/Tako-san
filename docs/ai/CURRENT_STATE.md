@@ -1,3 +1,59 @@
+# T19 production read-only certification workflow - 2026-09-23
+
+**Status: `T19_V2_PRODUCTION_CERT_WORKFLOW_PR_PENDING`. Production: `UNTOUCHED`.**
+Repository `1368281478` resolves to `vn-tako4/Frigo-dev`; starting main is
+`a4b5d7268537e88c3d2e31d418fc2e3691597b80`, with exact-main CI `35817133131`
+PASS. Deploy `35817440484`, attempt 2, is SUCCESS: release/staging passed and
+production was skipped. Its machine receipt proves exact-main staging in
+static/0/cutover=false, static source, 71 served recipes, release
+`rel-bd00a4f53fcaeee4`, null fallback. Staging D1 readiness is `not_evaluated`,
+not production D1 certification. Earlier secret-blocker entries below are historical.
+
+Added `.github/workflows/production-certify.yml`: manual dispatch on main only,
+explicit read-only confirmation and approved hardening SHA, existing release
+gate/exact-SHA CI, pinned checkout, production Environment approval, and read-only
+GitHub permissions. It reuses the existing config/identity/schema/catalog/runtime/
+integrity verifiers without changing application, migration or release tooling.
+Only metadata reads, guarded SELECTs (including the existing schema CTE), and
+`foreign_key_check`/`quick_check` are executed remotely. Worker/account/binding
+proof captures a future rollback baseline without changing traffic. Final ledger,
+Worker stability and current-main/CI rechecks precede the PASS receipt.
+
+Only `release-manifest.json` is uploaded. Raw identity/binding/catalog data stay
+in the Actions workspace; account identity is hashed in the receipt. Authority
+remains `UNKNOWN_RELEASE_SECRET_NOT_AVAILABLE`: this path does not request the
+verification secret and does not certify the production secret pair. A PASS is
+read-only evidence, not rollout authorization. The existing Cloudflare credential
+may have broader privileges; the safety guarantee is the reviewed command/SQL
+surface and regression guard, not a new IAM restriction. SQL filtering is
+conservative, not a general-purpose SQL parser. Certification shares Deploy's
+production concurrency group; migration workflow remains unchanged. Operators
+must not run that separate migration workflow during certification: the final
+ledger check is point-in-time evidence, not a lock against subsequent mutations.
+
+Verification executed: `pnpm install --frozen-lockfile`; `pnpm lint`;
+`pnpm typecheck`; `node scripts/d1-migration-check.mjs config`; and
+`pnpm exec vitest run tests/unit/production-certify-workflow.test.mjs
+tests/unit/release-check.test.mjs tests/unit/d1-migration-check.test.mjs
+tests/integration/d1-schema-gate.test.ts` (**236/236**, including 41 workflow
+safety tests). `pnpm check:migrations` initially failed because sqlite3 was
+absent; applying the existing `.hoplite/settings.json` sqlite setup repaired it.
+Repeated migration smoke and `pnpm build` PASS; `git diff --check` and `bash -n`
+on all eight workflow shell blocks PASS. The additional `pnpm test` full-suite
+attempt exceeded the 600-second sandbox command budget (exit 124); it is not
+claimed as a pass. Focused checks above were rerun on the final workflow. Hosted
+PR-head CI remains required for the complete suite. No Cloudflare calls, deploy,
+migration, secret change, rollback or other production mutation was performed.
+
+Next: review the narrow PR and exact-head CI; an authorized maintainer must merge.
+Then require new exact-main CI and dispatch only Production Read-Only Certification
+with that full SHA, the owner-approved hardening SHA and confirmation. Respect
+production Environment review. Do not dispatch Deploy or Production D1 Migration.
+Production rollout remains blocked until live certification and its separate
+prerequisites pass. T19 is incomplete; T20 NOT STARTED.
+
+---
+
 # Release-secret provisioning receipt - 2026-09-23
 
 **Status: `T19_V2_RELEASE_SECRET_PROVISIONING_BLOCKED`. Production: `UNTOUCHED`.**
