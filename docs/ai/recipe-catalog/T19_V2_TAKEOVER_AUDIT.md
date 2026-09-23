@@ -1,4 +1,98 @@
-# Final takeover state - 2026-09-23
+# Post-merge recheck - 2026-09-23
+
+Status remains `T19_V2_CODE_COMPLETE_PRODUCTION_BLOCKED`. Production is
+`UNTOUCHED`; T20 is NOT STARTED. This recheck continues the existing handoff
+PR #54 rather than opening another application PR or changing merged history.
+
+## Independently refreshed evidence
+
+- `gh api repositories/1368281478`, `git fetch origin --prune`, remote refs and
+  PR #53 confirm `vn-tako4/Frigo-dev`, main `03005fc`, application head `dbf3254`,
+  and immutable recovery ref `0a04209`. `git merge-base --is-ancestor` confirms
+  both `62d6819` and the final integration head are contained in main. The added
+  code diff since `62d6819` is only the three 1/5/25-percent routing regressions;
+  the other additions are handoff documentation.
+- Read hosted jobs, full logs and annotations for PR CI `35810551334`, exact-main
+  CI `35810986000` and the incoming documentation-head CI `35811600094`.
+  Each passed 189 files / 4,367 tests, lint, both typechecks, migration smoke and
+  build. Compared PR/main run SHAs to fetched refs, not just green status names.
+  Annotations are Node action-runtime deprecation and Ubuntu image-transition
+  notices, not failed validation. PR #53 and #54 have no review threads.
+- Read staging run `35811338820` jobs and `--log-failed`: the proof-configuration
+  step failed at 02:41:55 UTC with
+  `STAGING_RELEASE_VERIFY_TOKEN must be configured before deployment`.
+  Build, deploy and smoke were skipped; the production job was skipped.
+- Current `gh secret list --json name` and `gh variable list --json name`, also
+  with `--env production` and `--env staging`, all return HTTP 403
+  `Resource not accessible by integration`. This is a permission limitation,
+  not fresh proof of missing secrets. The earlier inventory below remains
+  historical evidence. Environment metadata still identifies the required
+  production reviewer `vn-taphoanhatung`; no approval was requested or bypassed.
+- Presence-only checks find no local `CLOUDFLARE_API_TOKEN`,
+  `CLOUDFLARE_ACCOUNT_ID`, `RELEASE_VERIFY_TOKEN` or
+  `STAGING_RELEASE_VERIFY_TOKEN`. `pnpm wrangler whoami` reports unauthenticated
+  (despite exit code 0). Live D1/Worker identity and release state remain UNKNOWN.
+- `node scripts/d1-migration-check.mjs config` passes the committed production
+  binding check. This does not certify the live account, binding, ledger,
+  catalog, runtime ordering, foreign keys or quick-check.
+
+## Independent review boundaries
+
+Rechecked authority projection, snapshots, planner persistence, shopping,
+health/probe evidence, both deployment workflows, release state transitions,
+D1 certification and exact-version rollback against the current code and tests.
+No new T19-specific P0/P1/P2 defect was confirmed. In particular, canary
+`globalSource=mixed` describes cohort policy, not measured traffic distribution;
+release verification separately rejects non-D1 `actualSource`, non-null fallback
+and unready D1 evidence. The frozen-environment 1/5/25-percent routing regressions
+are separate from synthetic content/readiness proof, not production evidence.
+
+One inherited P2 precision limitation remains outside the authority change:
+`packages/recipes/src/requirements.ts:46` converts rational serving scaling to a
+number before shopping sees it. A zero-stock three-meal fixture (3-serving
+recipes, requested servings 2, ingredient quantity 1) reports a known aggregate
+`1.9999999999999998` rather than exact `2`. The baseline `a3b1564` accepts the
+same value; that scaling code is unchanged by T19. The two-meal case does reach
+T19's unresolved path rather than the baseline exception. Do not infer general
+end-to-end exactness from the aggregate-output guard. Track serving-scale
+precision in a scoped follow-up before claiming that stronger guarantee; no
+inventory, lot, FEFO or cooking-deduction arithmetic was changed in this recheck.
+The reviewer ran `pnpm vitest run .artifacts/t19-shopping-precision-diagnosis.test.ts`
+(2/2 diagnostic cases passed). That temporary fixture was removed and its raw
+log was not retained; it is not a committed regression or production proof.
+
+## Fresh local verification
+
+Node `v24.19.0`, pnpm `10.26.0`; `pnpm install --frozen-lockfile` passed.
+Application code matches certified main; follow-up changes are documentation only.
+
+- Focused command below: 8 files / 267 tests PASS.
+- Fresh `pnpm test`: 189 files / 4,367 tests PASS, 929.89 seconds; no failed or
+  skipped tests. No isolated rerun or test weakening was needed.
+- `pnpm lint`, `pnpm typecheck`, `pnpm build`: PASS.
+- `pnpm recipe:import:check`: PASS, 500 recipes / 2 batches,
+  release `rel-bd00a4f53fcaeee4`.
+- Local migration smoke was not rerun (`sqlite3` CLI is absent); exact-main
+  hosted migration smoke passed and was inspected. No migrations were changed.
+- `git diff --check`: PASS. Current-receipt consistency assertion: 7/7 PASS.
+  Only the eight existing PR #54 documentation paths changed.
+
+```sh
+pnpm exec vitest run tests/integration/t19-recipe-authority-split.test.ts tests/integration/t19-planner-authority-persistence.test.ts tests/integration/t19-recipe-authority-observability.test.ts tests/unit/release-check.test.mjs tests/unit/d1-migration-check.test.mjs tests/unit/cloudflare-worker-rollback.test.mjs tests/integration/meal-planning-snapshot.test.ts tests/unit/shopping-hardening.test.ts
+```
+
+Raw local verification logs are in `.artifacts/t19-resume/` (gitignored).
+Next: finish the documentation PR under normal repository policy, provision
+authorized Cloudflare read access and verify matching GitHub/Worker release
+secrets through approved controls, then certify current exact-main and live D1
+before any rollout. A later main SHA needs its own main-push CI. No workflow
+dispatch, remote D1 query/migration, deployment, secret change or rollback was
+performed by this recheck. Final D1/500 cross-flow and exact-version rollback
+evidence remain required before `T19_COMPLETE`.
+
+---
+
+# Earlier post-merge takeover state - 2026-09-23
 
 Status: `T19_V2_CODE_COMPLETE_PRODUCTION_BLOCKED`. Production: `UNTOUCHED`.
 

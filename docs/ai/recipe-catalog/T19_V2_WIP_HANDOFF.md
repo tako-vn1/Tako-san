@@ -7,9 +7,14 @@ normally at `03005fcbc39ab3c964393d2091f726088a4be5d0`; exact-head PR CI
 Integration reviewed head is `dbf32547a07fbc767e044365866a2bdfc4264cd8`; the
 original recovery branch remains immutable at `0a04209e512d19293ed56a19d3fd51eb29ffefcd`.
 
-Production D1 certification is blocked: local Wrangler is unauthenticated and
-has no Cloudflare API token. GitHub `RELEASE_VERIFY_TOKEN` and
-`STAGING_RELEASE_VERIFY_TOKEN` are missing; Worker-side presence is unverified.
+Rechecked after the external merge: main remains `03005fc` and preserves the
+exact recovered checkpoint. PR #54 carries this documentation-only handoff;
+the application must not be reconstructed or republished as another PR.
+Production D1 certification is blocked: this workspace has no Cloudflare API
+token and `pnpm wrangler whoami` reports unauthenticated. Earlier takeover
+evidence recorded missing GitHub verification secrets. Current repository and
+Environment secret/variable listings return HTTP 403, so their present contents
+cannot be independently verified here; Worker-side presence remains unverified.
 Automatic staging run `35811338820` failed BEFORE deployment on the missing
 staging verification secret; its production job was skipped. No deployment,
 migration, secret change, rollout or rollback was performed.
