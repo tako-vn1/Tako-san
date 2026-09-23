@@ -31,6 +31,11 @@ production-Environment gated, `contents: read` / `actions: read`, under
 `frigo-deploy-production`, with no deploy, migration apply, secret mutation,
 traffic mutation, rollback mutation or remote D1 write command.
 
+Dependency audit is a recorded residual, not a T19 regression: `pnpm audit
+--audit-level high` reports 21 existing findings (6 high, 13 moderate, 2 low),
+including transitive `wrangler`/`miniflare` `undici`, `jsdom` `ws`, and direct
+`sharp`. No dependency upgrade was mixed into this migration/reconstruction.
+
 Takosan non-secret control plane now matches the source for repository merge
 settings, Actions policy, read-only workflow token, `main` protection with strict
 `validate`, repository variables and the `staging` / `production` Environments.

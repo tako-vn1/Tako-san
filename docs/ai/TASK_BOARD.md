@@ -21,6 +21,9 @@ T20: `BLOCKED`.**
 - [done] Frozen install, diff check, focused T19 243/243, lint, typecheck,
   migration smoke, build and full suite 190 files / 4,415 tests PASS. Review
   P0/P1/P2 = 0/0/0; read-only workflow boundaries preserved.
+- [follow-up] Existing dependency audit: 21 findings (6 high, 13 moderate,
+  2 low) across `undici`, `ws` and `sharp` paths; no dependency change included
+  in this migration-only branch.
 - [done] Recreated non-secret Actions settings, strict `validate` main protection,
   repository variables and staging/production Environments on Takosan.
 - [blocked] Reprovision required environment secret values:

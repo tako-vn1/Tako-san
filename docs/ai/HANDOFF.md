@@ -19,6 +19,9 @@ T20: `BLOCKED`.**
 - **Verification:** frozen install, diff check, lint, typecheck, migration smoke
   and build PASS; focused T19 4 files / 243 tests PASS; full suite 190 files /
   4,415 tests PASS; review P0/P1/P2 = 0/0/0. Read-only boundaries remain intact.
+- **Residual dependency audit:** existing graph reports 21 findings (6 high,
+  13 moderate, 2 low) in `undici`, `ws` and `sharp` paths. This migration does
+  not mix in dependency upgrades; track remediation separately.
 - **Control plane:** Actions/read workflow permissions, strict `validate` main
   protection, variables and both Environments were recreated. Secret values are
   unavailable and must be reprovisioned. GitHub rejected adding production
