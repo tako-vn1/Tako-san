@@ -1,3 +1,21 @@
+# Current takeover receipt - 2026-09-23
+
+**Status: `T19_V2_APPLICATION_PR_PENDING`. Production: `UNTOUCHED`.**
+Repository ID `1368281478` now resolves to `vn-tako4/Frigo-dev`; starting main
+is `a3b1564329932515a047f674e9ab3e5b534716ca`. The exact integration checkpoint
+`62d68196f273e81c8756e29f6a3165769d61837c` is published on
+`feat/t19-recipe-authority-cutover-v2-integration` and verified by local HEAD,
+origin tracking ref and remote ref. Original recovery branch remains immutable
+at `0a04209e512d19293ed56a19d3fd51eb29ffefcd`. PR #52 is already merged.
+
+The fresh audit, verification counts, probe limitations and next action are in
+`docs/ai/recipe-catalog/T19_V2_TAKEOVER_AUDIT.md`. Hosted CI, merge, exact-main
+certification and production work remain pending. T20 is blocked until
+`T19_COMPLETE`. Earlier publication-blocked statements below are historical,
+not current truth.
+
+---
+
 # T19 V2 integration handoff (2026-09-22)
 
 # STATUS
