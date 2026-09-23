@@ -22,7 +22,7 @@ const reviewedCommands = {
   'certify: Install locked certification tooling': 'f733afb2da73a36bd48778fd7502436e384741ad191367d97182afc4909130a5',
   'certify: Recheck exact main after Environment approval': 'aa81ef73b471de6553f8479ec179a3534902e91dbd0e24374184626b80ecda5f',
   'certify: Generate and guard reviewed read-only SQL': '9ca685fe87015090bafaf8544ff961d42e5efed2b63377357f3f241b4f9b634a',
-  'certify: Certify live production identity and capture rollback baseline (read-only)': '9e60815255b7afa815962b7b84bb3e3a5c264fa29f865eeb23f4df35e09c2c19',
+  'certify: Certify live production identity and capture rollback baseline (read-only)': '34c78ea996af23f60c9ee0c16186f26752cf705dcaab9ceb3668609076d4c3f9',
   'certify: Certify schema, ledger, catalog and integrity (read-only)': '1dd853444dc6e51ee1a7879a0a805cacad7c4306dcc4049cec45672aa56e9bfc',
   'certify: Require unchanged production baseline': '7152c73d337451a8dd765b025786184cc168b8b1d29a49bd4a0f21d1771c7fac',
   'certify: Recheck exact main and finalize sanitized certification receipt': '238204516ee89aa6389b3241d476c7c6293ee9903a89796439f6311d5efc131b',
@@ -242,5 +242,24 @@ describe('production certification workflow safety', () => {
     expect(receipt.productionAuthority).toBe('UNKNOWN_RELEASE_SECRET_NOT_AVAILABLE');
     files['previous-version.json'].resources.bindings[0].text = 'staging';
     expect(() => executeInline(script, files, { CLOUDFLARE_ACCOUNT_ID: 'b'.repeat(32) })).toThrow();
+  });
+
+  it.each([
+    ['missing', undefined],
+    ['empty', ''],
+    ['short', 'a'.repeat(7)],
+    ['uppercase', 'A'.repeat(40)],
+    ['non-hex', 'g'.repeat(40)],
+    ['39 characters', 'a'.repeat(39)],
+    ['41 characters', 'a'.repeat(41)],
+  ])('fails closed for %s production Worker GIT_COMMIT', (_label, gitCommit) => {
+    const script = inline(step('Certify live production identity and capture rollback baseline (read-only)').run);
+    const bindings = [{ type: 'plain_text', name: 'ENVIRONMENT', text: 'production' }];
+    if (gitCommit !== undefined) bindings.push({ type: 'plain_text', name: 'GIT_COMMIT', text: gitCommit });
+    const files = {
+      'release-manifest.json': { previousDeployment: { versionId: 'version-a' } },
+      'previous-version.json': { resources: { bindings } },
+    };
+    expect(() => executeInline(script, files, { CLOUDFLARE_ACCOUNT_ID: 'b'.repeat(32) })).toThrow(/GIT_COMMIT/);
   });
 });

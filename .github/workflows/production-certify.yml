@@ -150,11 +150,12 @@ jobs:
           const text = (name) => version.resources.bindings.find((b) => b.type === 'plain_text' && b.name === name)?.text;
           if (text('ENVIRONMENT') !== 'production') throw new Error('Worker environment mismatch');
           const sha = text('GIT_COMMIT');
+          if (!/^[a-f0-9]{40}$/.test(sha || '')) throw new Error('Production Worker GIT_COMMIT must be a lowercase 40-character SHA');
           manifest.productionBaseline = {
             accountIdentifierSha256: createHash('sha256').update(process.env.CLOUDFLARE_ACCOUNT_ID).digest('hex'),
             worker: 'frigo', environment: 'production',
             versionId: manifest.previousDeployment.versionId,
-            deployedSha: /^[a-f0-9]{40}$/.test(sha || '') ? sha : 'UNKNOWN',
+            deployedSha: sha,
             bindingVerified: true,
           };
           manifest.productionAuthority = 'UNKNOWN_RELEASE_SECRET_NOT_AVAILABLE';
