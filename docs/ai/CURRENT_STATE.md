@@ -49,6 +49,10 @@ controls and restore the production reviewer/App access before staging proof.
 Do not deploy production, run production D1 migrations, mutate production secrets
 or traffic, merge the T19 PR, or start T20 in this task.
 
+Draft [Takosan PR #1](https://github.com/vn-tako5/Takosan/pull/1) is open from
+`ops/t19-production-cert-pr-prep` to `main`; its exact-head hosted CI remains the
+next publication gate.
+
 ---
 
 # Historical T19 production read-only certification workflow - 2026-09-23

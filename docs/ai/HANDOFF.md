@@ -28,6 +28,8 @@ T20: `BLOCKED`.**
   exact-head Takosan CI. Restore secrets, reviewer policy and App access before
   any staging-only proof. Do not merge, deploy production, mutate production D1,
   secrets or traffic, or start T20.
+- **PR:** draft [Takosan #1](https://github.com/vn-tako5/Takosan/pull/1), base
+  `main`, head `ops/t19-production-cert-pr-prep`; exact-head hosted CI required.
 
 ---
 

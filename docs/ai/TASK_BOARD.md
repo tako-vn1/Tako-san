@@ -29,8 +29,10 @@ T20: `BLOCKED`.**
 - [blocked] Production reviewer parity: GitHub rejected adding source reviewer
   `vn-taphoanhatung` to Takosan. `usehoplite` App installation access remains
   unverified with the current user OAuth credential.
-- [pending] Push reconstruction branch, open draft PR, require fresh exact-head
-  Takosan hosted CI, then restore the blocked control-plane items.
+- [done] Pushed `ops/t19-production-cert-pr-prep` and opened draft
+  [Takosan PR #1](https://github.com/vn-tako5/Takosan/pull/1) to `main`.
+- [pending] Require fresh exact-head Takosan hosted CI, then restore the blocked
+  control-plane items.
 - [not-started] Staging-only proof from Takosan. Production remains frozen.
 - [not-started] T20 until `T19_COMPLETE`.
 
