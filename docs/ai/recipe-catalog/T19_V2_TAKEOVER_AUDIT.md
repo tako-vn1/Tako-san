@@ -1,6 +1,7 @@
 # T19 V2 takeover audit - 2026-09-23
 
 Status: `T19_V2_APPLICATION_PR_PENDING`. Production: `UNTOUCHED`.
+Application PR: https://github.com/vn-tako4/Frigo-dev/pull/53 (base main).
 This receipt supersedes earlier current-state publication claims; historical
 records remain evidence of their original sessions. T20 is blocked.
 
@@ -77,7 +78,7 @@ Dependencies installed with `pnpm install --frozen-lockfile`.
 - `git diff --check`: PASS.
 - `pnpm audit --prod`: 2 pre-existing moderate React Router advisories;
   dependencies and lockfile unchanged.
-- Hosted PR CI: not yet obtained. Exact-main CI: not yet obtained.
+- Hosted PR CI: running; exact final head must pass before merge. Exact-main CI: not yet obtained.
 
 Focused command:
 
@@ -105,3 +106,18 @@ GitHub/Worker `RELEASE_VERIFY_TOKEN`, staging `STAGING_RELEASE_VERIFY_TOKEN` and
 Worker counterpart, and configured smoke origins. Never invent secret values.
 Use only the reviewed workflow for staged rollout. Final D1/500 cross-flow and
 exact previous-version live rollback evidence are required before `T19_COMPLETE`.
+
+## GitHub release prerequisites checked (names only)
+
+Repository secret listing is empty. Both `production` and `staging` Environment
+secret listings contain only `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`.
+Consequently the workflow has no GitHub `RELEASE_VERIFY_TOKEN` or
+`STAGING_RELEASE_VERIFY_TOKEN`. Worker-side secret presence has not been checked.
+Provision matching release verification values (at least 32 characters) in the
+appropriate GitHub Environment and Worker before release. No values were read,
+generated, disclosed or provisioned during this audit.
+
+`PRODUCTION_URL` and `STAGING_URL` variable names exist. Production has a required
+reviewer (`vn-taphoanhatung`); staging has no protection rules. Production rollout
+must wait for that Environment approval. These release prerequisites do not
+replace PR CI or exact-main CI. No workflow has been dispatched by this session.
