@@ -77,9 +77,12 @@ if [[ -n "$EXPECTED_RELEASE_SHA" ]]; then
   echo "ok service worker release: ${EXPECTED_RELEASE_SHA}"
 fi
 
-# Readiness: status must be ok or degraded (never unhealthy) and the D1
-# database must answer. The body is sanitized (no secrets) by construction.
-curl -sS --max-time 15 "${BASE_URL}/api/v1/health/ready" | node --input-type=module -e '
+# Readiness: status must be ok or degraded (never unhealthy), the D1 database
+# must answer, and (T19C) the sanitized recipe authority summary must be valid:
+# a configured mode that parsed, and no fallback while a D1 state is configured.
+# When EXPECTED_RECIPE_CATALOG_MODE is set, the deployed mode must equal it.
+# The body is sanitized (no secrets) by construction.
+curl -sS --max-time 15 "${BASE_URL}/api/v1/health/ready" | EXPECTED_RECIPE_CATALOG_MODE="${EXPECTED_RECIPE_CATALOG_MODE:-}" node --input-type=module -e '
   let input = "";
   for await (const chunk of process.stdin) input += chunk;
 
@@ -103,7 +106,26 @@ curl -sS --max-time 15 "${BASE_URL}/api/v1/health/ready" | node --input-type=mod
     console.error("FAIL readiness: fatal configuration issues:", JSON.stringify(body.config.issues));
     process.exit(1);
   }
+  const authority = body.recipeAuthority;
+  if (!authority || typeof authority !== "object") {
+    console.error("FAIL readiness: recipeAuthority summary is missing");
+    process.exit(1);
+  }
+  if (!["static", "shadow", "canary", "d1"].includes(authority.configuredMode)) {
+    console.error("FAIL readiness: recipe authority configuration is invalid:", authority.configuredMode, authority.fallbackReason);
+    process.exit(1);
+  }
+  const expectedMode = process.env.EXPECTED_RECIPE_CATALOG_MODE;
+  if (expectedMode && authority.configuredMode !== expectedMode) {
+    console.error("FAIL readiness: recipe authority mode", authority.configuredMode, "!= approved", expectedMode);
+    process.exit(1);
+  }
+  if ((authority.configuredMode === "d1" || authority.configuredMode === "canary") && authority.fallbackReason !== null) {
+    console.error("FAIL readiness: D1 recipe authority is falling back:", authority.fallbackReason);
+    process.exit(1);
+  }
   console.log("ok readiness:", body.status, "database:", body.services.database, "environment:", body.environment || "unknown");
+  console.log("ok recipe authority:", authority.configuredMode, "global source:", authority.globalSource, "canary:", authority.canaryPercent, "release:", authority.releaseId, "expected recipes:", authority.expectedRecipeCount);
 '
 
 echo "== Smoke passed =="

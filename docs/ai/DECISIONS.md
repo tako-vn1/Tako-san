@@ -2,7 +2,10 @@
 
 ## ADR-030 — One recipe authority for the Meal Planner, stored-plan authority identity, reviewed full-D1 release state and protected release evidence (T19 V2)
 
-**Status:** Accepted 2026-09-22 (branch `feat/t19-recipe-authority-cutover-v2`, local/artifact-only — absent from the remote, publication blocked; production remains `static`, untouched)
+**Status:** Accepted 2026-09-22. The immutable original branch is published at
+`0a04209`; application checkpoint `558be74` is integrated from current main on
+`feat/t19-recipe-authority-cutover-v2-integration`. Hosted application CI is
+pending; production remains untouched.
 
 **Context:** ADR-026 made the Recipe API/Week/Shopping/Cooking read one
 `RecipeAuthoritySnapshot`, but the Meal Planner still loaded the raw D1 catalog
@@ -17,10 +20,12 @@ recipe authority.
 **Decision:**
 1. `loadMealPlanningSnapshot(db, scope, time, authoritySnapshot)` now takes the
    request's effective authority snapshot; `projectPlannerCatalogOnAuthority`
-   (`packages/db/src/planner-catalog-authority.ts`) projects D1 planner facts
-   onto that universe — `d1` ⇒ fenced D1 rows, `static` ⇒ static definitions and
-   steps plus D1 supplementary facts (classifications, nutrition rows, families,
-   ingredient IDs) keyed by visible recipe ID only. The planner universe is
+   (`packages/db/src/planner-catalog-authority.ts`) takes recipe definitions and
+   steps from that snapshot in every mode — `d1` adds D1 planner enrichment
+   (families of visible recipes, classifications, provenance, nutrition,
+   diagnostics) fenced to the visible universe and degrades to the
+   authority-only projection if the enrichment read fails; `static` (also
+   shadow / canary-outside) reads no D1 planner rows. The planner universe is
    exactly the authority's recipe set; alternatives/swap/regenerate never expose
    an invisible recipe (invisible swaps are `REPLACEMENT_NOT_FOUND`; invisible
    locks are dropped on regenerate, never substituted in place).
@@ -31,8 +36,9 @@ recipe authority.
    recipeCount}` (envelope version stays 1; pre-T19 rows without it still
    decode). An authority-source change is a typed revalidation: freshness reason
    `catalog_authority_changed`, `CATALOG_AUTHORITY_CHANGED` (409) on swap and
-   shopping, regenerate as the only recovery path. Historical plan data is never
-   mutated.
+   shopping, regenerate as the only recovery path. Authority change means a
+   different source, fingerprint or recipe count (same-source release drift is
+   typed too). Historical plan data is never mutated.
 4. Planner catalog fingerprints hash only authority-visible recipes, steps and
    nutrition rows: a D1-only edit cannot stale a static plan; a D1-visible edit
    correctly stales a D1 plan.
@@ -48,7 +54,10 @@ recipe authority.
    evidence that `release-check.mjs authority` verifies against the approved
    manifest — deployed SHA, mode/percent/cutover, D1 readiness, served count and
    release fingerprint, no fallback. No PII, no secrets, no household data; no
-   customer account is required for release certification.
+   customer account is required for release certification. Canary probes
+   resolve in-cohort and shadow probes resolve through a probe-local D1
+   configuration, so `shadow` proves D1 readiness before any canary while users
+   keep receiving static.
 7. Non-terminating aggregate shopping demand (e.g. two 2-serving meals of a
    3-serving recipe) is reported `unresolved`
    (`UNRESOLVED_PURCHASE_QUANTITY`, unknown budget) instead of throwing at the
@@ -59,7 +68,13 @@ to the parity set; T19 cross-flow, fingerprint, persistence, observability and
 release-state tests pin the behavior. Stored pre-T19 plans revalidate through
 the catalog fingerprint until regenerated. Production rollout is operator-driven
 through the reviewed Deploy workflow (shadow → canary 1/5/25 → d1), each gate
-machine-verified; rollback is redeploying `mode=shadow`/`static`.
+machine-verified: the release ref must equal current main, the deployed commit
+may never move backwards, promotions require healthy evidence from the current
+stage, downgrades/bootstraps require explicit confirmation, Cloudflare/D1
+identity and catalog identity/integrity are certified read-only before every
+mutation, and a failed or cancelled deployment restores the exact previous
+Worker version through the Cloudflare API with a complete proof. Serving
+rollback is redeploying `mode=shadow`/`static`.
 
 ## ADR-027 — Reviewed Bulk Recipe Imports and Catalog Release Manifests (T14E)
 

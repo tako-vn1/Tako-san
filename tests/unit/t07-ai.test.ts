@@ -8,6 +8,7 @@ import {
 } from '../../src/worker/services/meal-planning-explanation';
 import type { AuthContext, Env } from '../../src/worker/types';
 import { SqliteD1 } from '../helpers/sqlite-d1';
+import { fixtureRecipeAuthority } from '../helpers/recipe-authority-fixtures';
 
 const input = {
   planId: '10000000-0000-4000-8000-000000000007', planRevision: 7,
@@ -25,7 +26,7 @@ function flagApp(explanationTransport?: (facts: { locale: 'vi' | 'en'; reasonCod
   const app = new Hono<{ Bindings: Env; Variables: { auth: AuthContext } }>();
   app.use('*', async (c, next) => { c.set('auth', auth); await next(); });
   app.route('/api/v1', createMealPlanningRoutes({
-    now: () => new Date('2030-01-01T00:00:00.000Z'), explanationTransport,
+    now: () => new Date('2030-01-01T00:00:00.000Z'), explanationTransport, recipeAuthority: fixtureRecipeAuthority(db),
   }));
   return { app, auth, db };
 }
@@ -33,14 +34,14 @@ function flagApp(explanationTransport?: (facts: { locale: 'vi' | 'en'; reasonCod
 async function flagPlan(db: SqliteD1, auth: AuthContext) {
   db.seed(`DELETE FROM recipes;
     INSERT INTO recipes (id, slug, title, cuisine, servings, prep_time_minutes, cook_time_minutes, difficulty)
-      VALUES ('flag-meal', 'flag-meal', 'Flag meal', 'viet', 2, 0, 10, 'easy');
+      VALUES ('flag-meal', 'flag-meal', 'Flag meal', 'vietnamese', 2, 0, 10, 'easy');
     INSERT INTO recipe_ingredients (id, recipe_id, ingredient_id, name, required_quantity, unit, is_optional)
       VALUES ('flag-line', 'flag-meal', 'CHICKEN_BREAST', 'Chicken', 100, 'g', 0);`);
   const intent = MealPlanningIntentSchema.parse({
     startDate: '2030-01-02', horizonDays: 1, defaultServings: 2, mode: 'shopping_allowed',
     slots: [{ date: '2030-01-02', mealType: 'dinner' }],
   });
-  return new MealPlanningApplicationService(db, { now: () => new Date('2030-01-01T00:00:00.000Z') })
+  return new MealPlanningApplicationService(db, { now: () => new Date('2030-01-01T00:00:00.000Z'), recipeAuthority: fixtureRecipeAuthority(db) })
     .generate({ userId: auth.userId, householdId: auth.householdId }, intent, 'flag-explanation-plan');
 }
 

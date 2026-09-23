@@ -14,7 +14,7 @@ on:
         options: [staging, production]
         default: production
       ref:
-        description: Full release SHA or refs/tags/v* tag already contained in main (not a branch)
+        description: Full release SHA or refs/tags/v* tag resolving to current main (not a branch)
         type: string
         required: true
       hardened_sha:
@@ -26,15 +26,19 @@ on:
         type: boolean
         default: false
       recipe_catalog_mode:
-        description: Recipe catalog authority mode (bounded canary only; full D1 is intentionally unavailable)
+        description: 'Recipe catalog authority state (T19B, ADR-026): static | shadow | canary (deterministic household cohort) | d1 (every household served the verified 500-recipe D1 release)'
         type: choice
-        options: [static, shadow, canary]
+        options: [static, shadow, canary, d1]
         default: static
       recipe_catalog_d1_canary_percent:
-        description: Bounded D1 canary percentage (0 for static/shadow; 1/2/5 for canary)
+        description: Deterministic D1 canary percentage (0 for static/shadow/d1; 1/2/5/25 for canary)
         type: choice
-        options: ['0', '1', '2', '5']
+        options: ['0', '1', '2', '5', '25']
         default: '0'
+      confirm_recipe_catalog_rollback:
+        description: Confirm an intentional authority downgrade to shadow/static (never needed for promotion)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -83,6 +87,7 @@ jobs:
           RELEASE_ENVIRONMENT: ${{ github.event_name == 'workflow_run' && 'staging' || inputs.environment }}
           RECIPE_CATALOG_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.recipe_catalog_mode || 'static' }}
           RECIPE_CATALOG_D1_CANARY_PERCENT: ${{ github.event_name == 'workflow_dispatch' && inputs.recipe_catalog_d1_canary_percent || '0' }}
+          RECIPE_CATALOG_ROLLBACK_CONFIRMED: ${{ github.event_name == 'workflow_dispatch' && inputs.confirm_recipe_catalog_rollback || false }}
         run: node scripts/release-check.mjs gate
 
       - name: Save immutable candidate manifest
@@ -127,6 +132,28 @@ jobs:
             echo "STAGING_UNCONFIGURED=true" >> "$GITHUB_ENV"
           fi
 
+      - name: Require staging proof configuration before deployment
+        if: env.STAGING_UNCONFIGURED != 'true'
+        env:
+          APP_SMOKE_URL: ${{ vars.STAGING_URL }}
+          RELEASE_VERIFY_TOKEN: ${{ secrets.STAGING_RELEASE_VERIFY_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node --input-type=module -e '
+            const url = new URL(process.env.APP_SMOKE_URL);
+            if (url.protocol !== "https:" || url.origin !== process.env.APP_SMOKE_URL) throw new Error("STAGING_URL must be an exact HTTPS origin");
+            if (!process.env.RELEASE_VERIFY_TOKEN || process.env.RELEASE_VERIFY_TOKEN.length < 32) throw new Error("STAGING_RELEASE_VERIFY_TOKEN must be configured before deployment");
+          '
+          pnpm wrangler secret list --config wrangler.staging.jsonc --format json > staging-worker-secrets.json
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const values = JSON.parse(readFileSync("staging-worker-secrets.json", "utf8"));
+            if (!Array.isArray(values) || !values.some((entry) => entry?.name === "RELEASE_VERIFY_TOKEN")) {
+              throw new Error("Staging Worker RELEASE_VERIFY_TOKEN is not provisioned");
+            }
+          '
+
       - name: Build
         if: env.STAGING_UNCONFIGURED != 'true'
         env:
@@ -150,12 +177,15 @@ jobs:
       # Exact-SHA proof polls readiness within a bounded deadline: the edge may briefly serve the
       # previous Worker version after upload. Only that propagation case is retried; nothing redeploys.
       - name: Staging exact SHA receipt and post-deploy smoke
-        if: env.STAGING_UNCONFIGURED != 'true' && vars.STAGING_URL != ''
+        if: env.STAGING_UNCONFIGURED != 'true'
         env:
           APP_SMOKE_URL: ${{ vars.STAGING_URL }}
+          EXPECTED_RECIPE_CATALOG_MODE: ${{ needs.release.outputs.recipe_catalog_mode }}
+          RELEASE_VERIFY_TOKEN: ${{ secrets.STAGING_RELEASE_VERIFY_TOKEN }}
         run: |
           node scripts/wait-for-deployed-release.mjs release-manifest.json
           bash scripts/post-deploy-smoke.sh "$APP_SMOKE_URL" "${{ needs.release.outputs.deploy_sha }}"
+          node scripts/release-check.mjs authority release-manifest.json
 
       - name: Save staging receipt after exact-SHA proof
         if: always()
@@ -168,6 +198,7 @@ jobs:
   production:
     needs: release
     if: >-
+      always() && needs.release.result == 'success' &&
       github.event_name == 'workflow_dispatch' &&
       inputs.environment == 'production' && inputs.confirm_production == true
     runs-on: ubuntu-latest
@@ -220,29 +251,135 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/release-check.mjs recheck
 
-      # SELECT-only; missing/unknown migrations block deployment, never auto-apply.
-      - name: Pre-deploy schema gate and migration ledger receipt (read-only)
+      # SELECT-only; identity/catalog/integrity drift and missing/unknown migrations block deployment.
+      - name: Pre-deploy Cloudflare identity, schema, catalog and integrity certification (read-only)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          node scripts/d1-migration-check.mjs config
+          pnpm wrangler whoami > /dev/null
+          pnpm wrangler d1 list --json > d1-list.json
+          if pnpm wrangler d1 info frigo-db --json > d1-info.json 2> d1-info.err; then
+            node scripts/d1-migration-check.mjs identity release-manifest.json d1-list.json d1-info.json
+          else
+            echo "::warning::d1 info unavailable with this token scope; identity proven from d1 list only"
+            node scripts/d1-migration-check.mjs identity release-manifest.json d1-list.json
+          fi
           bash scripts/d1-schema-gate.sh remote
           pnpm wrangler d1 execute frigo-db --remote --yes --command "SELECT name FROM d1_migrations ORDER BY name" --json > migration-ledger.json
           node scripts/release-check.mjs schema release-manifest.json migration-ledger.json
+          catalog_query="$(node -e 'import("./scripts/d1-migration-check.mjs").then((m) => process.stdout.write(m.catalogQuery()))')"
+          pnpm wrangler d1 execute frigo-db --remote --yes --json --command "$catalog_query" > catalog.json
+          node scripts/d1-migration-check.mjs runtime-catalog-query > runtime-catalog.sql
+          pnpm wrangler d1 execute frigo-db --remote --yes --json --file runtime-catalog.sql > runtime-catalog.json
+          node scripts/d1-migration-check.mjs runtime-catalog release-manifest.json runtime-catalog.json
+          pnpm wrangler d1 execute frigo-db --remote --yes --json --command "PRAGMA foreign_key_check" > foreign-keys.json
+          pnpm wrangler d1 execute frigo-db --remote --yes --json --command "PRAGMA quick_check" > quick-check.json
+          node scripts/d1-migration-check.mjs release-certify release-manifest.json catalog.json foreign-keys.json quick-check.json
+
+      - name: Preflight release secret, current authority transition, and rollback target
+        id: preflight
+        env:
+          APP_SMOKE_URL: ${{ vars.PRODUCTION_URL }}
+          RELEASE_VERIFY_TOKEN: ${{ secrets.RELEASE_VERIFY_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ "${#RELEASE_VERIFY_TOKEN}" -lt 32 ]; then
+            echo "RELEASE_VERIFY_TOKEN must be provisioned before deployment"
+            exit 1
+          fi
+          pnpm wrangler secret list --format json > worker-secrets.json
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const values = JSON.parse(readFileSync("worker-secrets.json", "utf8"));
+            if (!Array.isArray(values) || !values.some((entry) => entry?.name === "RELEASE_VERIFY_TOKEN")) {
+              throw new Error("Production Worker RELEASE_VERIFY_TOKEN is not provisioned");
+            }
+          '
+          status="$(curl --silent --show-error --output previous-authority.json --write-out '%{http_code}' \
+            --max-time 30 --header "Authorization: Bearer ${RELEASE_VERIFY_TOKEN}" \
+            --header 'Accept: application/json' "${APP_SMOKE_URL}/api/v1/health/recipe-authority" || true)"
+          if [ "$status" = 404 ]; then
+            printf '{"unavailable":true,"httpStatus":404}\n' > previous-authority.json
+          elif [ "$status" != 200 ]; then
+            echo "Recipe authority preflight failed with HTTP ${status}"
+            exit 1
+          fi
+          pnpm wrangler deployments status --json > previous-deployment.json
+          node scripts/release-check.mjs deployment-snapshot release-manifest.json previous-deployment.json
+          previous_version="$(node -p 'require("./release-manifest.json").previousDeployment.versionId')"
+          pnpm wrangler versions view "$previous_version" --name frigo --json > previous-version.json
+          node scripts/release-check.mjs rollback-target release-manifest.json previous-version.json
+          node scripts/release-check.mjs transition release-manifest.json previous-authority.json
 
       - name: Deploy to Cloudflare production
+        id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --var GIT_COMMIT:${{ needs.release.outputs.deploy_sha }} --var RECIPE_CATALOG_MODE:${{ needs.release.outputs.recipe_catalog_mode }} --var RECIPE_CATALOG_D1_CANARY_PERCENT:${{ needs.release.outputs.recipe_catalog_d1_canary_percent }} --var RECIPE_CATALOG_CUTOVER_ENABLED:${{ needs.release.outputs.recipe_catalog_cutover_enabled }}
 
-      - name: Production exact SHA receipt and post-deploy smoke
+      # T19D: the deployment is not successful until the Worker proves, through the protected
+      # recipe-authority evidence, that it serves exactly the approved authority state (mode,
+      # cutover, percent, release ID, D1 readiness, served count/fingerprint, no fallback).
+      - name: Production exact SHA receipt, post-deploy smoke and recipe authority proof
         env:
           APP_SMOKE_URL: ${{ vars.PRODUCTION_URL }}
+          EXPECTED_RECIPE_CATALOG_MODE: ${{ needs.release.outputs.recipe_catalog_mode }}
+          RELEASE_VERIFY_TOKEN: ${{ secrets.RELEASE_VERIFY_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           node scripts/wait-for-deployed-release.mjs release-manifest.json
           bash scripts/post-deploy-smoke.sh "$APP_SMOKE_URL" "${{ needs.release.outputs.deploy_sha }}"
+          pnpm wrangler deployments status --name frigo --json > deployed-deployment.json
+          deployed_version="$(node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            import { verifyStableWorkerDeployment } from "./scripts/release-check.mjs";
+            const evidence = JSON.parse(readFileSync("deployed-deployment.json", "utf8"));
+            process.stdout.write(verifyStableWorkerDeployment(evidence).versionId);
+          ')"
+          pnpm wrangler versions view "$deployed_version" --name frigo --json > deployed-version.json
+          node scripts/release-check.mjs deployed-binding release-manifest.json deployed-deployment.json deployed-version.json
+          node scripts/release-check.mjs authority release-manifest.json
+
+      - name: Restore exact previous Worker after any failed deployment or proof
+        if: (failure() || cancelled()) && steps.preflight.outcome == 'success'
+        env:
+          APP_SMOKE_URL: ${{ vars.PRODUCTION_URL }}
+          RELEASE_VERIFY_TOKEN: ${{ secrets.RELEASE_VERIFY_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          previous_version="$(node -e "const m=require('./release-manifest.json'); process.stdout.write(m.previousDeployment.versionId)")"
+          node scripts/cloudflare-worker-rollback.mjs "$previous_version" > rollback-mutation.json
+          restored=false
+          deadline=$((SECONDS + 180))
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            if ! timeout 20s pnpm wrangler deployments status --name frigo --json > rollback-deployment.json; then
+              sleep 3
+              continue
+            fi
+            status="$(curl --silent --show-error --output rollback-authority.json --write-out '%{http_code}' \
+              --max-time 10 --header "Authorization: Bearer ${RELEASE_VERIFY_TOKEN}" \
+              --header 'Accept: application/json' "${APP_SMOKE_URL}/api/v1/health/recipe-authority" || true)"
+            if [ "$status" = 404 ]; then
+              printf '{"unavailable":true,"httpStatus":404}\n' > rollback-authority.json
+            fi
+            if { [ "$status" = 200 ] || [ "$status" = 404 ]; } && \
+              node scripts/release-check.mjs rollback release-manifest.json rollback-deployment.json rollback-authority.json previous-version.json rollback-mutation.json; then
+              restored=true
+              break
+            fi
+            sleep 3
+          done
+          if [ "$restored" != true ]; then
+            echo "Exact previous Worker rollback could not be verified"
+            exit 1
+          fi
 
       - name: Save production receipt even on failure (inspect deployed field)
         if: always()

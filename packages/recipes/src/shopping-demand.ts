@@ -102,16 +102,28 @@ export function aggregateShoppingDemand(
     }
   }
   return [...groups.values()]
-    .map(({ requirement, quantity }) => ({
-      ...requirement,
-      knownRequiredQuantity: exactShoppingQuantityNumber(quantity),
-      requiredQuantity:
-        requirement.status === 'known' ? exactShoppingQuantityNumber(quantity) : null,
-      sourceMealSlots: requirement.sourceMealSlots.sort(
-        (a, b) =>
-          compareIds(a.slotId, b.slotId) ||
-          compareIds(JSON.stringify(a.sourceLineIndices), JSON.stringify(b.sourceLineIndices)),
-      ),
-    }))
+    .map(({ requirement, quantity }) => {
+      // Aggregated demand may be a non-terminating rational (e.g. two meals of a 3-serving recipe at
+      // 2 servings). Never round at the output boundary: report the requirement as unresolved instead.
+      let known: number | null;
+      try { known = exactShoppingQuantityNumber(quantity); }
+      catch (error) {
+        if (!(error instanceof QuantityRangeError)) throw error;
+        known = null;
+      }
+      const representable = known !== null;
+      return {
+        ...requirement,
+        status: representable ? requirement.status : 'unresolved',
+        unresolvedCount: representable ? requirement.unresolvedCount : requirement.sourceMealSlots.length,
+        knownRequiredQuantity: known ?? 0,
+        requiredQuantity: representable && requirement.status === 'known' ? known : null,
+        sourceMealSlots: requirement.sourceMealSlots.sort(
+          (a, b) =>
+            compareIds(a.slotId, b.slotId) ||
+            compareIds(JSON.stringify(a.sourceLineIndices), JSON.stringify(b.sourceLineIndices)),
+        ),
+      } satisfies PurchaseRequirement;
+    })
     .sort((a, b) => compareIds(a.id, b.id));
 }

@@ -11,6 +11,9 @@ import { MealPlanDtoSchema, PlanShoppingDtoSchema, PlanFeedbackDtoSchema } from 
 import type { PurchaseOption } from '../../packages/recipes/src/shopping-catalog';
 import * as planner from '../../packages/recipes/src/weekly-planner';
 import { createBarrier, SqliteD1 } from '../helpers/sqlite-d1';
+import { ALL_RECIPES } from '../../packages/recipes/src/data';
+import { scaleRecipeRequirements } from '../../packages/recipes/src/requirements';
+import { fixtureRecipeAuthority } from '../helpers/recipe-authority-fixtures';
 
 vi.mock('../../src/worker/services/email', () => ({
   sendEmail: vi.fn(), buildOtpEmail: vi.fn(),
@@ -45,8 +48,8 @@ beforeEach(async () => {
       ('same-home-member-${fixtureId}', '${scope.householdId}', 'member-${fixtureId}', 'member');
     DELETE FROM recipes;
     INSERT INTO recipes (id, slug, title, cuisine, servings, prep_time_minutes, cook_time_minutes, difficulty)
-      VALUES ('a-small', 'a-small', 'Small chicken meal', 'viet', 2, 0, 10, 'easy'),
-        ('z-large', 'z-large', 'Large chicken meal', 'viet', 2, 0, 10, 'easy');
+      VALUES ('a-small', 'a-small', 'Small chicken meal', 'vietnamese', 2, 0, 10, 'easy'),
+        ('z-large', 'z-large', 'Large chicken meal', 'vietnamese', 2, 0, 10, 'easy');
     INSERT INTO recipe_ingredients (id, recipe_id, ingredient_id, name, required_quantity, unit, is_optional)
       VALUES ('line-small', 'a-small', 'CHICKEN_BREAST', 'Chicken', 100, 'g', 0),
         ('line-large', 'z-large', 'CHICKEN_BREAST', 'Chicken', 400, 'g', 0);
@@ -68,7 +71,7 @@ beforeEach(async () => {
   offers = [];
   app = new Hono();
   app.use('*', authMiddleware);
-  app.route('/api/v1', createMealPlanningRoutes({ purchaseCatalog: async (_scope, asOf) => ({
+  app.route('/api/v1', createMealPlanningRoutes({ recipeAuthority: fixtureRecipeAuthority(db), purchaseCatalog: async (_scope, asOf) => ({
     snapshotId: 'reviewed-fixture', status: 'available',
     options: offers.map((offer) => ({ ...offer, price: offer.price ? { ...offer.price, asOf } : null })),
   }) }));
@@ -105,8 +108,24 @@ describe('T06A real authenticated Worker/API boundary', () => {
     const plan = MealPlanDtoSchema.parse(await response.json());
     expect(plan.result.status).toBe('feasible');
     expect(plan.revision).toBe(1);
-    expect(plan.result.meals[0].requirements[0].required.value).toBe('100');
-    expect(plan.result.meals[0].instructions).toEqual(['Cook thoroughly.']);
+    // T19: the real Worker plans from the recipe AUTHORITY (static 71 here), never from the synthetic D1 rows.
+    expect(plan.result.meals.every((meal) => ALL_RECIPES.some((recipe) => recipe.id === meal.source.id))).toBe(true);
+    for (const meal of plan.result.meals) {
+      const recipe = ALL_RECIPES.find((entry) => entry.id === meal.source.id)!;
+      expect(meal.instructions).toEqual(recipe.steps.map((step) => step.instruction));
+      const ingredients = recipe.ingredients.map((line) => ({
+        ...line,
+        isOptional: line.isOptional ?? false,
+      }));
+      expect(meal.requirements.map(({ ingredientId, optional, required }) => ({
+        ingredientId, optional, required,
+      }))).toEqual(scaleRecipeRequirements(ingredients, recipe.servings, meal.servings)
+        .map((line) => ({
+          ingredientId: line.ingredientId,
+          optional: line.isOptional,
+          required: { value: line.requiredQuantity.toString(), unit: line.unit },
+        })));
+    }
     expect(planning).toHaveBeenCalledTimes(1);
     const retrieved = await request(`/${plan.id}`, undefined, { realWorker: true });
     expect(retrieved.status).toBe(200);
@@ -148,7 +167,7 @@ describe('T06A real authenticated Worker/API boundary', () => {
 
   it('enforces server household hard restrictions despite perfect personal soft preference and omission', async () => {
     await saveRankingPreferences(db, scope, { scope: 'household', values: { allergens: ['milk'], requiredDietaryTags: ['vegetarian'] }, updatedAt: new Date().toISOString() });
-    await saveRankingPreferences(db, scope, { scope: 'user', values: { preferredCuisines: ['viet'], likedIngredientIds: ['CHICKEN_BREAST'] }, updatedAt: new Date().toISOString() });
+    await saveRankingPreferences(db, scope, { scope: 'user', values: { preferredCuisines: ['vietnamese'], likedIngredientIds: ['CHICKEN_BREAST'] }, updatedAt: new Date().toISOString() });
     db.seed("INSERT INTO recipe_classifications (recipe_id, kind, tag) VALUES ('a-small', 'allergen', 'milk')");
     const plan = await generate();
     expect(plan.result.meals).toEqual([]);
@@ -222,7 +241,10 @@ describe('T06A real authenticated Worker/API boundary', () => {
   it('keeps missing reviewed prices unknown and never converts them into free shopping', async () => {
     db.seed('DELETE FROM inventory_items');
     const before = inventoryState();
-    const plan = await generate();
+    // Generate and shop through the same (real Worker) authority so the stored plan's source identity matches.
+    const generated = await request('', intent, { realWorker: true });
+    expect(generated.status, await generated.clone().text()).toBe(200);
+    const plan = MealPlanDtoSchema.parse(await generated.json());
     const response = await request(`/${plan.id}/shopping`, { revision: 1, currency: 'JPY', budget: { mode: 'hard', money: { currency: 'JPY', minorAmount: '100' } } }, { realWorker: true });
     expect(response.status, await response.clone().text()).toBe(200);
     const shopping = PlanShoppingDtoSchema.parse(await response.json());
@@ -279,7 +301,7 @@ describe('T06A real authenticated Worker/API boundary', () => {
     db.hooks.beforeStatement = async ({ sql }) => {
       if (!raced && /INSERT\s+(?:OR IGNORE\s+)?INTO recipe_feedback_events/i.test(sql)) {
         raced = true;
-        await new MealPlanningApplicationService(db).regenerate(scope, plan.id, { revision: 1 });
+        await new MealPlanningApplicationService(db, { recipeAuthority: fixtureRecipeAuthority(db) }).regenerate(scope, plan.id, { revision: 1 });
       }
     };
     const response = await request(`/${plan.id}/feedback`, { revision: 1, slotId: SLOT, type: 'liked' }, { key: 'racing-feedback' });
@@ -340,7 +362,7 @@ describe('T06A real authenticated Worker/API boundary', () => {
   it('preserves search truncation while returning a feasible best-found plan', async () => {
     for (let index = 0; index < 81; index += 1) {
       await db.prepare(`INSERT INTO recipes (id, slug, title, cuisine, servings, prep_time_minutes, cook_time_minutes, difficulty)
-        VALUES (?, ?, 'Candidate', 'viet', 2, 0, 10, 'easy')`).bind(`extra-${index}`, `extra-${index}`).run();
+        VALUES (?, ?, 'Candidate', 'vietnamese', 2, 0, 10, 'easy')`).bind(`extra-${index}`, `extra-${index}`).run();
       await db.prepare(`INSERT INTO recipe_ingredients (id, recipe_id, ingredient_id, name, required_quantity, unit, is_optional)
         VALUES (?, ?, 'CHICKEN_BREAST', 'Chicken', 100, 'g', 0)`).bind(`extra-line-${index}`, `extra-${index}`).run();
     }

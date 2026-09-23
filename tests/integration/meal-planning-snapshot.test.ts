@@ -7,6 +7,7 @@ import {
 import { createPlanningContext } from '../../packages/recipes/src/planner-context';
 import { planWeeklyMeals } from '../../packages/recipes/src/weekly-planner';
 import { LEGACY_CATALOG_MIGRATION_TIP, SqliteD1, type SqliteStatementEvent } from '../helpers/sqlite-d1';
+import { fixtureRecipeAuthority } from '../helpers/recipe-authority-fixtures';
 
 const householdId = 'snapshot-home';
 const userId = 'snapshot-user';
@@ -52,12 +53,12 @@ describe('coherent meal planning snapshot', () => {
 
   afterEach(() => databases.splice(0).forEach((db) => db.close()));
 
-  it('loads catalog, authorized ranking context, inventory, nutrition, and recipe steps in one read-only batch', async () => {
+  it('loads catalog, authorized ranking context, inventory and nutrition in one read-only batch; steps come from the authority', async () => {
     const db = database();
     const batches: SqliteStatementEvent[][] = [];
     db.hooks.beforeBatch = (statements) => { batches.push([...statements]); };
 
-    const snapshot = await loadMealPlanningSnapshot(db, { householdId, userId }, referenceTime);
+    const snapshot = await loadMealPlanningSnapshot(db, { householdId, userId }, referenceTime, await fixtureRecipeAuthority(db)());
 
     expect(batches).toHaveLength(1);
     expect(batches[0]).toHaveLength(MEAL_PLANNING_SNAPSHOT_STATEMENT_COUNT);
@@ -70,8 +71,8 @@ describe('coherent meal planning snapshot', () => {
     expect(snapshot.inventory).toEqual([
       expect.objectContaining({ id: 'snapshot-lot', householdId, quantity: 400, version: 3 }),
     ]);
-    expect(snapshot.recipeSteps.find((step) => step.id === 'snapshot-step')).toEqual(
-      { id: 'snapshot-step', recipeId: 'snapshot-recipe', stepNumber: 1,
+    expect(snapshot.recipeSteps.find((step) => step.id === 'snapshot-recipe:static:1')).toEqual(
+      { id: 'snapshot-recipe:static:1', recipeId: 'snapshot-recipe', stepNumber: 1,
         instruction: 'Cook thoroughly.', tip: 'Use a hot pan.', timerMinutes: 20 },
     );
     expect(snapshot.fingerprint).toMatchObject({
@@ -88,7 +89,7 @@ describe('coherent meal planning snapshot', () => {
 
   it('uses the preloaded nutrition provider without inventing reviewed safety evidence or querying in planner search', async () => {
     const db = database();
-    const snapshot = await loadMealPlanningSnapshot(db, { householdId, userId }, referenceTime);
+    const snapshot = await loadMealPlanningSnapshot(db, { householdId, userId }, referenceTime, await fixtureRecipeAuthority(db)());
     const context = createPlanningContext(() => ({
       snapshotId: 'snapshot-v1',
       referenceInstant: referenceTime,
@@ -118,7 +119,7 @@ describe('coherent meal planning snapshot', () => {
     const db = database();
     db.seed(`INSERT INTO household_ranking_preferences (household_id, values_json, updated_at)
       VALUES ('${householdId}', '{"version":1,"values":{"allergens":["soy"]}}', '${referenceTime}')`);
-    const snapshot = await loadMealPlanningSnapshot(db, { householdId, userId }, referenceTime);
+    const snapshot = await loadMealPlanningSnapshot(db, { householdId, userId }, referenceTime, await fixtureRecipeAuthority(db)());
     const context = createPlanningContext(() => ({
       snapshotId: 'snapshot-safety-v1',
       referenceInstant: referenceTime,
@@ -144,15 +145,15 @@ describe('coherent meal planning snapshot', () => {
   it('fails with a typed authorization error before exposing any household-scoped snapshot', async () => {
     const db = database();
 
-    await expect(loadMealPlanningSnapshot(db, { householdId, userId: 'snapshot-other' }, referenceTime))
+    await expect(loadMealPlanningSnapshot(db, { householdId, userId: 'snapshot-other' }, referenceTime, await fixtureRecipeAuthority(db)()))
       .rejects.toBeInstanceOf(MealPlanningSnapshotAuthorizationError);
   });
 
   it('changes only the affected SHA-256 fingerprint part when inventory changes', async () => {
     const db = database();
-    const before = await loadMealPlanningSnapshot(db, { householdId, userId }, referenceTime);
+    const before = await loadMealPlanningSnapshot(db, { householdId, userId }, referenceTime, await fixtureRecipeAuthority(db)());
     db.seed("UPDATE inventory_items SET quantity = 300, version = 4 WHERE id = 'snapshot-lot'");
-    const after = await loadMealPlanningSnapshot(db, { householdId, userId }, referenceTime);
+    const after = await loadMealPlanningSnapshot(db, { householdId, userId }, referenceTime, await fixtureRecipeAuthority(db)());
 
     expect(after.fingerprint.value).not.toBe(before.fingerprint.value);
     expect(after.fingerprint.parts.inventory).not.toBe(before.fingerprint.parts.inventory);

@@ -1,6 +1,12 @@
 import { Hono } from 'hono';
 import { Env } from '../types';
 import { getAIServiceStatus, validateEnvironment } from '../config/validation';
+import {
+  publicRecipeAuthorityStatus,
+  recipeAuthorityReleaseEvidence,
+  releaseVerifyTokenMatches,
+  type RecipeAuthorityPublicStatus,
+} from '../services/recipe-authority-status';
 
 /**
  * Public observability endpoints, mounted OUTSIDE the auth-protected API
@@ -32,9 +38,7 @@ healthRoutes.get('/health/ready', async (c) => {
       await env.DB.prepare('SELECT 1 AS ok').first();
       // Candidate scan paths read these additive columns before any provider
       // call; fail readiness instead of accepting traffic against schema 0022.
-      await env.DB.prepare(
-        'SELECT request_fingerprint, image_mime_type FROM scans LIMIT 0',
-      ).all();
+      await env.DB.prepare('SELECT request_fingerprint, image_mime_type FROM scans LIMIT 0').all();
     } catch {
       database = 'error';
     }
@@ -44,6 +48,15 @@ healthRoutes.get('/health/ready', async (c) => {
 
   const config = validateEnvironment(env);
   const unhealthy = config.fatal.length > 0 || database === 'error';
+  // T19C: sanitized recipe authority summary. Never household/user data; failures degrade to
+  // `invalid` rather than taking readiness down for an observability-only field.
+  let recipeAuthority:
+    RecipeAuthorityPublicStatus | { configuredMode: 'invalid'; fallbackReason: string };
+  try {
+    recipeAuthority = await publicRecipeAuthorityStatus(env);
+  } catch {
+    recipeAuthority = { configuredMode: 'invalid', fallbackReason: 'STATUS_UNAVAILABLE' };
+  }
 
   return c.json(
     {
@@ -53,6 +66,7 @@ healthRoutes.get('/health/ready', async (c) => {
       commit: env.GIT_COMMIT || null,
       timestamp: new Date().toISOString(),
       environment: env.ENVIRONMENT || 'development',
+      recipeAuthority,
       services: {
         database,
         queue: env.SCAN_QUEUE ? 'ok' : env.SCAN_QUEUE_MODE === 'async' ? 'error' : 'disabled',
@@ -79,8 +93,21 @@ healthRoutes.get('/health/ready', async (c) => {
         })),
       },
     },
-    unhealthy ? 503 : 200
+    unhealthy ? 503 : 200,
   );
+});
+
+// T19C: protected, machine-readable recipe authority release evidence for deploy automation.
+// Authorized by the RELEASE_VERIFY_TOKEN Worker secret (bearer), never by a user session; the
+// route does not exist (404) when the secret is not configured. Body is PII-free by construction.
+healthRoutes.get('/health/recipe-authority', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  if (!c.env.RELEASE_VERIFY_TOKEN) return c.json({ error: 'Not found' }, 404);
+  const presented = c.req.header('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (!(await releaseVerifyTokenMatches(presented, c.env.RELEASE_VERIFY_TOKEN))) {
+    return c.json({ error: 'Unauthorized', code: 'RELEASE_VERIFY_UNAUTHORIZED' }, 401);
+  }
+  return c.json(await recipeAuthorityReleaseEvidence(c.env));
 });
 
 // Public browser configuration only. OAuth client IDs and Turnstile site keys

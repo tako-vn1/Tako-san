@@ -1,31 +1,85 @@
+# Current takeover receipt - 2026-09-23
+
+**Status: `T19_V2_APPLICATION_PR_PENDING`. Production: `UNTOUCHED`.**
+Repository ID `1368281478` now resolves to `vn-tako4/Frigo-dev`; starting main
+is `a3b1564329932515a047f674e9ab3e5b534716ca`. The exact integration checkpoint
+`62d68196f273e81c8756e29f6a3165769d61837c` is published on
+`feat/t19-recipe-authority-cutover-v2-integration` and verified by local HEAD,
+origin tracking ref and remote ref. Original recovery branch remains immutable
+at `0a04209e512d19293ed56a19d3fd51eb29ffefcd`. PR #52 is already merged.
+
+The fresh audit, verification counts, probe limitations and next action are in
+`docs/ai/recipe-catalog/T19_V2_TAKEOVER_AUDIT.md`. Hosted CI, merge, exact-main
+certification and production work remain pending. T20 is blocked until
+`T19_COMPLETE`. Earlier publication-blocked statements below are historical,
+not current truth.
+
+---
+
 # Frigo / Takosan current authority — 2026-09-22
 
-## T19 V2 — one recipe authority + 500-recipe D1 cutover (safe stop)
+## T19 V2 — one recipe authority + 500-recipe D1 cutover (integration)
 
-**Current: `T19_V2_SAFE_STOP_PUBLICATION_BLOCKED`.** Branch
-`feat/t19-recipe-authority-cutover-v2` (from canonical main `4677ebb`,
-`4677ebbabbb580b9045423350da719acaf8f5742`; repository ID `1368281478`, `vn-tako2/Frigo-dev`)
-is **local/artifact-only and ABSENT from the remote**: the credential/token used
-by the authoring workspace lacks effective capability to publish
-workflow-changing commits, and GitHub rejected the push. The split-authority
-defect is **fixed locally and
-verified**: the Meal Planner now plans from the same `resolveRecipeAuthority`
-snapshot as Recipe API/Week/Shopping/Cooking (`projectPlannerCatalogOnAuthority`),
-stored plans carry an authority identity with typed `CATALOG_AUTHORITY_CHANGED`
-revalidation, planner catalog fingerprints are authority-scoped, the release
-path accepts the reviewed `static|shadow|canary{1,2,5,25}|d1` states, and
-readiness/protected-evidence endpoints expose machine-verifiable authority
-proof. Current-session verification: `pnpm lint`, `pnpm typecheck`,
-`pnpm check:migrations`, `pnpm build`, full Vitest **567 files / 4294 tests PASS**,
-`pnpm recipe:import:check` (`rel-bd00a4f53fcaeee4`, 500 recipes), `git diff --check`.
-Hosted CI for the T19 **application** code has **NOT happened** (no
-application PR exists); [PR #52](https://github.com/vn-tako2/Frigo-dev/pull/52)
-is documentation-only and its `validate` run certifies the documentation, not
-the application code. **Production rollout is NOT eligible to start.**
-Production was **not** touched: no deploy, no mode/percent change, no D1 access.
-Remaining, in order: workspace/artifact takeover → publish the application
-branch → application PR + hosted CI → `RELEASE_VERIFY_TOKEN` provisioning →
-staged rollout (shadow → canary → d1) through the reviewed Deploy workflow.
+**Current: `T19_V2_APPLICATION_INTEGRATED_CI_PENDING`.** Stable repository ID
+`1368281478` resolves to `vn-tako3/Frigo-dev`; canonical main/integration base
+is `a3b1564`. The immutable original branch
+`feat/t19-recipe-authority-cutover-v2` is published at `0a04209`, exactly the
+expected safe-stop head, and application checkpoint `558be74` was cherry-picked
+onto `feat/t19-recipe-authority-cutover-v2-integration` without replaying its
+obsolete safe-stop documentation. PR #52 is merged historical documentation.
+
+The integrated application makes Meal Planner use the same
+`resolveRecipeAuthority` snapshot as Recipe API/Week/Shopping/Cooking,
+authority-scopes catalog fingerprints, persists stored-plan authority identity,
+reports typed `CATALOG_AUTHORITY_CHANGED` revalidation, accepts only reviewed
+`static|shadow|canary{1,2,5,25}|d1` release states, and exposes protected
+machine-verifiable authority evidence. Planner recipe content and steps come
+from the authority snapshot in every mode; D1 supplies only fenced planner
+enrichment under D1 authority. Current-tree verification: full Vitest **189
+files / 4,364 tests PASS** (run A); the final rerun (run B) passed 4,363 with
+one 5 s contention timeout in the unrelated T13 real-D1 file, which passed
+22/22 in isolation; focused authority/planner/release/shopping/cooking/
+inventory matrix 13 files / 356 PASS plus 23 snapshot/persistence tests after
+the last cleanup; release-check 155, D1 certification 32 and Worker rollback 10
+unit tests PASS; `pnpm lint`, both `pnpm typecheck` configs,
+`pnpm check:migrations`, `pnpm recipe:import:check` (500 recipes,
+`rel-bd00a4f53fcaeee4`), `pnpm build` and `git diff --check` PASS. The
+Wrangler-shaped `release-certify` fixture proves tip
+`0037_recipe_catalog_scale.sql` with 500 recipes, clean foreign keys and
+`quick_check=ok`.
+
+Final hardening (two independent review passes): stored plans detect
+same-source authority fingerprint drift; static planning reads no D1 rows and
+hidden D1-only recipes/ingredients/families cannot alter its identity; the
+protected route requires a real `Bearer` scheme; canary and shadow release
+probes exercise D1 truthfully, so `shadow → canary-1` needs proven D1
+readiness and the release fingerprint. Production Deploy certifies the
+committed `wrangler.jsonc` binding, Cloudflare account + `frigo-db` identity,
+the migration ledger, catalog identity (exact ordered IDs, zero duplicate
+IDs/slugs, `runtime_order`), `foreign_key_check` and `quick_check` read-only
+before mutation; requires the release ref to equal current main, rejects
+backwards SHAs and stale/skipped/reverse promotions, requires explicit
+rollback/bootstrap intent, proves the previous and deployed Worker versions
+bind the pinned D1, and on failure or cancellation restores the exact previous
+version through the Cloudflare API with a complete evidence proof. Staging is
+fail-closed on `STAGING_URL`, `STAGING_RELEASE_VERIFY_TOKEN` and the staging
+Worker secret.
+
+**Safe stop 2026-09-23.** The integration branch (application checkpoints
+`8205883` + `553791a` plus the docs commit) is **publication-blocked**: the
+repository's GitHub App credential cannot push workflow-changing commits
+(`refusing to allow a GitHub App to create or update workflow
+`.github/workflows/deploy.yml` without `workflows` permission`). Workflow
+changes were not stripped and no partial branch was created. Workspace-only
+recovery artifacts: `.artifacts/t19-current-safe-stop.bundle` (complete
+history) and `.artifacts/t19-current-safe-stop.patch`, with SHA-256 values in
+`.artifacts/t19-current-safe-stop.sha256`. The original
+branch remains published and immutable at `0a04209`. Hosted application CI has
+not run. Production is untouched: no D1 query/migration, secret/config change,
+deploy, rollout or rollback. Next: publish with a workflows-capable credential,
+open the application PR, obtain exact-head hosted CI/review, merge and certify
+exact main before any production action. T20 remains blocked until
+`T19_COMPLETE`.
 Canonical handoff:
 [T19_V2_WIP_HANDOFF.md](recipe-catalog/T19_V2_WIP_HANDOFF.md); architecture:
 [T19_V2_RECIPE_AUTHORITY_CUTOVER.md](recipe-catalog/T19_V2_RECIPE_AUTHORITY_CUTOVER.md)

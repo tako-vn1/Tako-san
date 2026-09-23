@@ -118,6 +118,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          node scripts/d1-migration-check.mjs config
           pnpm wrangler whoami > /dev/null
           pnpm wrangler d1 list --json > d1-list.json
           if pnpm wrangler d1 info frigo-db --json > d1-info.json 2> d1-info.err; then
@@ -204,9 +205,8 @@ jobs:
           node -p 'const m = require("./migration-manifest.json"); JSON.stringify({ postLedger: m.postLedger, recipeMedia: m.recipeMedia, health: m.health, aggregateDrift: m.aggregateDrift, postBaseline: m.postBaseline })'
 
       # The ledger tip promises a catalog (legacy 71 + every approved batch whose migration is
-      # applied). Counts/order/completeness only; media must still be entirely pending (T15A
-      # pre-media-rollout condition — revisit before any migration after media population).
-      - name: Catalog certification against the release manifest (aggregates only)
+      # applied). A complete release also has to hydrate and fingerprint through the Worker reader.
+      - name: Catalog identity, provenance and runtime-content certification
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -214,6 +214,11 @@ jobs:
           query="$(node -e 'import("./scripts/d1-migration-check.mjs").then((m) => process.stdout.write(m.catalogQuery()))')"
           pnpm wrangler d1 execute frigo-db --remote --yes --json --command "$query" > catalog.json
           node scripts/d1-migration-check.mjs catalog migration-manifest.json catalog.json
+          if [ "$(node -p 'require("./migration-manifest.json").catalog.releaseComplete')" = true ]; then
+            node scripts/d1-migration-check.mjs runtime-catalog-query > runtime-catalog.sql
+            pnpm wrangler d1 execute frigo-db --remote --yes --json --file runtime-catalog.sql > runtime-catalog.json
+            node scripts/d1-migration-check.mjs runtime-catalog migration-manifest.json runtime-catalog.json
+          fi
 
       - name: Production schema gate (read-only)
         env:

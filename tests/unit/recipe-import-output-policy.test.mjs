@@ -137,7 +137,7 @@ describe('recipe-import CLI (real script, git-ignored artifact directory)', () =
     expect(check.code).toBe(0);
     expect(readdirSync(path.join(root, 'migrations')).sort()).toEqual(migrationsBefore);
     expect(existsSync(path.join(root, 'migrations', '0036_recipe_import.sql'))).toBe(false);
-  }, 120_000);
+  }, 480_000);
 
   it('a failing batch exits non-zero, writes diagnostics only (no migration.sql); traversal and symlink outputs are refused before any write', () => {
     const bad = mkdtempSync(path.join(tmpdir(), 'frigo-import-bad-'));

@@ -1,15 +1,55 @@
-**Current: T18E_OTP_TEST_RECIPIENT_REQUIRED.**
+# Current takeover receipt - 2026-09-23
 
-## T19 V2 — recipe authority cutover (safe stop 2026-09-22)
+**Status: `T19_V2_APPLICATION_PR_PENDING`. Production: `UNTOUCHED`.**
+Repository ID `1368281478` now resolves to `vn-tako4/Frigo-dev`; starting main
+is `a3b1564329932515a047f674e9ab3e5b534716ca`. The exact integration checkpoint
+`62d68196f273e81c8756e29f6a3165769d61837c` is published on
+`feat/t19-recipe-authority-cutover-v2-integration` and verified by local HEAD,
+origin tracking ref and remote ref. Original recovery branch remains immutable
+at `0a04209e512d19293ed56a19d3fd51eb29ffefcd`. PR #52 is already merged.
 
-Status `T19_V2_SAFE_STOP_PUBLICATION_BLOCKED`. The T19 application branch
-`feat/t19-recipe-authority-cutover-v2` (local HEAD token `0a04209e512d19293ed56a19d3fd51eb29ffefcd`)
-is **local/artifact-only and ABSENT from the remote**: the credential used by
-the authoring workspace cannot publish workflow-changing commits and GitHub
-rejected the push. Hosted CI for the application code has **NOT happened**.
-[PR #52](https://github.com/vn-tako2/Frigo-dev/pull/52) is documentation-only.
-**Production rollout is NOT eligible to start**; production untouched. Canonical
-handoff: `docs/ai/recipe-catalog/T19_V2_WIP_HANDOFF.md` (takeover steps A–F).
+The fresh audit, verification counts, probe limitations and next action are in
+`docs/ai/recipe-catalog/T19_V2_TAKEOVER_AUDIT.md`. Hosted CI, merge, exact-main
+certification and production work remain pending. T20 is blocked until
+`T19_COMPLETE`. Earlier publication-blocked statements below are historical,
+not current truth.
+
+---
+
+**Current: T19_V2_APPLICATION_INTEGRATED_CI_PENDING.**
+
+## T19 V2 — recipe authority cutover (integration 2026-09-22)
+
+Repository ID `1368281478` resolves to `vn-tako3/Frigo-dev`; current main is
+`a3b1564`. The immutable original branch is published at expected head
+`0a04209`, and application checkpoint `558be74` is integrated onto
+`feat/t19-recipe-authority-cutover-v2-integration` from current main. PR #52 is
+merged historical safe-stop documentation.
+
+- [done] Focused authority/planner/release/shopping/cooking/inventory suite: 13
+  files / 356 tests PASS; full Vitest 188 files / 4,333 tests PASS; D1 release
+  certification 23/23 plus the 500-recipe/tip-0037/integrity fixture PASS; lint,
+  typecheck, migration smoke, 500-recipe import check and build PASS.
+- [done] Final safety review: static planner identity excludes hidden D1-only
+  families/ingredients/diagnostics; evidence requires Bearer auth; production
+  transition preflight is monotonic and auto-restores the exact prior Worker on
+  failed deployment proof.
+- [done] Two review passes fixed: same-source authority drift, incomplete
+  rollback proof, missing Cloudflare/D1 identity + catalog/integrity
+  certification, fabricated canary readiness, unfenced D1 families, shadow
+  promotion without D1 proof, backwards SHAs, cancellation bypassing rollback,
+  unverified staging. Full Vitest 189 files / 4,364 PASS on the current tree.
+- [blocked] Integration publication: push rejected — GitHub App credential
+  lacks `workflows` permission. Branch commits `8205883` + `553791a` + docs
+  are preserved locally with workspace-only bundle/patch artifacts. Owner
+  push with a capable credential unblocks; then the application PR and
+  exact-head hosted CI/review.
+- [pending] Normal merge, exact-main certification, production identity/catalog
+  checks, release-secret provisioning, staged rollout and rollback proof.
+- [untouched] Production: no D1 query/migration, secret/config mutation, deploy,
+  rollout or rollback. T20 is blocked until `T19_COMPLETE`.
+
+Canonical handoff: `docs/ai/recipe-catalog/T19_V2_WIP_HANDOFF.md`.
 
 - Exact repository/base/production: `1368281478`, `vn-tako1/Frigo-dev`,
   `66627ffea890dad1cec4e31674449775a940c660`.

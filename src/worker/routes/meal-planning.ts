@@ -14,6 +14,7 @@ import { MealPlanningApplicationService, type MealPlanningServiceOptions } from 
 import { MealPlanningError } from '../services/meal-planning-error';
 import { PlanAlternativesQuerySchema, PlanExplanationRequestSchema } from '../../../packages/domain/src/meal-planning-presentation';
 import { createExplanationTransport } from '../services/meal-planning-explanation';
+import { backgroundExecutorOf, resolveRecipeAuthority } from '../services/recipe-authority';
 
 type App = { Bindings: Env; Variables: { auth: AuthContext } };
 type Ctx = Context<App>;
@@ -49,7 +50,7 @@ async function respond(c: Ctx, operation: () => Promise<unknown>) {
 }
 
 /** Options are installed by server composition, never HTTP JSON or environment request fields. */
-export function createMealPlanningRoutes(options: MealPlanningServiceOptions = {}) {
+export function createMealPlanningRoutes(options: Partial<MealPlanningServiceOptions> = {}) {
   const routes = new Hono<App>();
   routes.use('/meal-planning/*', async (c, next) => {
     c.header('Cache-Control', 'no-store');
@@ -71,6 +72,9 @@ export function createMealPlanningRoutes(options: MealPlanningServiceOptions = {
       c.env,
       (promise) => c.executionCtx.waitUntil(promise),
     ),
+    // T19 (ADR-026): the same deployment-config + deterministic household-canary decision the recipe routes make.
+    recipeAuthority: options.recipeAuthority ?? (async (scope) =>
+      (await resolveRecipeAuthority(c.env, { tenantKey: scope.householdId, backgroundExecutor: backgroundExecutorOf(c) })).snapshot),
   });
   const scope = (c: Ctx) => ({ householdId: c.get('auth').householdId, userId: c.get('auth').userId });
   const planId = (c: Ctx) => {

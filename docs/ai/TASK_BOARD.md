@@ -1,17 +1,39 @@
+# Current takeover receipt - 2026-09-23
+
+**Status: `T19_V2_APPLICATION_PR_PENDING`. Production: `UNTOUCHED`.**
+Repository ID `1368281478` now resolves to `vn-tako4/Frigo-dev`; starting main
+is `a3b1564329932515a047f674e9ab3e5b534716ca`. The exact integration checkpoint
+`62d68196f273e81c8756e29f6a3165769d61837c` is published on
+`feat/t19-recipe-authority-cutover-v2-integration` and verified by local HEAD,
+origin tracking ref and remote ref. Original recovery branch remains immutable
+at `0a04209e512d19293ed56a19d3fd51eb29ffefcd`. PR #52 is already merged.
+
+The fresh audit, verification counts, probe limitations and next action are in
+`docs/ai/recipe-catalog/T19_V2_TAKEOVER_AUDIT.md`. Hosted CI, merge, exact-main
+certification and production work remain pending. T20 is blocked until
+`T19_COMPLETE`. Earlier publication-blocked statements below are historical,
+not current truth.
+
+---
+
 # Frigo / Takosan current task board — 2026-09-22
 
-## T19 V2 — recipe authority cutover (safe stop 2026-09-22)
+## T19 V2 — recipe authority cutover (integration 2026-09-22)
 
 - [done] Reproduced the split-authority defect on unmodified main (planner D1-only recipe under static; 404 detail/cook).
 - [done] Fenced the planner to `resolveRecipeAuthority` (`projectPlannerCatalogOnAuthority`); alternatives/swap/regenerate authority-clean; fingerprint scoped to the visible universe; stored plan authority identity + `CATALOG_AUTHORITY_CHANGED`.
 - [done] Cross-flow D1-only recipe test (planner → swap → shopping → detail → cook start/complete), all-mode matrix incl. D1-fallback-together and authority spoofing.
-- [done] Release state machine `static|shadow|canary{1,2,5,25}|d1` with derived cutover; deploy workflow authority-proof steps; smoke validates the authority summary.
-- [done] Public sanitized `recipeAuthority` readiness + protected `/health/recipe-authority` release evidence (bearer token, no PII).
-- [done] Verification: lint, typecheck, migration smoke, build, full Vitest 567 files / 4294 PASS, `recipe:import:check` 500 = rel-bd00a4f53fcaeee4.
-- [blocked] **Publication:** `feat/t19-recipe-authority-cutover-v2` is local/artifact-only and ABSENT from the remote (credential cannot publish workflow-changing commits; push rejected). Status `T19_V2_SAFE_STOP_PUBLICATION_BLOCKED`.
-- [blocked] Hosted CI for the application code has NOT happened (no application PR). [PR #52](https://github.com/vn-tako2/Frigo-dev/pull/52) is documentation-only; its `validate` pass certifies the docs, not the code.
-- [blocked] Production rollout is NOT eligible to start; production unchanged.
-- [next] Takeover steps A–F: obtain original workspace/artifacts → restore exact application branch (HEAD token `0a04209e512d19293ed56a19d3fd51eb29ffefcd`) → verify → publish branch → verify remote SHA → only then application PR, hosted CI, `RELEASE_VERIFY_TOKEN` provisioning, staged rollout (shadow → canary 1 → 5 → 25 → d1). Handoff: `docs/ai/recipe-catalog/T19_V2_WIP_HANDOFF.md`.
+- [done] Release state machine `static|shadow|canary{1,2,5,25}|d1` with derived cutover; deploy workflow certifies `wrangler.jsonc` binding, Cloudflare/D1 identity, ledger, catalog identity/duplicates/order, FK and quick_check read-only; requires ref == current main; rejects backwards SHAs and stale/skipped/reverse transitions; explicit rollback/bootstrap intent; binding proof for previous and deployed versions; API rollback with full proof on failure or cancellation; staging fail-closed.
+- [done] Public sanitized `recipeAuthority` readiness + protected `/health/recipe-authority` release evidence (strict Bearer token, no PII); canary and shadow probes exercise D1 truthfully.
+- [done] Verified repository ID `1368281478`, current main `a3b1564`, and immutable original remote head `0a04209`; application checkpoint `558be74` is its ancestor.
+- [done] Integrated `558be74` onto `feat/t19-recipe-authority-cutover-v2-integration` from current main, retaining PR #52's newer documentation truth.
+- [done] Planner content and steps come from the authority snapshot in every mode; static reads no D1 planner rows; d1 enrichment (families, classifications, provenance, nutrition) is fenced to the visible universe and degrades to the authority-only projection on failure; unused D1 `recipe_steps` read removed.
+- [done] Current-tree verification: full Vitest 189 files / 4,364 tests PASS; focused matrix 13 files / 356 PASS (+23 snapshot/persistence after the last cleanup); release-check 155, D1 certification 32, Worker rollback 10 PASS; lint, both typechecks, migration smoke, 500-recipe import check (`rel-bd00a4f53fcaeee4`), build and diff check PASS.
+- [done] Two independent review passes; all findings fixed (see `T19_V2_WIP_HANDOFF.md`). Historical doc sections restored after an intermediate formatting pass.
+- [blocked] Publication of the integration branch: GitHub App credential lacks `workflows` permission (push rejected; workflow changes NOT stripped, no partial branch). Recovery artifacts `.artifacts/t19-current-safe-stop.bundle` / `.patch` are workspace-only. Owner push with a capable credential is the unblock. Status `T19_V2_APPLICATION_INTEGRATED_CI_PENDING` (safe stop 2026-09-23).
+- [pending] Exact-head hosted CI/review, normal merge, exact-main certification.
+- [pending] Read-only production identity/ledger/catalog certification, required release-token provisioning, staged rollout (shadow → canary 1 → 5 → 25 → d1), representative flows and rollback proof. Production remains untouched.
+- [historical] PR #52 and safe-stop publication records remain evidence; the original branch stays immutable.
 - [not-started] T20 Meal Composition V2 (blocked until `T19_COMPLETE`).
 
 ## Google Safari profile recovery + registration-only Turnstile
