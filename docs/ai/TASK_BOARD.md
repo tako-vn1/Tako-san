@@ -31,8 +31,11 @@ T20: `BLOCKED`.**
   unverified with the current user OAuth credential.
 - [done] Pushed `ops/t19-production-cert-pr-prep` and opened draft
   [Takosan PR #1](https://github.com/vn-tako5/Takosan/pull/1) to `main`.
-- [pending] Require fresh exact-head Takosan hosted CI, then restore the blocked
-  control-plane items.
+- [blocked] Fresh exact-head Takosan hosted CI: active CI workflow produced zero
+  Actions runs after open/synchronize/enable/reopen events. Installed `usehoplite`
+  has workflow write permission but remains queued with zero check runs.
+- [pending] Repair hosted CI scheduling, then restore the remaining blocked
+  control-plane items and require a green exact-head run.
 - [not-started] Staging-only proof from Takosan. Production remains frozen.
 - [not-started] T20 until `T19_COMPLETE`.
 

@@ -51,7 +51,11 @@ or traffic, merge the T19 PR, or start T20 in this task.
 
 Draft [Takosan PR #1](https://github.com/vn-tako5/Takosan/pull/1) is open from
 `ops/t19-production-cert-pr-prep` to `main`; its exact-head hosted CI remains the
-next publication gate.
+next publication gate. Hosted CI is currently blocked: the active CI workflow
+created no Actions run after PR open, branch synchronization, explicit workflow
+enable and repeated reopen events. The installed `usehoplite` App has workflow
+write permission but its check suite remains queued with zero check runs. Do not
+merge or use local tests as a substitute for hosted exact-head CI.
 
 ---
 

@@ -30,6 +30,10 @@ T20: `BLOCKED`.**
   secrets or traffic, or start T20.
 - **PR:** draft [Takosan #1](https://github.com/vn-tako5/Takosan/pull/1), base
   `main`, head `ops/t19-production-cert-pr-prep`; exact-head hosted CI required.
+- **Hosted CI blocker:** CI workflow is active but produced zero Actions runs
+  after PR open, synchronize, enable and reopen events. `usehoplite` is installed
+  with workflow write permission, but its suite is queued with zero check runs.
+  Do not merge until a fresh exact-head hosted run completes successfully.
 
 ---
 
