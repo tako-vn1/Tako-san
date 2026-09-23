@@ -34,7 +34,7 @@ function flagApp(explanationTransport?: (facts: { locale: 'vi' | 'en'; reasonCod
 async function flagPlan(db: SqliteD1, auth: AuthContext) {
   db.seed(`DELETE FROM recipes;
     INSERT INTO recipes (id, slug, title, cuisine, servings, prep_time_minutes, cook_time_minutes, difficulty)
-      VALUES ('flag-meal', 'flag-meal', 'Flag meal', 'viet', 2, 0, 10, 'easy');
+      VALUES ('flag-meal', 'flag-meal', 'Flag meal', 'vietnamese', 2, 0, 10, 'easy');
     INSERT INTO recipe_ingredients (id, recipe_id, ingredient_id, name, required_quantity, unit, is_optional)
       VALUES ('flag-line', 'flag-meal', 'CHICKEN_BREAST', 'Chicken', 100, 'g', 0);`);
   const intent = MealPlanningIntentSchema.parse({

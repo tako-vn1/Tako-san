@@ -53,7 +53,7 @@ describe('coherent meal planning snapshot', () => {
 
   afterEach(() => databases.splice(0).forEach((db) => db.close()));
 
-  it('loads catalog, authorized ranking context, inventory, nutrition, and recipe steps in one read-only batch', async () => {
+  it('loads catalog, authorized ranking context, inventory and nutrition in one read-only batch; steps come from the authority', async () => {
     const db = database();
     const batches: SqliteStatementEvent[][] = [];
     db.hooks.beforeBatch = (statements) => { batches.push([...statements]); };
@@ -71,8 +71,8 @@ describe('coherent meal planning snapshot', () => {
     expect(snapshot.inventory).toEqual([
       expect.objectContaining({ id: 'snapshot-lot', householdId, quantity: 400, version: 3 }),
     ]);
-    expect(snapshot.recipeSteps.find((step) => step.id === 'snapshot-step')).toEqual(
-      { id: 'snapshot-step', recipeId: 'snapshot-recipe', stepNumber: 1,
+    expect(snapshot.recipeSteps.find((step) => step.id === 'snapshot-recipe:static:1')).toEqual(
+      { id: 'snapshot-recipe:static:1', recipeId: 'snapshot-recipe', stepNumber: 1,
         instruction: 'Cook thoroughly.', tip: 'Use a hot pan.', timerMinutes: 20 },
     );
     expect(snapshot.fingerprint).toMatchObject({

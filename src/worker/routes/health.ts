@@ -38,9 +38,7 @@ healthRoutes.get('/health/ready', async (c) => {
       await env.DB.prepare('SELECT 1 AS ok').first();
       // Candidate scan paths read these additive columns before any provider
       // call; fail readiness instead of accepting traffic against schema 0022.
-      await env.DB.prepare(
-        'SELECT request_fingerprint, image_mime_type FROM scans LIMIT 0',
-      ).all();
+      await env.DB.prepare('SELECT request_fingerprint, image_mime_type FROM scans LIMIT 0').all();
     } catch {
       database = 'error';
     }
@@ -52,7 +50,8 @@ healthRoutes.get('/health/ready', async (c) => {
   const unhealthy = config.fatal.length > 0 || database === 'error';
   // T19C: sanitized recipe authority summary. Never household/user data; failures degrade to
   // `invalid` rather than taking readiness down for an observability-only field.
-  let recipeAuthority: RecipeAuthorityPublicStatus | { configuredMode: 'invalid'; fallbackReason: string };
+  let recipeAuthority:
+    RecipeAuthorityPublicStatus | { configuredMode: 'invalid'; fallbackReason: string };
   try {
     recipeAuthority = await publicRecipeAuthorityStatus(env);
   } catch {
@@ -94,7 +93,7 @@ healthRoutes.get('/health/ready', async (c) => {
         })),
       },
     },
-    unhealthy ? 503 : 200
+    unhealthy ? 503 : 200,
   );
 });
 
@@ -104,7 +103,7 @@ healthRoutes.get('/health/ready', async (c) => {
 healthRoutes.get('/health/recipe-authority', async (c) => {
   c.header('Cache-Control', 'no-store');
   if (!c.env.RELEASE_VERIFY_TOKEN) return c.json({ error: 'Not found' }, 404);
-  const presented = c.req.header('authorization')?.replace(/^Bearer\s+/i, '');
+  const presented = c.req.header('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!(await releaseVerifyTokenMatches(presented, c.env.RELEASE_VERIFY_TOKEN))) {
     return c.json({ error: 'Unauthorized', code: 'RELEASE_VERIFY_UNAUTHORIZED' }, 401);
   }

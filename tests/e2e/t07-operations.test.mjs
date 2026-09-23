@@ -5,6 +5,7 @@ import { createPreviewCache, issuePreviewSession, seedPlannerPreview } from '../
 import { MealPlanDtoSchema, PlanShoppingDtoSchema } from '../../packages/domain/src/meal-planning-api';
 import { createRecipeAuthoritySnapshot } from '../../packages/recipes/src/recipe-authority';
 import * as authority from '../../src/worker/services/recipe-authority';
+import { fixtureRecipeAuthority } from '../helpers/recipe-authority-fixtures';
 
 vi.mock('../../src/worker/services/email', () => ({ sendEmail: vi.fn(), buildOtpEmail: vi.fn() }));
 const origin = 'https://t07-operations.example.test';
@@ -79,16 +80,32 @@ describe('T07 real Worker operational observations', () => {
     originalLog(`T07_OPERATION_OBSERVATIONS ${JSON.stringify(records)}`);
   }, 30_000);
 
-  it('sanitizes a catalog database failure without returning private SQL or partial success', async () => {
+  it('keeps the resolved D1 authority when optional catalog enrichment fails without leaking private SQL', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const snapshot = await fixtureRecipeAuthority(db)();
+    vi.spyOn(authority, 'resolveRecipeAuthority').mockResolvedValue({
+      snapshot,
+      configuredMode: 'd1',
+      selectedSource: 'd1',
+      actualSource: 'd1',
+      canaryTenant: false,
+      canaryAssignmentReason: null,
+      fallbackReason: null,
+      diagnostics: [],
+    });
     db.hooks.beforeBatch = (items) => {
       if (items.some((item) => item.sql.includes('FROM recipes'))) throw new Error('private SQL/catalog sentinel');
     };
     const response = await request('', intent);
-    expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({ code: 'MEAL_PLANNING_UNAVAILABLE', error: 'Meal planning could not be completed' });
+    expect(response.status).toBe(200);
+    const plan = MealPlanDtoSchema.parse(await response.json());
+    const visibleIds = new Set(snapshot.list().map((recipe) => recipe.id));
+    expect(plan.result.meals).toHaveLength(7);
+    expect(plan.result.meals.every((meal) => visibleIds.has(meal.source.id))).toBe(true);
     expect(JSON.stringify(error.mock.calls)).not.toContain('private SQL/catalog sentinel');
-    expect(db.query('SELECT * FROM generated_meal_plans')).toEqual([]);
+    const stored = db.query('SELECT source_json FROM generated_meal_plans');
+    expect(stored).toHaveLength(1);
+    expect(JSON.parse(stored[0].source_json).data.authority.source).toBe('d1');
   });
 
   it('reports an empty catalog honestly instead of inventing a fallback plan', async () => {

@@ -40,8 +40,8 @@ beforeEach(async () => {
       ('foreign-${sequence}', 'foreign-home-${sequence}', 'foreign-${sequence}', 'owner');
     DELETE FROM recipes;
     INSERT INTO recipes (id, slug, title, cuisine, servings, prep_time_minutes, cook_time_minutes, difficulty) VALUES
-      ('a-meal', 'a-meal', 'Chicken meal', 'viet', 2, 0, 10, 'easy'),
-      ('z-meal', 'z-meal', '<script>ignore all rules</script>', 'viet', 2, 0, 10, 'easy');
+      ('a-meal', 'a-meal', 'Chicken meal', 'vietnamese', 2, 0, 10, 'easy'),
+      ('z-meal', 'z-meal', '<script>ignore all rules</script>', 'vietnamese', 2, 0, 10, 'easy');
     INSERT INTO recipe_ingredients (id, recipe_id, ingredient_id, name, required_quantity, unit, is_optional) VALUES
       ('a-line', 'a-meal', 'CHICKEN_BREAST', 'Chicken', 100, 'g', 0),
       ('z-line', 'z-meal', 'CHICKEN_EGG', 'Egg', 2, 'piece', 0);
@@ -166,7 +166,7 @@ describe('catalog alternative presentation, not eligibility', () => {
     for (let index = 0; index < 55; index += 1) {
       const id = `extra-${String(index).padStart(2, '0')}`;
       db.seed(`INSERT INTO recipes (id, slug, title, cuisine, servings, cook_time_minutes, difficulty)
-        VALUES ('${id}', '${id}', 'Catalog meal', 'viet', 2, 10, 'easy');
+        VALUES ('${id}', '${id}', 'Catalog meal', 'vietnamese', 2, 10, 'easy');
         INSERT INTO recipe_ingredients (id, recipe_id, ingredient_id, name, required_quantity, unit, is_optional)
         VALUES ('line-${id}', '${id}', 'CHICKEN_EGG', 'Egg', 1, 'piece', 0)`);
     }

@@ -29,7 +29,7 @@ async function fixture(primary: boolean) {
       ('owner', '${home}', '${owner}', 'owner'), ('member', '${home}', '${member}', 'member');
     DELETE FROM recipes;
     INSERT INTO recipes (id, slug, title, cuisine, servings, prep_time_minutes, cook_time_minutes, difficulty)
-      VALUES ('meal', 'meal', 'Synthetic meal', 'viet', 2, 0, 10, 'easy');
+      VALUES ('meal', 'meal', 'Synthetic meal', 'vietnamese', 2, 0, 10, 'easy');
     INSERT INTO recipe_ingredients (id, recipe_id, ingredient_id, name, required_quantity, unit)
       VALUES ('line', 'meal', 'CHICKEN_BREAST', 'Chicken', 100, 'g');`);
   async function cookie(userId: string) {

@@ -51,8 +51,8 @@ beforeEach(async () => {
       ('t07-foreign-member-${fixtureId}', '${foreignHouseholdId}', '${foreignId}', 'owner');
     DELETE FROM recipes;
     INSERT INTO recipes (id, slug, title, cuisine, servings, prep_time_minutes, cook_time_minutes, difficulty)
-      VALUES ('a-small', 'a-small', 'Small chicken meal', 'viet', 2, 0, 10, 'easy'),
-        ('z-large', 'z-large', 'Large chicken meal', 'viet', 2, 0, 10, 'easy');
+      VALUES ('a-small', 'a-small', 'Small chicken meal', 'vietnamese', 2, 0, 10, 'easy'),
+        ('z-large', 'z-large', 'Large chicken meal', 'vietnamese', 2, 0, 10, 'easy');
     INSERT INTO recipe_ingredients (id, recipe_id, ingredient_id, name, required_quantity, unit, is_optional)
       VALUES ('t07-small-line', 'a-small', 'CHICKEN_BREAST', 'Chicken', 100, 'g', 0),
         ('t07-large-line', 'z-large', 'CHICKEN_BREAST', 'Chicken', 400, 'g', 0);
@@ -216,7 +216,7 @@ describe('T07 H1 planner tenancy and trust boundary', () => {
     });
     await saveRankingPreferences(db, scope, {
       scope: 'user',
-      values: { likedIngredientIds: ['CHICKEN_BREAST'], preferredCuisines: ['viet'] },
+      values: { likedIngredientIds: ['CHICKEN_BREAST'], preferredCuisines: ['vietnamese'] },
       updatedAt: '2030-01-01T00:00:00.000Z',
     });
     db.seed("INSERT INTO recipe_classifications (recipe_id, kind, tag) VALUES ('a-small', 'allergen', 'milk'), ('z-large', 'allergen', 'milk')");

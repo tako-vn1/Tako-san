@@ -1,4 +1,7 @@
-import { currentCatalogRelease, type RecipeAuthorityReadiness } from '../../../packages/recipes/src/recipe-authority';
+import {
+  currentCatalogRelease,
+  type RecipeAuthorityReadiness,
+} from '../../../packages/recipes/src/recipe-authority';
 import type { Env } from '../types';
 import {
   RecipeAuthorityConfigError,
@@ -18,9 +21,9 @@ import {
  *   behind `RELEASE_VERIFY_TOKEN` (Worker secret) so no customer account is needed for certification.
  *
  * The evidence is computed with the SAME `resolveRecipeAuthority` the routes use, for a synthetic
- * tenant key that is never a real household (canary cohort membership is therefore reported as the
- * configured policy, not a per-user decision). Nothing here contains household IDs, emails, tokens,
- * secrets, binding identifiers or recipe rows.
+ * tenant key that is never a real household. Canary and shadow release probes explicitly exercise
+ * D1 while preserving the configured policy in the report. Nothing here contains household IDs,
+ * emails, tokens, secrets, binding identifiers or recipe rows.
  */
 export type RecipeAuthorityGlobalSource = 'static' | 'd1' | 'mixed';
 
@@ -40,7 +43,7 @@ export interface RecipeAuthorityReleaseEvidence extends RecipeAuthorityPublicSta
   environment: string;
   commit: string | null;
   checkedAt: string;
-  /** Source the probe request actually resolved to (the release-wide truth outside canary cohorts). */
+  /** Source the protected release probe actually resolved to. */
   actualSource: 'static' | 'd1';
   selectedSource: 'static' | 'd1';
   servedRecipeCount: number;
@@ -59,45 +62,116 @@ function configOrInvalid(env: RecipeAuthorityEnv) {
   try {
     return { config: resolveRecipeAuthorityConfig(env), invalid: null as string | null };
   } catch (error) {
-    return { config: null, invalid: error instanceof RecipeAuthorityConfigError ? error.code : 'INVALID_MODE' };
+    return {
+      config: null,
+      invalid: error instanceof RecipeAuthorityConfigError ? error.code : 'INVALID_MODE',
+    };
   }
 }
 
-function globalSourceOf(mode: RecipeAuthorityMode | 'invalid', canaryPercent: number, actualSource: 'static' | 'd1'): RecipeAuthorityGlobalSource {
-  if (mode === 'canary') return canaryPercent >= 100 ? actualSource : canaryPercent === 0 ? 'static' : 'mixed';
+function globalSourceOf(
+  mode: RecipeAuthorityMode | 'invalid',
+  canaryPercent: number,
+  actualSource: 'static' | 'd1',
+): RecipeAuthorityGlobalSource {
+  if (mode === 'canary')
+    return canaryPercent >= 100 ? actualSource : canaryPercent === 0 ? 'static' : 'mixed';
   return actualSource;
 }
 
-/** Sanitized status for the anonymous readiness body. Resolves the authority once (no D1 read unless mode selects D1). */
-export async function publicRecipeAuthorityStatus(env: RecipeAuthorityEnv): Promise<RecipeAuthorityPublicStatus> {
+async function resolvePublicRecipeAuthorityStatus(env: RecipeAuthorityEnv) {
   const release = currentCatalogRelease();
   const { config, invalid } = configOrInvalid(env);
   if (!config) {
-    return { configuredMode: 'invalid', cutoverEnabled: false, canaryPercent: 0, globalSource: 'static', fallbackReason: invalid, releaseId: release.releaseId, expectedRecipeCount: release.expectedRecipeCount };
+    return {
+      status: {
+        configuredMode: 'invalid',
+        cutoverEnabled: false,
+        canaryPercent: 0,
+        globalSource: 'static',
+        fallbackReason: invalid,
+        releaseId: release.releaseId,
+        expectedRecipeCount: release.expectedRecipeCount,
+      } satisfies RecipeAuthorityPublicStatus,
+      resolution: null,
+    };
   }
-  const resolution = await resolveRecipeAuthority(env, { tenantKey: PROBE_TENANT_KEY, log: () => {} });
+  // A public canary summary must exercise the D1 path rather than accidentally probing an
+  // out-of-cohort tenant and reporting a fabricated null fallback. The override is probe-local;
+  // the configured percentage remains the reported policy and operator cohort secrets are ignored.
+  const probeEnv: RecipeAuthorityEnv =
+    config.mode === 'canary'
+      ? {
+          ...env,
+          RECIPE_CATALOG_D1_CANARY_PERCENT: '100',
+          RECIPE_CATALOG_TEST_COHORT_ENABLED: undefined,
+          RECIPE_CATALOG_TEST_INCLUDE: undefined,
+          RECIPE_CATALOG_TEST_EXCLUDE: undefined,
+        }
+      : env;
+  const resolution = await resolveRecipeAuthority(probeEnv, {
+    tenantKey: PROBE_TENANT_KEY,
+    log: () => {},
+  });
   return {
-    configuredMode: config.mode, cutoverEnabled: config.cutoverEnabled, canaryPercent: config.canaryPercent,
-    globalSource: globalSourceOf(config.mode, config.canaryPercent, config.mode === 'canary' ? 'd1' : resolution.actualSource),
-    fallbackReason: config.mode === 'canary' ? null : resolution.fallbackReason,
-    releaseId: release.releaseId, expectedRecipeCount: release.expectedRecipeCount,
+    status: {
+      configuredMode: config.mode,
+      cutoverEnabled: config.cutoverEnabled,
+      canaryPercent: config.canaryPercent,
+      globalSource: globalSourceOf(config.mode, config.canaryPercent, resolution.actualSource),
+      fallbackReason: resolution.fallbackReason,
+      releaseId: release.releaseId,
+      expectedRecipeCount: release.expectedRecipeCount,
+    } satisfies RecipeAuthorityPublicStatus,
+    resolution,
   };
 }
 
+/** Sanitized status for the anonymous readiness body. Canary probes exercise D1 readiness. */
+export async function publicRecipeAuthorityStatus(
+  env: RecipeAuthorityEnv,
+): Promise<RecipeAuthorityPublicStatus> {
+  return (await resolvePublicRecipeAuthorityStatus(env)).status;
+}
+
 /**
- * Full release evidence for deploy automation. In `canary` mode the probe is resolved as if the
- * tenant were INSIDE the cohort (`RECIPE_CATALOG_D1_CANARY_PERCENT` forced to 100 for the probe
- * only) so D1 readiness and the served D1 fingerprint are actually exercised; the reported
- * `canaryPercent` stays the configured value.
+ * Full release evidence for deploy automation. Canary probes resolve inside the cohort, while
+ * shadow probes resolve through a probe-local D1 configuration. Both therefore prove D1 readiness
+ * and the served D1 fingerprint without changing the configured policy reported in the evidence.
  */
-export async function recipeAuthorityReleaseEvidence(env: Env, options: { now?: () => Date } = {}): Promise<RecipeAuthorityReleaseEvidence> {
+export async function recipeAuthorityReleaseEvidence(
+  env: Env,
+  options: { now?: () => Date } = {},
+): Promise<RecipeAuthorityReleaseEvidence> {
   const release = currentCatalogRelease();
-  const status = await publicRecipeAuthorityStatus(env);
-  const probeEnv: RecipeAuthorityEnv = status.configuredMode === 'canary'
-    ? { ...env, RECIPE_CATALOG_D1_CANARY_PERCENT: '100', RECIPE_CATALOG_TEST_COHORT_ENABLED: undefined, RECIPE_CATALOG_TEST_INCLUDE: undefined, RECIPE_CATALOG_TEST_EXCLUDE: undefined }
-    : env;
-  const resolution = await resolveRecipeAuthority(probeEnv, { tenantKey: PROBE_TENANT_KEY, log: () => {} });
-  const notReady = resolution.diagnostics.find((record) => record.event === 'recipe_catalog_d1_not_ready');
+  const resolved = await resolvePublicRecipeAuthorityStatus(env);
+  const status = resolved.status;
+  // Invalid deployment configuration still fails the protected proof rather than manufacturing
+  // evidence from the invalid status projection.
+  const publicResolution =
+    resolved.resolution ??
+    (await resolveRecipeAuthority(env, { tenantKey: PROBE_TENANT_KEY, log: () => {} }));
+  const resolution =
+    status.configuredMode === 'shadow'
+      ? await resolveRecipeAuthority(
+          {
+            ...env,
+            RECIPE_CATALOG_MODE: 'd1',
+            RECIPE_CATALOG_CUTOVER_ENABLED: 'true',
+            RECIPE_CATALOG_D1_CANARY_PERCENT: '0',
+            RECIPE_CATALOG_TEST_COHORT_ENABLED: undefined,
+            RECIPE_CATALOG_TEST_INCLUDE: undefined,
+            RECIPE_CATALOG_TEST_EXCLUDE: undefined,
+          },
+          { tenantKey: PROBE_TENANT_KEY, log: () => {} },
+        )
+      : publicResolution;
+  const notReady = resolution.diagnostics.find(
+    (record) => record.event === 'recipe_catalog_d1_not_ready',
+  );
+  const stale = resolution.diagnostics.find(
+    (record) => record.event === 'recipe_catalog_d1_stale_served',
+  );
   const d1Selected = resolution.selectedSource === 'd1';
   return {
     schemaVersion: 1,
@@ -110,16 +184,34 @@ export async function recipeAuthorityReleaseEvidence(env: Env, options: { now?: 
     servedRecipeCount: resolution.snapshot.size,
     servedFingerprint: resolution.snapshot.fingerprint,
     expectedRuntimeFingerprint: release.expectedRuntimeFingerprint,
-    fingerprintMatchesRelease: resolution.snapshot.fingerprint === release.expectedRuntimeFingerprint,
-    d1Readiness: !d1Selected ? 'not_evaluated' : resolution.actualSource === 'd1' ? 'ready' : notReady ? 'not_ready' : 'error',
-    d1ReadinessCode: d1Selected && resolution.actualSource !== 'd1' ? (notReady?.reasonCode ?? resolution.fallbackReason) : null,
-    fallbackReason: status.configuredMode === 'canary' ? resolution.fallbackReason : status.fallbackReason,
+    fingerprintMatchesRelease:
+      resolution.snapshot.fingerprint === release.expectedRuntimeFingerprint,
+    d1Readiness: !d1Selected
+      ? 'not_evaluated'
+      : stale
+        ? 'not_ready'
+        : resolution.actualSource === 'd1'
+        ? 'ready'
+        : notReady
+          ? 'not_ready'
+          : 'error',
+    d1ReadinessCode:
+      d1Selected && (resolution.actualSource !== 'd1' || stale)
+        ? (stale?.reasonCode ?? notReady?.reasonCode ?? resolution.fallbackReason)
+        : null,
+    fallbackReason:
+      status.configuredMode === 'canary' || status.configuredMode === 'shadow'
+        ? resolution.fallbackReason
+        : status.fallbackReason,
     counters: recipeAuthorityCounters(),
   };
 }
 
 /** Constant-time comparison of two ASCII/UTF-8 secrets. */
-export async function releaseVerifyTokenMatches(presented: string | undefined, expected: string | undefined): Promise<boolean> {
+export async function releaseVerifyTokenMatches(
+  presented: string | undefined,
+  expected: string | undefined,
+): Promise<boolean> {
   if (!presented || !expected || expected.length < 32) return false;
   const encoder = new TextEncoder();
   const [a, b] = await Promise.all([

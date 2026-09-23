@@ -1,30 +1,58 @@
 import { z } from 'zod';
 import type { D1DatabaseBinding } from '../../../packages/db/src/index';
 import {
-  createGeneratedMealPlan, getGeneratedMealPlan, findGeneratedMealPlanByRequest, findCurrentGeneratedMealPlan,
-  updateGeneratedMealPlan, recordCookedGeneratedMealPlanAnnotation, type GeneratedMealPlanRecord,
+  createGeneratedMealPlan,
+  getGeneratedMealPlan,
+  findGeneratedMealPlanByRequest,
+  findCurrentGeneratedMealPlan,
+  updateGeneratedMealPlan,
+  recordCookedGeneratedMealPlanAnnotation,
+  type GeneratedMealPlanRecord,
 } from '../../../packages/db/src/meal-planning';
 import { loadMealPlanningSnapshot } from '../../../packages/db/src/meal-planning-snapshot';
 import type { RecipeAuthoritySnapshot } from '../../../packages/recipes/src/recipe-authority';
 import {
-  MealPlanningIntentSchema, MealPlanDtoSchema, PlanResultDtoSchema, PlanSourceIdentitySchema,
-  PlanFeedbackDtoSchema, PlanShoppingDtoSchema, type MealPlanningIntent,
-  type MealPlanDto, type RegenerateMealPlanSchema, type SwapMealSchema,
-  type OptimizePlanShoppingSchema, type PlanFeedbackSchema,
+  MealPlanningIntentSchema,
+  MealPlanDtoSchema,
+  PlanResultDtoSchema,
+  PlanSourceIdentitySchema,
+  PlanFeedbackDtoSchema,
+  PlanShoppingDtoSchema,
+  type MealPlanningIntent,
+  type MealPlanDto,
+  type RegenerateMealPlanSchema,
+  type SwapMealSchema,
+  type OptimizePlanShoppingSchema,
+  type PlanFeedbackSchema,
 } from '../../../packages/domain/src/meal-planning-api';
-import { createPlanningContext, canonicalJson, planningReference } from '../../../packages/recipes/src/planner-context';
-import { normalizePlannerRequest, PlannerLockSchema } from '../../../packages/recipes/src/planner-request';
+import {
+  createPlanningContext,
+  canonicalJson,
+  planningReference,
+} from '../../../packages/recipes/src/planner-context';
+import {
+  normalizePlannerRequest,
+  PlannerLockSchema,
+} from '../../../packages/recipes/src/planner-request';
 import { planWeeklyMeals } from '../../../packages/recipes/src/weekly-planner';
-import { createShoppingContext, type PurchaseOption } from '../../../packages/recipes/src/shopping-catalog';
+import {
+  createShoppingContext,
+  type PurchaseOption,
+} from '../../../packages/recipes/src/shopping-catalog';
 import { optimizeShopping } from '../../../packages/recipes/src/shopping-optimizer';
-import { projectShoppingMealPlan, ShoppingMealPlanSnapshotSchema } from '../../../packages/recipes/src/shopping-plan-snapshot';
+import {
+  projectShoppingMealPlan,
+  ShoppingMealPlanSnapshotSchema,
+} from '../../../packages/recipes/src/shopping-plan-snapshot';
 import { mapPlanResultDto } from './meal-planning-dto';
 import { toShoppingResultDto } from './meal-shopping-dto';
 import { recordPlanningTaste } from './meal-planning-feedback';
 import { MealPlanningError } from './meal-planning-error';
 import { sha256Hex } from '../utils/session';
 import {
-  CurrentMealPlanDtoSchema, PlanAlternativesDtoSchema, PLAN_ALTERNATIVES_LIMIT,
+  CurrentMealPlanDtoSchema,
+  PlanAlternativesDtoSchema,
+  PLAN_ALTERNATIVES_LIMIT,
   type PlanExplanationRequest,
 } from '../../../packages/domain/src/meal-planning-presentation';
 import { explainMealReasons, type ExplanationTransport } from './meal-planning-explanation';
@@ -32,28 +60,54 @@ import { explainMealReasons, type ExplanationTransport } from './meal-planning-e
 type Scope = { householdId: string; userId: string };
 type Snapshot = Awaited<ReturnType<typeof loadMealPlanningSnapshot>>;
 const LockEntrySchema = z.object({ slotId: z.string(), lock: PlannerLockSchema }).strict();
-const StoredIntentSchema = z.object({ intent: MealPlanningIntentSchema, locks: z.array(LockEntrySchema) }).strict();
-const StoredResultSchema = z.object({
-  schemaVersion: z.literal(1), result: PlanResultDtoSchema,
-  shoppingPlan: ShoppingMealPlanSnapshotSchema,
-  lastSwap: z.object({ slotId: z.string(), previous: PlanSourceIdentitySchema, replacement: PlanSourceIdentitySchema }).strict().nullable(),
-}).strict();
-const StoredAuthoritySchema = z.object({
-  source: z.enum(['static', 'd1']), fingerprint: z.string().regex(/^[0-9a-f]{64}$/), recipeCount: z.number().int().nonnegative(),
-}).strict();
+const StoredIntentSchema = z
+  .object({ intent: MealPlanningIntentSchema, locks: z.array(LockEntrySchema) })
+  .strict();
+const StoredResultSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    result: PlanResultDtoSchema,
+    shoppingPlan: ShoppingMealPlanSnapshotSchema,
+    lastSwap: z
+      .object({
+        slotId: z.string(),
+        previous: PlanSourceIdentitySchema,
+        replacement: PlanSourceIdentitySchema,
+      })
+      .strict()
+      .nullable(),
+  })
+  .strict();
+const StoredAuthoritySchema = z
+  .object({
+    source: z.enum(['static', 'd1']),
+    fingerprint: z.string().regex(/^[0-9a-f]{64}$/),
+    recipeCount: z.number().int().nonnegative(),
+  })
+  .strict();
 // `authority` is absent on plans persisted before T19; those revalidate through the catalog fingerprint alone.
-const FingerprintsSchema = z.object({
-  inventory: z.string(), preferences: z.string(), catalog: z.string(), history: z.string(),
-  authority: StoredAuthoritySchema.optional(),
-}).strict();
-const envelope = <T extends z.ZodTypeAny>(data: T) => z.object({ version: z.literal(1), data }).strict();
+const FingerprintsSchema = z
+  .object({
+    inventory: z.string(),
+    preferences: z.string(),
+    catalog: z.string(),
+    history: z.string(),
+    authority: StoredAuthoritySchema.optional(),
+  })
+  .strict();
+const envelope = <T extends z.ZodTypeAny>(data: T) =>
+  z.object({ version: z.literal(1), data }).strict();
 const serialize = (data: object) => JSON.stringify({ version: 1, data });
 
 export interface MealPlanningServiceOptions {
   now?: () => Date;
   explanationTransport?: ExplanationTransport;
-  purchaseCatalog?: (scope: Scope, asOf: string) => Promise<{
-    snapshotId: string; options: readonly PurchaseOption[];
+  purchaseCatalog?: (
+    scope: Scope,
+    asOf: string,
+  ) => Promise<{
+    snapshotId: string;
+    options: readonly PurchaseOption[];
     status: 'available' | 'reviewed_catalog_unavailable';
   }>;
   /**
@@ -65,14 +119,25 @@ export interface MealPlanningServiceOptions {
 }
 
 export class MealPlanningApplicationService {
-  constructor(private readonly db: D1DatabaseBinding, private readonly options: MealPlanningServiceOptions) {
-    if (typeof options?.recipeAuthority !== 'function') throw new Error('Meal planning requires a server-owned recipe authority resolver');
+  constructor(
+    private readonly db: D1DatabaseBinding,
+    private readonly options: MealPlanningServiceOptions,
+  ) {
+    if (typeof options?.recipeAuthority !== 'function')
+      throw new Error('Meal planning requires a server-owned recipe authority resolver');
   }
 
-  private now() { return (this.options.now?.() ?? new Date()).toISOString(); }
+  private now() {
+    return (this.options.now?.() ?? new Date()).toISOString();
+  }
 
   private async snapshot(scope: Scope, referenceTime: string) {
-    return loadMealPlanningSnapshot(this.db, scope, referenceTime, await this.options.recipeAuthority(scope));
+    return loadMealPlanningSnapshot(
+      this.db,
+      scope,
+      referenceTime,
+      await this.options.recipeAuthority(scope),
+    );
   }
 
   /** Persisted source identity: planner fingerprints + the recipe authority the plan was fenced to. */
@@ -80,45 +145,83 @@ export class MealPlanningApplicationService {
     return { ...snapshot.fingerprint.parts, authority: snapshot.authority };
   }
 
-  private authorityChanged(stored: { fingerprints: { authority?: { source: string } } }, snapshot: Snapshot) {
-    return stored.fingerprints.authority !== undefined && stored.fingerprints.authority.source !== snapshot.authority.source;
+  private authorityChanged(
+    stored: {
+      fingerprints: { authority?: { source: string; fingerprint: string; recipeCount: number } };
+    },
+    snapshot: Snapshot,
+  ) {
+    const previous = stored.fingerprints.authority;
+    return (
+      previous !== undefined &&
+      (previous.source !== snapshot.authority.source ||
+        previous.fingerprint !== snapshot.authority.fingerprint ||
+        previous.recipeCount !== snapshot.authority.recipeCount)
+    );
   }
 
   private decode(row: GeneratedMealPlanRecord) {
     const intent = envelope(StoredIntentSchema).parse(JSON.parse(row.intentJson)).data;
     const result = envelope(StoredResultSchema).parse(JSON.parse(row.resultJson)).data;
     const fingerprints = envelope(FingerprintsSchema).parse(JSON.parse(row.sourceJson)).data;
-    if (result.shoppingPlan.householdId !== row.householdId || result.shoppingPlan.userId !== row.creatorUserId ||
-      result.shoppingPlan.id !== row.id) throw new Error('Stored plan ownership mismatch');
+    if (
+      result.shoppingPlan.householdId !== row.householdId ||
+      result.shoppingPlan.userId !== row.creatorUserId ||
+      result.shoppingPlan.id !== row.id
+    )
+      throw new Error('Stored plan ownership mismatch');
     return { ...intent, ...result, fingerprints };
   }
 
   private async freshness(row: GeneratedMealPlanRecord, snapshot?: Snapshot) {
     const stored = this.decode(row);
     const checkedAt = this.now();
-    const current = snapshot ?? await this.snapshot({ householdId: row.householdId, userId: row.creatorUserId }, checkedAt);
+    const current =
+      snapshot ??
+      (await this.snapshot({ householdId: row.householdId, userId: row.creatorUserId }, checkedAt));
     const reasons: MealPlanDto['freshness']['reasons'] = [];
-    const labels = { inventory: 'stale_inventory', preferences: 'stale_preferences', catalog: 'stale_catalog', history: 'stale_history' } as const;
+    const labels = {
+      inventory: 'stale_inventory',
+      preferences: 'stale_preferences',
+      catalog: 'stale_catalog',
+      history: 'stale_history',
+    } as const;
     for (const key of Object.keys(labels) as Array<keyof typeof labels>) {
       if (stored.fingerprints[key] !== current.fingerprint.parts[key]) reasons.push(labels[key]);
     }
     if (this.authorityChanged(stored, current)) reasons.push('catalog_authority_changed');
-    if (stored.result.meals.some((meal) => Date.parse(meal.instant) < Date.parse(checkedAt))) reasons.push('planning_time_elapsed');
-    return { status: reasons.length ? 'requires_revalidation' as const : 'fresh' as const, reasons,
-      checkedAt, requiresRevalidationBeforeConsumption: true as const };
+    if (stored.result.meals.some((meal) => Date.parse(meal.instant) < Date.parse(checkedAt)))
+      reasons.push('planning_time_elapsed');
+    return {
+      status: reasons.length ? ('requires_revalidation' as const) : ('fresh' as const),
+      reasons,
+      checkedAt,
+      requiresRevalidationBeforeConsumption: true as const,
+    };
   }
 
   private async dto(row: GeneratedMealPlanRecord, snapshot?: Snapshot): Promise<MealPlanDto> {
     const stored = this.decode(row);
     return MealPlanDtoSchema.parse({
-      schemaVersion: 1, id: row.id, householdId: row.householdId, revision: row.revision,
-      createdAt: row.createdAt, updatedAt: row.updatedAt, intent: stored.intent,
-      result: stored.result, freshness: await this.freshness(row, snapshot),
+      schemaVersion: 1,
+      id: row.id,
+      householdId: row.householdId,
+      revision: row.revision,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      intent: stored.intent,
+      result: stored.result,
+      freshness: await this.freshness(row, snapshot),
     });
   }
 
   private assertRevision(row: GeneratedMealPlanRecord, revision: number) {
-    if (row.revision !== revision) throw new MealPlanningError('PLAN_REVISION_CONFLICT', 409, 'Plan revision changed; retrieve the current plan');
+    if (row.revision !== revision)
+      throw new MealPlanningError(
+        'PLAN_REVISION_CONFLICT',
+        409,
+        'Plan revision changed; retrieve the current plan',
+      );
   }
 
   private reference(now: string, offset: number) {
@@ -127,25 +230,63 @@ export class MealPlanningApplicationService {
     return `${local}${suffix}`;
   }
 
-  private run(scope: Scope, id: string, intent: MealPlanningIntent, locks: z.infer<typeof LockEntrySchema>[], snapshot: Snapshot, now: string) {
+  private run(
+    scope: Scope,
+    id: string,
+    intent: MealPlanningIntent,
+    locks: z.infer<typeof LockEntrySchema>[],
+    snapshot: Snapshot,
+    now: string,
+  ) {
     const referenceInstant = this.reference(now, intent.utcOffsetMinutes);
-    const request = { startDate: intent.startDate, horizonDays: intent.horizonDays,
-      defaultServings: intent.defaultServings, mode: intent.mode, slots: intent.slots };
-    const input = { ...request, slots: request.slots.map((slot) => ({ ...slot,
-      lock: locks.find((entry) => entry.slotId === `${slot.date}:${slot.mealType}:${slot.sequence}`)?.lock,
-    })) };
-    try { normalizePlannerRequest(input, planningReference(referenceInstant)); }
-    catch { throw new MealPlanningError('INVALID_PLANNING_HORIZON', 422, 'Slots must be unique, future and inside the planning horizon'); }
+    const request = {
+      startDate: intent.startDate,
+      horizonDays: intent.horizonDays,
+      defaultServings: intent.defaultServings,
+      mode: intent.mode,
+      slots: intent.slots,
+    };
+    const input = {
+      ...request,
+      slots: request.slots.map((slot) => ({
+        ...slot,
+        lock: locks.find(
+          (entry) => entry.slotId === `${slot.date}:${slot.mealType}:${slot.sequence}`,
+        )?.lock,
+      })),
+    };
+    try {
+      normalizePlannerRequest(input, planningReference(referenceInstant));
+    } catch {
+      throw new MealPlanningError(
+        'INVALID_PLANNING_HORIZON',
+        422,
+        'Slots must be unique, future and inside the planning horizon',
+      );
+    }
     const context = createPlanningContext(() => ({
-      snapshotId: crypto.randomUUID(), referenceInstant,
-      catalog: snapshot.catalog, inventory: snapshot.inventory,
-      rankingContext: snapshot.rankingContext, evidenceProvider: snapshot.evidenceProvider,
-      substitutions: [], approvedSubstitutionIds: [],
+      snapshotId: crypto.randomUUID(),
+      referenceInstant,
+      catalog: snapshot.catalog,
+      inventory: snapshot.inventory,
+      rankingContext: snapshot.rankingContext,
+      evidenceProvider: snapshot.evidenceProvider,
+      substitutions: [],
+      approvedSubstitutionIds: [],
     }));
     const plan = { ...planWeeklyMeals({ context, request: input }), id };
-    if (plan.householdId !== scope.householdId || plan.userId !== scope.userId) throw new Error('Generated scope mismatch');
-    console.log(JSON.stringify({ level: 'info', event: 'meal_planning_result', status: plan.status,
-      conclusion: plan.conclusion, truncated: plan.search.truncated, states: plan.search.statesExplored }));
+    if (plan.householdId !== scope.householdId || plan.userId !== scope.userId)
+      throw new Error('Generated scope mismatch');
+    console.log(
+      JSON.stringify({
+        level: 'info',
+        event: 'meal_planning_result',
+        status: plan.status,
+        conclusion: plan.conclusion,
+        truncated: plan.search.truncated,
+        states: plan.search.statesExplored,
+      }),
+    );
     const instructions = new Map<string, string[]>();
     for (const step of snapshot.recipeSteps) {
       const list = instructions.get(step.recipeId) ?? [];
@@ -153,8 +294,10 @@ export class MealPlanningApplicationService {
       instructions.set(step.recipeId, list);
     }
     return {
-      schemaVersion: 1 as const, result: mapPlanResultDto(plan, instructions),
-      shoppingPlan: projectShoppingMealPlan(plan), lastSwap: null,
+      schemaVersion: 1 as const,
+      result: mapPlanResultDto(plan, instructions),
+      shoppingPlan: projectShoppingMealPlan(plan),
+      lastSwap: null,
     };
   }
 
@@ -162,7 +305,12 @@ export class MealPlanningApplicationService {
     const requestFingerprint = await sha256Hex(canonicalJson(intent));
     const prior = await findGeneratedMealPlanByRequest(this.db, scope, key);
     if (prior) {
-      if (prior.requestFingerprint !== requestFingerprint) throw new MealPlanningError('IDEMPOTENCY_CONFLICT', 409, 'Request key was used with different intent');
+      if (prior.requestFingerprint !== requestFingerprint)
+        throw new MealPlanningError(
+          'IDEMPOTENCY_CONFLICT',
+          409,
+          'Request key was used with different intent',
+        );
       return this.dto(prior);
     }
     const now = this.now();
@@ -170,13 +318,19 @@ export class MealPlanningApplicationService {
     const id = crypto.randomUUID();
     const result = this.run(scope, id, intent, [], snapshot, now);
     const { plan: row } = await createGeneratedMealPlan(this.db, scope, {
-      id, requestKey: key, requestFingerprint, intentJson: serialize({ intent, locks: [] }),
-      resultJson: serialize(result), sourceJson: serialize(this.sourceIdentity(snapshot)),
+      id,
+      requestKey: key,
+      requestFingerprint,
+      intentJson: serialize({ intent, locks: [] }),
+      resultJson: serialize(result),
+      sourceJson: serialize(this.sourceIdentity(snapshot)),
     });
-    return this.dto(row);
+    return this.dto(row, snapshot);
   }
 
-  async get(scope: Scope, id: string) { return this.dto(await getGeneratedMealPlan(this.db, scope, id)); }
+  async get(scope: Scope, id: string) {
+    return this.dto(await getGeneratedMealPlan(this.db, scope, id));
+  }
 
   async current(scope: Scope) {
     const row = await findCurrentGeneratedMealPlan(this.db, scope);
@@ -188,11 +342,16 @@ export class MealPlanningApplicationService {
     this.assertRevision(row, revision);
     const snapshot = await this.snapshot(scope, this.now());
     // Alternatives come from the authority-fenced planner catalog only: never a D1-only recipe under static authority.
-    const recipes = [...snapshot.catalog.recipes].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+    const recipes = [...snapshot.catalog.recipes].sort((a, b) =>
+      a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
+    );
     this.assertRevision(await getGeneratedMealPlan(this.db, scope, id), revision);
     return PlanAlternativesDtoSchema.parse({
-      planId: id, planRevision: row.revision,
-      alternatives: recipes.slice(0, PLAN_ALTERNATIVES_LIMIT).map((recipe) => ({ kind: 'recipe', id: recipe.id, title: recipe.title })),
+      planId: id,
+      planRevision: row.revision,
+      alternatives: recipes
+        .slice(0, PLAN_ALTERNATIVES_LIMIT)
+        .map((recipe) => ({ kind: 'recipe', id: recipe.id, title: recipe.title })),
       truncated: recipes.length > PLAN_ALTERNATIVES_LIMIT,
     });
   }
@@ -201,10 +360,20 @@ export class MealPlanningApplicationService {
     const row = await getGeneratedMealPlan(this.db, scope, id);
     this.assertRevision(row, input.revision);
     const meal = this.decode(row).result.meals.find((entry) => entry.slotId === input.slotId);
-    if (!meal) throw new MealPlanningError('SLOT_NOT_FOUND', 422, 'Explanation requires a selected meal slot');
+    if (!meal)
+      throw new MealPlanningError(
+        'SLOT_NOT_FOUND',
+        422,
+        'Explanation requires a selected meal slot',
+      );
     const result = await explainMealReasons({
-      planId: id, planRevision: row.revision, slotId: meal.slotId, locale: input.locale,
-      reasonCodes: meal.reasons, enabled, transport: this.options.explanationTransport,
+      planId: id,
+      planRevision: row.revision,
+      slotId: meal.slotId,
+      locale: input.locale,
+      reasonCodes: meal.reasons,
+      enabled,
+      transport: this.options.explanationTransport,
     });
     this.assertRevision(await getGeneratedMealPlan(this.db, scope, id), input.revision);
     return result;
@@ -217,16 +386,36 @@ export class MealPlanningApplicationService {
     const intent = input.intent ?? stored.intent;
     const now = this.now();
     const snapshot = await this.snapshot(scope, now);
-    // Regenerate IS the revalidation path: locks on recipes outside the current authority universe are dropped, not substituted.
+    const currentVersions = new Map<string, number | undefined>([
+      ...snapshot.catalog.recipes.map(
+        (recipe) => [`recipe:${recipe.id}`, recipe.provenance.version] as const,
+      ),
+      ...snapshot.catalog.families.map(
+        (family) => [`family:${family.id}`, family.provenance.version] as const,
+      ),
+    ]);
+    // Regenerate is the revalidation path: stale locks are dropped, never silently redirected.
     const locks = stored.locks
-      .filter((entry) => intent.slots.some((slot) => `${slot.date}:${slot.mealType}:${slot.sequence}` === entry.slotId))
-      .filter((entry) => entry.lock.kind !== 'recipe' || snapshot.visibleRecipeIds.has(entry.lock.id));
+      .filter((entry) =>
+        intent.slots.some(
+          (slot) => `${slot.date}:${slot.mealType}:${slot.sequence}` === entry.slotId,
+        ),
+      )
+      .filter(
+        (entry) =>
+          currentVersions.get(`${entry.lock.kind}:${entry.lock.id}`) === entry.lock.version,
+      );
     const result = this.run(scope, id, intent, locks, snapshot, now);
-    return this.dto(await updateGeneratedMealPlan(this.db, scope, {
-      id, expectedRevision: input.revision,
-      intentJson: serialize({ intent, locks }), resultJson: serialize(result),
-      sourceJson: serialize(this.sourceIdentity(snapshot)),
-    }));
+    return this.dto(
+      await updateGeneratedMealPlan(this.db, scope, {
+        id,
+        expectedRevision: input.revision,
+        intentJson: serialize({ intent, locks }),
+        resultJson: serialize(result),
+        sourceJson: serialize(this.sourceIdentity(snapshot)),
+      }),
+      snapshot,
+    );
   }
 
   async swap(scope: Scope, id: string, input: z.infer<typeof SwapMealSchema>) {
@@ -234,30 +423,66 @@ export class MealPlanningApplicationService {
     this.assertRevision(row, input.revision);
     const stored = this.decode(row);
     const original = stored.result.meals.find((meal) => meal.slotId === input.slotId);
-    if (!original) throw new MealPlanningError('SLOT_NOT_FOUND', 422, 'Swap requires a selected meal slot');
+    if (!original)
+      throw new MealPlanningError('SLOT_NOT_FOUND', 422, 'Swap requires a selected meal slot');
     const now = this.now();
     const snapshot = await this.snapshot(scope, now);
     if (this.authorityChanged(stored, snapshot)) {
-      throw new MealPlanningError('CATALOG_AUTHORITY_CHANGED', 409, 'Recipe catalog authority changed since this plan was generated; regenerate the plan');
+      throw new MealPlanningError(
+        'CATALOG_AUTHORITY_CHANGED',
+        409,
+        'Recipe catalog authority changed since this plan was generated; regenerate the plan',
+      );
+    }
+    if (stored.fingerprints.catalog !== snapshot.fingerprint.parts.catalog) {
+      throw new MealPlanningError(
+        'PLAN_REVALIDATION_REQUIRED',
+        409,
+        'Regenerate the plan before changing meals',
+      );
     }
     // The replacement must be in the authority-fenced catalog: a D1-only recipe under static authority is a typed rejection.
-    const source = input.replacement.kind === 'recipe'
-      ? snapshot.catalog.recipes.find((recipe) => recipe.id === input.replacement.id)
-      : snapshot.catalog.families.find((family) => family.id === input.replacement.id);
-    if (!source) throw new MealPlanningError('REPLACEMENT_NOT_FOUND', 422, 'Replacement is not in the trusted recipe catalog');
-    const lock = PlannerLockSchema.parse({ ...input.replacement, version: source.provenance.version });
-    const locks = [...stored.locks.filter((entry) => entry.slotId !== input.slotId), { slotId: input.slotId, lock }];
+    const source =
+      input.replacement.kind === 'recipe'
+        ? snapshot.catalog.recipes.find((recipe) => recipe.id === input.replacement.id)
+        : snapshot.catalog.families.find((family) => family.id === input.replacement.id);
+    if (!source)
+      throw new MealPlanningError(
+        'REPLACEMENT_NOT_FOUND',
+        422,
+        'Replacement is not in the trusted recipe catalog',
+      );
+    const lock = PlannerLockSchema.parse({
+      ...input.replacement,
+      version: source.provenance.version,
+    });
+    const locks = [
+      ...stored.locks.filter((entry) => entry.slotId !== input.slotId),
+      { slotId: input.slotId, lock },
+    ];
     const generated = this.run(scope, id, stored.intent, locks, snapshot, now);
     const selected = generated.result.meals.find((meal) => meal.slotId === input.slotId);
     if (!selected || generated.result.status !== 'feasible') {
-      throw new MealPlanningError('SWAP_NOT_FEASIBLE', 422, 'Replacement cannot produce a complete plan under current constraints');
+      throw new MealPlanningError(
+        'SWAP_NOT_FEASIBLE',
+        422,
+        'Replacement cannot produce a complete plan under current constraints',
+      );
     }
-    const result = { ...generated, lastSwap: { slotId: input.slotId, previous: original.source, replacement: selected.source } };
-    return this.dto(await updateGeneratedMealPlan(this.db, scope, {
-      id, expectedRevision: input.revision,
-      intentJson: serialize({ intent: stored.intent, locks }), resultJson: serialize(result),
-      sourceJson: serialize(this.sourceIdentity(snapshot)),
-    }));
+    const result = {
+      ...generated,
+      lastSwap: { slotId: input.slotId, previous: original.source, replacement: selected.source },
+    };
+    return this.dto(
+      await updateGeneratedMealPlan(this.db, scope, {
+        id,
+        expectedRevision: input.revision,
+        intentJson: serialize({ intent: stored.intent, locks }),
+        resultJson: serialize(result),
+        sourceJson: serialize(this.sourceIdentity(snapshot)),
+      }),
+      snapshot,
+    );
   }
 
   async shopping(scope: Scope, id: string, input: z.infer<typeof OptimizePlanShoppingSchema>) {
@@ -266,27 +491,59 @@ export class MealPlanningApplicationService {
     const stored = this.decode(row);
     const freshness = await this.freshness(row);
     if (freshness.reasons.includes('catalog_authority_changed')) {
-      throw new MealPlanningError('CATALOG_AUTHORITY_CHANGED', 409, 'Recipe catalog authority changed since this plan was generated; regenerate the plan');
+      throw new MealPlanningError(
+        'CATALOG_AUTHORITY_CHANGED',
+        409,
+        'Recipe catalog authority changed since this plan was generated; regenerate the plan',
+      );
     }
-    if (freshness.status !== 'fresh') throw new MealPlanningError('PLAN_REVALIDATION_REQUIRED', 409, 'Regenerate the plan before optimizing shopping');
+    if (freshness.status !== 'fresh')
+      throw new MealPlanningError(
+        'PLAN_REVALIDATION_REQUIRED',
+        409,
+        'Regenerate the plan before optimizing shopping',
+      );
     const asOf = this.now();
     const catalog = this.options.purchaseCatalog
       ? await this.options.purchaseCatalog(scope, asOf)
-      : { snapshotId: 'no-reviewed-catalog', options: [], status: 'reviewed_catalog_unavailable' as const };
-    const budget = input.budget ? {
-      householdId: scope.householdId, revision: `${id}:${row.revision}`, mode: input.budget.mode,
-      currency: input.currency, amountMinor: Number(input.budget.money.minorAmount),
-    } : null;
+      : {
+          snapshotId: 'no-reviewed-catalog',
+          options: [],
+          status: 'reviewed_catalog_unavailable' as const,
+        };
+    const budget = input.budget
+      ? {
+          householdId: scope.householdId,
+          revision: `${id}:${row.revision}`,
+          mode: input.budget.mode,
+          currency: input.currency,
+          amountMinor: Number(input.budget.money.minorAmount),
+        }
+      : null;
     const context = createShoppingContext(() => ({
-      ...scope, currency: input.currency, mealPlan: stored.shoppingPlan, budget,
+      ...scope,
+      currency: input.currency,
+      mealPlan: stored.shoppingPlan,
+      budget,
       catalog: { snapshotId: catalog.snapshotId, asOf, options: catalog.options },
     }));
     const result = optimizeShopping({ context });
     this.assertRevision(await getGeneratedMealPlan(this.db, scope, id), input.revision);
-    console.log(JSON.stringify({ level: 'info', event: 'meal_shopping_result', catalogStatus: catalog.status }));
+    console.log(
+      JSON.stringify({
+        level: 'info',
+        event: 'meal_shopping_result',
+        catalogStatus: catalog.status,
+      }),
+    );
     return PlanShoppingDtoSchema.parse({
-      schemaVersion: 1, planId: id, planRevision: row.revision, priceAsOf: asOf,
-      requiresPriceRevalidation: true, catalogStatus: catalog.status, result: toShoppingResultDto(result),
+      schemaVersion: 1,
+      planId: id,
+      planRevision: row.revision,
+      priceAsOf: asOf,
+      requiresPriceRevalidation: true,
+      catalogStatus: catalog.status,
+      result: toShoppingResultDto(result),
     });
   }
 
@@ -295,29 +552,49 @@ export class MealPlanningApplicationService {
     this.assertRevision(row, input.revision);
     const stored = this.decode(row);
     const meal = stored.result.meals.find((item) => item.slotId === input.slotId);
-    if (!meal) throw new MealPlanningError('SLOT_NOT_FOUND', 422, 'Feedback requires a selected meal slot');
+    if (!meal)
+      throw new MealPlanningError('SLOT_NOT_FOUND', 422, 'Feedback requires a selected meal slot');
     const now = this.now();
     let event: { id: string; occurredAt: string };
     if (input.type === 'cooked') {
       const { annotation } = await recordCookedGeneratedMealPlanAnnotation(this.db, scope, {
-        id: crypto.randomUUID(), planId: id, expectedRevision: input.revision,
-        slotId: input.slotId, requestKey: key,
+        id: crypto.randomUUID(),
+        planId: id,
+        expectedRevision: input.revision,
+        slotId: input.slotId,
+        requestKey: key,
       });
       event = { id: annotation.id, occurredAt: annotation.createdAt };
     } else {
       const swap = stored.lastSwap;
       if (input.type === 'swapped' && (!swap || swap.slotId !== input.slotId)) {
-        throw new MealPlanningError('SWAP_FEEDBACK_INVALID', 422, 'Swapped feedback requires a server-applied swap in this revision');
+        throw new MealPlanningError(
+          'SWAP_FEEDBACK_INVALID',
+          422,
+          'Swapped feedback requires a server-applied swap in this revision',
+        );
       }
       const target = input.type === 'swapped' ? swap!.previous : meal.source;
       const replacement = input.type === 'swapped' ? swap!.replacement : undefined;
       event = await recordPlanningTaste(this.db, scope, {
-        planId: id, revision: input.revision, slotId: input.slotId, key, type: input.type, occurredAt: now,
+        planId: id,
+        revision: input.revision,
+        slotId: input.slotId,
+        key,
+        type: input.type,
+        occurredAt: now,
         target: { kind: target.kind, id: target.id },
         replacement: replacement ? { kind: replacement.kind, id: replacement.id } : undefined,
       });
     }
-    return PlanFeedbackDtoSchema.parse({ schemaVersion: 1, ...event, planId: id,
-      planRevision: input.revision, slotId: input.slotId, type: input.type, inventoryMutated: false });
+    return PlanFeedbackDtoSchema.parse({
+      schemaVersion: 1,
+      ...event,
+      planId: id,
+      planRevision: input.revision,
+      slotId: input.slotId,
+      type: input.type,
+      inventoryMutated: false,
+    });
   }
 }

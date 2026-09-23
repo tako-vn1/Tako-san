@@ -59,8 +59,8 @@ function mealPlanningFixture() {
       VALUES ('t07-persistence-member-row', '${scope.householdId}', 't07-persistence-member', 'member');
     DELETE FROM recipes;
     INSERT INTO recipes (id, slug, title, cuisine, servings, prep_time_minutes, cook_time_minutes, difficulty)
-      VALUES ('a-small', 't07-a-small', 'Small chicken meal', 'viet', 2, 0, 10, 'easy'),
-        ('z-large', 't07-z-large', 'Large chicken meal', 'viet', 2, 0, 10, 'easy');
+      VALUES ('a-small', 't07-a-small', 'Small chicken meal', 'vietnamese', 2, 0, 10, 'easy'),
+        ('z-large', 't07-z-large', 'Large chicken meal', 'vietnamese', 2, 0, 10, 'easy');
     INSERT INTO recipe_ingredients (id, recipe_id, ingredient_id, name, required_quantity, unit, is_optional)
       VALUES ('t07-line-small', 'a-small', 'CHICKEN_BREAST', 'Chicken', 100, 'g', 0),
         ('t07-line-large', 'z-large', 'CHICKEN_BREAST', 'Chicken', 400, 'g', 0);

@@ -1,4 +1,7 @@
-import type { RecipeAuthoritySnapshot } from '../../packages/recipes/src/recipe-authority';
+import {
+  createRecipeAuthoritySnapshot,
+  type RecipeAuthoritySnapshot,
+} from '../../packages/recipes/src/recipe-authority';
 import type { Recipe } from '../../packages/recipes/src/types';
 import type { SqliteD1 } from './sqlite-d1';
 
@@ -11,18 +14,47 @@ import type { SqliteD1 } from './sqlite-d1';
  */
 export function fixtureRecipeAuthority(db: SqliteD1): () => Promise<RecipeAuthoritySnapshot> {
   return async () => {
-    const rows = db.query<{ id: string; slug: string; title: string }>('SELECT id, slug, title FROM recipes ORDER BY id');
-    const recipes = rows.map((row) => ({ id: row.id, slug: row.slug, title: row.title }) as unknown as Recipe);
-    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(rows.map((row) => row.id))));
-    const fingerprint = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
-    const byId = new Map(recipes.map((recipe) => [recipe.id, recipe]));
-    const bySlug = new Map(recipes.map((recipe) => [recipe.slug, recipe]));
-    return {
-      source: 'd1', fingerprint, loadedAt: 0, size: recipes.length,
-      list: () => [...recipes],
-      findById: (id) => byId.get(id) ?? null,
-      findByIdOrSlug: (idOrSlug) => byId.get(idOrSlug) ?? bySlug.get(idOrSlug) ?? null,
-    };
+    const rows = db.query<{
+      id: string; slug: string; title: string; description: string | null; cuisine: string;
+      servings: number; cook_time_minutes: number; difficulty: Recipe['difficulty'];
+    }>(`SELECT id, slug, title, description, cuisine, servings, cook_time_minutes, difficulty
+        FROM recipes ORDER BY id`);
+    const ingredients = db.query<{
+      recipe_id: string; ingredient_id: string; name: string; required_quantity: number;
+      unit: Recipe['ingredients'][number]['unit']; is_optional: number;
+    }>(`SELECT recipe_id, ingredient_id, name, required_quantity, unit, is_optional
+        FROM recipe_ingredients ORDER BY recipe_id, id`);
+    const steps = db.query<{
+      recipe_id: string; step_number: number; instruction: string; tip: string | null;
+      timer_minutes: number | null;
+    }>(`SELECT recipe_id, step_number, instruction, tip, timer_minutes
+        FROM recipe_steps ORDER BY recipe_id, step_number, id`);
+    const recipes = rows.map((row) => ({
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      description: row.description ?? '',
+      cuisine: row.cuisine,
+      servings: row.servings,
+      cookTimeMinutes: row.cook_time_minutes,
+      difficulty: row.difficulty,
+      imageUrl: '',
+      ingredients: ingredients.filter((line) => line.recipe_id === row.id).map((line) => ({
+        ingredientId: line.ingredient_id,
+        name: line.name,
+        requiredQuantity: line.required_quantity,
+        unit: line.unit,
+        isOptional: line.is_optional === 1,
+      })),
+      steps: steps.filter((step) => step.recipe_id === row.id).map((step) => ({
+        stepNumber: step.step_number,
+        instruction: step.instruction,
+        ...(step.tip === null ? {} : { tip: step.tip }),
+        ...(step.timer_minutes === null ? {} : { timerMinutes: step.timer_minutes }),
+      })),
+      tags: [],
+    }) as Recipe);
+    return createRecipeAuthoritySnapshot('d1', recipes, () => 0);
   };
 }
 
