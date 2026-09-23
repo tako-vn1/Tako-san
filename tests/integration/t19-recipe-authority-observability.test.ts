@@ -1,11 +1,12 @@
 import { Hono } from 'hono';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ALL_RECIPES } from '../../packages/recipes/src/data';
-import { currentCatalogRelease } from '../../packages/recipes/src/recipe-authority';
+import { currentCatalogRelease, isRecipeCanaryTenant } from '../../packages/recipes/src/recipe-authority';
 import { LEGACY_BASELINE_FINGERPRINT } from '../helpers/recipe-catalog-growth';
 import { healthRoutes } from '../../src/worker/routes/health';
 import {
   RECIPE_AUTHORITY_D1_TTL_MS,
+  resolveRecipeAuthority,
   resetRecipeAuthorityCacheForTests,
   resetRecipeAuthorityCountersForTests,
 } from '../../src/worker/services/recipe-authority';
@@ -175,6 +176,41 @@ describe('public readiness recipeAuthority summary', () => {
 });
 
 describe('protected release evidence endpoint', () => {
+  it.each([1, 5, 25])('a forced D1 probe preserves actual household routing at %i%%', async (percent) => {
+    const servingEnv = Object.freeze(env({
+      RECIPE_CATALOG_MODE: 'canary',
+      RECIPE_CATALOG_CUTOVER_ENABLED: 'true',
+      RECIPE_CATALOG_D1_CANARY_PERCENT: String(percent),
+    }));
+    const households = Array.from({ length: 2000 }, (_, index) => `t19-routing-${index}`);
+    const inside = households.find((id) => isRecipeCanaryTenant(id, percent))!;
+    const outside = households.find((id) => !isRecipeCanaryTenant(id, percent))!;
+    expect(inside).toBeDefined();
+    expect(outside).toBeDefined();
+
+    for (const afterProbe of [false, true]) {
+      if (afterProbe) {
+        const evidence = await recipeAuthorityReleaseEvidence(servingEnv);
+        expect(evidence).toMatchObject({
+          canaryPercent: percent,
+          actualSource: 'd1',
+          servedRecipeCount: 500,
+          d1Readiness: 'ready',
+          fallbackReason: null,
+        });
+      }
+      for (const [tenantKey, source, count] of [[inside, 'd1', 500], [outside, 'static', 71]] as const) {
+        const resolved = await resolveRecipeAuthority(servingEnv, { tenantKey, log: () => {} });
+        expect(resolved).toMatchObject({
+          actualSource: source,
+          canaryAssignmentReason: 'deterministic_bucket',
+        });
+        expect(resolved.snapshot.size).toBe(count);
+      }
+      expect(servingEnv.RECIPE_CATALOG_D1_CANARY_PERCENT).toBe(String(percent));
+    }
+  });
+
   it('is absent (404) without the RELEASE_VERIFY_TOKEN secret and 401 for wrong/short/missing bearer tokens', async () => {
     expect(
       (
