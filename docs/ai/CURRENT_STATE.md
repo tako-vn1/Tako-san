@@ -1,4 +1,57 @@
-# T19 production read-only certification workflow - 2026-09-23
+# Takosan canonical migration and T19 checkpoint reconstruction - 2026-09-23
+
+**Status: `TAKOSAN_T19_RECONSTRUCTED_PR_PREP`. Production: `UNTOUCHED`.
+T20: `BLOCKED`.**
+
+The canonical development repository is now `vn-tako5/Takosan` (ID
+`1383530832`). `vn-tako5/Frigo-dev` (ID `1368281478`) remains unchanged as the
+historical backup. Exact published remote history was migrated without rewriting:
+75 branches, 0 tags and 506 commits passed `git fsck --full`; source and target
+heads match exactly. Canonical `main` is
+`a4b5d7268537e88c3d2e31d418fc2e3691597b80`. The published T19 source branch is
+`hoplite/akanthos-df8cfb50` at
+`2254816a5f9ae007f552b05dd96e45643fdb7ca5`.
+
+Lost local checkpoint receipt: `cb056f9`, `6e10fea` and `b8be01b` were not
+recoverable as original Git objects. They were not forged or claimed as recovered.
+Their known intended changes were reconstructed semantically from the published
+T19 source SHA on `ops/t19-production-cert-pr-prep`. Implementation commit
+`107c5f653c67d7dce5fc439c7821b6f99bcdfc8c` makes production certification fail
+closed unless the Worker `GIT_COMMIT` binding is a lowercase 40-character hex SHA;
+`deployedSha: "UNKNOWN"` can no longer reach a PASS receipt. Permanent regression
+coverage includes valid, missing, empty, short, uppercase, non-hex and wrong-length
+values while preserving the audited read-only command, secret-redaction and safe
+binding-projection boundaries.
+
+Fresh validation on Takosan: install with the frozen lockfile PASS; `git diff
+--check` PASS; focused T19 suite 4 files / 243 tests PASS; lint PASS; typecheck
+PASS; migration smoke PASS; build PASS; full suite 190 files / 4,415 tests PASS.
+Review findings P0/P1/P2 = 0/0/0. The workflow remains manual-only, main-only,
+production-Environment gated, `contents: read` / `actions: read`, under
+`frigo-deploy-production`, with no deploy, migration apply, secret mutation,
+traffic mutation, rollback mutation or remote D1 write command.
+
+Takosan non-secret control plane now matches the source for repository merge
+settings, Actions policy, read-only workflow token, `main` protection with strict
+`validate`, repository variables and the `staging` / `production` Environments.
+Secret values are not portable and are not available locally. Takosan still needs
+environment secrets `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`,
+`STAGING_RELEASE_VERIFY_TOKEN` (staging) and `CLOUDFLARE_ACCOUNT_ID`,
+`CLOUDFLARE_API_TOKEN`, `RELEASE_VERIFY_TOKEN` (production workflow contract).
+GitHub also rejected adding source production reviewer `vn-taphoanhatung` to the
+new repository, and the current user OAuth token cannot inspect the `usehoplite`
+App installation. Hosted CI is required after publication. No staging or
+production workflow was dispatched during this reconstruction.
+
+Next: publish the reconstruction branch to Takosan, open the draft T19 PR and
+require exact-head hosted CI. Reprovision missing secrets through authorized
+controls and restore the production reviewer/App access before staging proof.
+Do not deploy production, run production D1 migrations, mutate production secrets
+or traffic, merge the T19 PR, or start T20 in this task.
+
+---
+
+# Historical T19 production read-only certification workflow - 2026-09-23
 
 **Status: `T19_V2_PRODUCTION_CERT_WORKFLOW_PR_PENDING`. Production: `UNTOUCHED`.**
 Repository `1368281478` resolves to `vn-tako4/Frigo-dev`; starting main is

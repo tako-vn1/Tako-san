@@ -1,4 +1,42 @@
-# T19 production read-only certification workflow - 2026-09-23
+# Takosan canonical migration and T19 reconstruction - 2026-09-23
+
+**Status: `TAKOSAN_T19_RECONSTRUCTED_PR_PREP`. Production: `UNTOUCHED`.
+T20: `BLOCKED`.**
+
+- [done] Migrated exact published history from `vn-tako5/Frigo-dev` (ID
+  `1368281478`) to canonical `vn-tako5/Takosan` (ID `1383530832`) without
+  rewriting: 75 branches, 0 tags, 506 commits, `git fsck --full` PASS and exact
+  source/target head parity. Backup repository unchanged.
+- [done] Verified canonical main
+  `a4b5d7268537e88c3d2e31d418fc2e3691597b80` and published T19 source
+  `hoplite/akanthos-df8cfb50` at
+  `2254816a5f9ae007f552b05dd96e45643fdb7ca5` on both repositories.
+- [done] Recorded lost checkpoint `cb056f9` / `6e10fea` / `b8be01b` as not
+  recoverable; no original-object or SHA recovery claimed. Reconstructed the known
+  behavior as new commit `107c5f653c67d7dce5fc439c7821b6f99bcdfc8c`
+  on `ops/t19-production-cert-pr-prep`.
+- [done] Production Worker `GIT_COMMIT` now fails closed unless it is a lowercase
+  40-character hex SHA; valid/missing/empty/short/uppercase/non-hex/wrong-length
+  regression cases added. `deployedSha: "UNKNOWN"` cannot be certified.
+- [done] Frozen install, diff check, focused T19 243/243, lint, typecheck,
+  migration smoke, build and full suite 190 files / 4,415 tests PASS. Review
+  P0/P1/P2 = 0/0/0; read-only workflow boundaries preserved.
+- [done] Recreated non-secret Actions settings, strict `validate` main protection,
+  repository variables and staging/production Environments on Takosan.
+- [blocked] Reprovision required environment secret values:
+  `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`,
+  `STAGING_RELEASE_VERIFY_TOKEN`, `RELEASE_VERIFY_TOKEN`. Names only are recorded.
+- [blocked] Production reviewer parity: GitHub rejected adding source reviewer
+  `vn-taphoanhatung` to Takosan. `usehoplite` App installation access remains
+  unverified with the current user OAuth credential.
+- [pending] Push reconstruction branch, open draft PR, require fresh exact-head
+  Takosan hosted CI, then restore the blocked control-plane items.
+- [not-started] Staging-only proof from Takosan. Production remains frozen.
+- [not-started] T20 until `T19_COMPLETE`.
+
+---
+
+# Historical T19 production read-only certification workflow - 2026-09-23
 
 **Status: `T19_V2_PRODUCTION_CERT_WORKFLOW_PR_PENDING`. Production: `UNTOUCHED`.**
 

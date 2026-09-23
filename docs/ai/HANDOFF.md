@@ -1,4 +1,37 @@
-# T19 production read-only certification workflow - 2026-09-23
+# Takosan canonical migration and T19 reconstruction handoff - 2026-09-23
+
+**Status: `TAKOSAN_T19_RECONSTRUCTED_PR_PREP`. Production: `UNTOUCHED`.
+T20: `BLOCKED`.**
+
+- **Canonical identity:** `vn-tako5/Takosan` (ID `1383530832`), main
+  `a4b5d7268537e88c3d2e31d418fc2e3691597b80`. Backup
+  `vn-tako5/Frigo-dev` (ID `1368281478`) remains unchanged.
+- **Remote parity:** exact published history, 75 branches / 0 tags / 506 commits,
+  `git fsck --full` PASS. Published T19 source
+  `hoplite/akanthos-df8cfb50` =
+  `2254816a5f9ae007f552b05dd96e45643fdb7ca5` on both repositories.
+- **Lost local checkpoint:** original objects `cb056f9`, `6e10fea`, `b8be01b`
+  were not recoverable. No SHA recovery is claimed. Their known intended behavior
+  was reconstructed honestly on `ops/t19-production-cert-pr-prep`; implementation
+  commit `107c5f653c67d7dce5fc439c7821b6f99bcdfc8c` fails closed for every missing
+  or malformed production Worker `GIT_COMMIT` and never emits `UNKNOWN` as a
+  certified deployed SHA.
+- **Verification:** frozen install, diff check, lint, typecheck, migration smoke
+  and build PASS; focused T19 4 files / 243 tests PASS; full suite 190 files /
+  4,415 tests PASS; review P0/P1/P2 = 0/0/0. Read-only boundaries remain intact.
+- **Control plane:** Actions/read workflow permissions, strict `validate` main
+  protection, variables and both Environments were recreated. Secret values are
+  unavailable and must be reprovisioned. GitHub rejected adding production
+  reviewer `vn-taphoanhatung`; `usehoplite` App access is unverified because the
+  user OAuth token cannot list App installations.
+- **Next:** push the reconstruction branch, open a draft PR and require fresh
+  exact-head Takosan CI. Restore secrets, reviewer policy and App access before
+  any staging-only proof. Do not merge, deploy production, mutate production D1,
+  secrets or traffic, or start T20.
+
+---
+
+# Historical T19 production read-only certification workflow - 2026-09-23
 
 **Status: `T19_V2_PRODUCTION_CERT_WORKFLOW_PR_PENDING`. Production: `UNTOUCHED`.**
 
