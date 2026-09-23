@@ -1,3 +1,68 @@
+# Final takeover state - 2026-09-23
+
+Status: `T19_V2_CODE_COMPLETE_PRODUCTION_BLOCKED`. Production: `UNTOUCHED`.
+
+- Application PR https://github.com/vn-tako4/Frigo-dev/pull/53 is MERGED.
+- Reviewed integration head: `dbf32547a07fbc767e044365866a2bdfc4264cd8`.
+- Application merge / certified main: `03005fcbc39ab3c964393d2091f726088a4be5d0`.
+- PR CI https://github.com/vn-tako4/Frigo-dev/actions/runs/35810551334: PASS.
+- Exact-main CI https://github.com/vn-tako4/Frigo-dev/actions/runs/35810986000: PASS.
+- Both hosted runs passed 189 files / 4,367 tests, lint/typecheck, migration smoke
+  and build. Jobs, logs, annotations and empty review threads were inspected.
+  Annotations concern GitHub Actions Node runtime deprecation and the scheduled
+  Ubuntu image transition; no validation error. Merge used normal protection
+  and exact head matching, preserving the full recovered commit ancestry.
+- `git merge-base --is-ancestor` proves the exact checkpoint and final application
+  head are contained in main. Original recovery branch remains unchanged.
+
+## Production evidence and external blockers
+
+The main checkout's `d1-migration-check.mjs config` passes for DB -> frigo-db /
+`f975ec39-b2c8-4a2a-80e1-0366054599d3`; this is source configuration evidence,
+not proof of the live binding/database. `pnpm wrangler whoami` reports
+"You are not authenticated." `pnpm wrangler d1 list --json` exits 1 because a
+non-interactive environment needs `CLOUDFLARE_API_TOKEN`. No remote D1 ledger,
+catalog, runtime count, foreign keys, quick_check or Worker version was read.
+Those fields remain UNKNOWN, not inferred from fixtures or historical reports.
+
+GitHub repository secrets are empty; production/staging Environment secrets
+contain Cloudflare account/token names only. `RELEASE_VERIFY_TOKEN` and
+`STAGING_RELEASE_VERIFY_TOKEN` are absent. Worker-side secret presence is UNKNOWN.
+Production requires Environment reviewer `vn-taphoanhatung`.
+
+Automatic staging run https://github.com/vn-tako4/Frigo-dev/actions/runs/35811338820
+failed at "Require staging proof configuration before deployment" with
+`STAGING_RELEASE_VERIFY_TOKEN must be configured before deployment`. Build,
+deploy and smoke steps were skipped; production job was skipped. This is an
+observed fail-closed gate, not a production incident or rollout attempt.
+
+Production mutations: **none**. Staging mutations: **none**. Rollback previous
+version/result: UNKNOWN / NOT RUN. T19_COMPLETE is not certified. T20 NOT STARTED.
+
+## Operator next steps
+
+1. Supply authorized Cloudflare read access in the execution environment so the
+   exact account, Worker, DB binding/UUID, full current migration ledger and
+   71+30+399 catalog can be certified. Do not expose credential values in chat.
+2. Provision matching GitHub/Worker verification secrets: production
+   `RELEASE_VERIFY_TOKEN`, staging GitHub `STAGING_RELEASE_VERIFY_TOKEN`, and
+   staging Worker `RELEASE_VERIFY_TOKEN` (at least 32 characters). Verify both
+   smoke origins and Worker-side presence; do not rotate unrelated secrets.
+3. Recheck current main and exact-main CI. Complete read-only D1 certification
+   and obtain the production Environment approval before dispatching the
+   reviewed rollout. Bootstrap/downgrade confirmation follows the reviewed gate.
+4. Verify each stage shadow -> canary 1 -> 5 -> 25 -> d1, representative
+   legacy/pilot/scale cross-flow behavior, and exact previous-version rollback
+   proof. Preserve D1 data. Only then record T19_COMPLETE; T20 remains blocked.
+
+This final documentation receipt is published separately from the application
+branch, so the certified application head and merge SHA remain explicit. Any
+later main change needs its own exact-main CI before production release.
+
+---
+
+## Earlier takeover audit (retained; outcome superseded above)
+
 # T19 V2 takeover audit - 2026-09-23
 
 Status: `T19_V2_APPLICATION_PR_PENDING`. Production: `UNTOUCHED`.
