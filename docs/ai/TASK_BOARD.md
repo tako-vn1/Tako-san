@@ -12,6 +12,10 @@
 - [done] Focused 236/236 tests, lint/typecheck, local config check, migration smoke
   (after existing sqlite setup repair), build, diff/shell syntax checks. Local
   full suite exceeded 600 seconds (exit 124); hosted full-suite CI remains required.
+- [blocked] Publication: GitHub App lacks `workflows` permission; push rejected,
+  PR creation failed because no remote head branch exists. Implementation is
+  retained locally at `aee4e2e`. Operator must authorize Workflows write for this
+  installation before publication can resume; no credentials in chat.
 - [pending] Narrow PR, exact-head hosted CI/review, maintainer merge, new main CI,
   production Environment approval and actual read-only certification.
 - [not-started] Production rollout, cross-flow, rollback proof, final D1 restoration.

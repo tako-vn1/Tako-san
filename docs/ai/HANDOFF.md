@@ -17,7 +17,13 @@
   600-second command budget (exit 124); no full-suite pass is claimed. Hosted
   complete-suite CI remains required; all eight workflow blocks pass `bash -n`.
   Exact commands and structural-vs-IAM safety limits: `CURRENT_STATE.md`.
-- **Next:** review/merge through normal policy, require new exact-main CI, then
+- **Publication:** implementation commit `aee4e2e` is local only. Push of
+  `HEAD:hoplite/akanthos-df8cfb50` failed: this GitHub App lacks `workflows`
+  permission for the new workflow file. PR creation then failed because the
+  remote head branch does not exist. No PR/new hosted CI; do not claim publication.
+- **Next:** operator authorizes Workflows write for the existing repository App
+  installation, then retry the explicit branch push and narrow PR (never bypass
+  permissions). Require exact-head CI/review and maintainer merge, new main CI, then
   dispatch Production Read-Only Certification on main with `ref=<full new main>`,
   `hardened_sha=<owner-approved exact SHA>`,
   `confirm_read_only_certification=true`. Wait for production Environment approval.

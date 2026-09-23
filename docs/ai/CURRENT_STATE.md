@@ -45,8 +45,19 @@ claimed as a pass. Focused checks above were rerun on the final workflow. Hosted
 PR-head CI remains required for the complete suite. No Cloudflare calls, deploy,
 migration, secret change, rollback or other production mutation was performed.
 
-Next: review the narrow PR and exact-head CI; an authorized maintainer must merge.
-Then require new exact-main CI and dispatch only Production Read-Only Certification
+Publication attempted from `hoplite/akanthos-df8cfb50` at local implementation
+commit `aee4e2e`. `git push origin HEAD:hoplite/akanthos-df8cfb50` was rejected:
+GitHub refuses a GitHub App creating/updating
+`.github/workflows/production-certify.yml` without `workflows` permission.
+The subsequent `gh pr create` failed because the remote head branch does not
+exist. **No PR exists and no new hosted CI ran.** No alternate publication route
+was attempted. Local work is retained; no default-branch change occurred.
+
+Next: an operator must grant/approve Workflows write permission for the authorized
+repository GitHub App installation, then retry this branch push and narrow PR.
+Do not provide credentials in chat or bypass the App. Require exact-head hosted
+CI and review; an authorized maintainer must merge. Then require new exact-main
+CI and dispatch only Production Read-Only Certification
 with that full SHA, the owner-approved hardening SHA and confirmation. Respect
 production Environment review. Do not dispatch Deploy or Production D1 Migration.
 Production rollout remains blocked until live certification and its separate
