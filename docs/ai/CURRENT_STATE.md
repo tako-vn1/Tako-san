@@ -1,3 +1,35 @@
+# Release-secret provisioning receipt - 2026-09-23
+
+**Status: `T19_V2_RELEASE_SECRET_PROVISIONING_BLOCKED`. Production: `UNTOUCHED`.**
+Repository ID `1368281478` resolves to `vn-tako4/Frigo-dev`; `origin/main` is
+`c0c8e82ac9bdb3167de4e5774c90cbd364b5ff92` (PR #54 merge), unchanged since exact-main CI
+`35815588844` PASS. Current `.github/workflows/deploy.yml` requires, before any
+staging deployment, GitHub effective secret `STAGING_RELEASE_VERIFY_TOKEN`
+(>= 32 chars) plus staging Worker `frigo-staging` secret `RELEASE_VERIFY_TOKEN`;
+production requires GitHub effective `RELEASE_VERIFY_TOKEN` plus the production
+Worker `RELEASE_VERIFY_TOKEN`.
+
+Automatic Deploy run `35815905652` (head `c0c8e82`): release job SUCCESS,
+staging job FAILED at "Require staging proof configuration before deployment",
+production skipped. Runtime evidence from that job (not a 403 inference): the
+step env rendered `RELEASE_VERIFY_TOKEN` empty while `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID` rendered masked, so GitHub effective
+`STAGING_RELEASE_VERIFY_TOKEN` is MISSING and Cloudflare credentials are PRESENT
+in the staging Environment. Staging Worker `RELEASE_VERIFY_TOKEN` is UNKNOWN
+(preflight stopped before `wrangler secret list`; this workspace has no
+Cloudflare credential). GitHub secret metadata reads return HTTP 403 and this
+installation cannot write secrets, so neither half of the pair can be
+provisioned here. Operator action: generate one >= 32-byte random value, set it
+as GitHub staging `STAGING_RELEASE_VERIFY_TOKEN` and as `frigo-staging` Worker
+`RELEASE_VERIFY_TOKEN` (never paste it in chat/PRs), then re-run the failed
+staging job of run `35815905652` (or the automatic run on the then-current
+main) through the reviewed workflow. Merging this docs receipt moves main, so
+the exact-main SHA must be re-certified before that new SHA is released. No
+deployment, migration, secret change, rollout or rollback was performed.
+
+---
+
+
 # Current takeover receipt - 2026-09-23
 
 **Status: `T19_V2_CODE_COMPLETE_PRODUCTION_BLOCKED`. Production: `UNTOUCHED`.**

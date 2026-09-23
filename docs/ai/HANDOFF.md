@@ -1,3 +1,27 @@
+# Release-secret provisioning receipt - 2026-09-23
+
+**Status: `T19_V2_RELEASE_SECRET_PROVISIONING_BLOCKED`. Production: `UNTOUCHED`.**
+Main `c0c8e82ac9bdb3167de4e5774c90cbd364b5ff92` (exact-main CI `35815588844` PASS) is
+the release candidate. Automatic staging run `35815905652` failed BEFORE
+deployment: the staging job env proves GitHub effective
+`STAGING_RELEASE_VERIFY_TOKEN` is MISSING (empty), Cloudflare secrets PRESENT
+(masked), staging Worker `RELEASE_VERIFY_TOKEN` UNKNOWN. This installation can
+neither read secret metadata (HTTP 403) nor write GitHub/Worker secrets, and has
+no Cloudflare credential.
+
+**Next (operator):** provision the staging pair with one shared >= 32-byte random
+value (GitHub staging `STAGING_RELEASE_VERIFY_TOKEN` = `frigo-staging` Worker
+`RELEASE_VERIFY_TOKEN`; separate from the future production value), then re-run
+the reviewed staging workflow for the current exact main. Certify staging
+(deployed SHA, mode, canary percent, cutover, release ID, recipe count,
+fingerprint, D1 readiness, fallbackReason, protected authority proof, smoke)
+before any production read-only certification. No ad-hoc `wrangler deploy`.
+Details in `docs/ai/CURRENT_STATE.md`; the rest of this file remains the
+historical trail.
+
+---
+
+
 # Current takeover receipt - 2026-09-23
 
 **Status: `T19_V2_CODE_COMPLETE_PRODUCTION_BLOCKED`. Production: `UNTOUCHED`.**

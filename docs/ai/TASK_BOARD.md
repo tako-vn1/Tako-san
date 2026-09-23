@@ -1,3 +1,23 @@
+# Release-secret provisioning receipt - 2026-09-23
+
+**Status: `T19_V2_RELEASE_SECRET_PROVISIONING_BLOCKED`. Production: `UNTOUCHED`.**
+
+- [done] Repository ID `1368281478` = `vn-tako4/Frigo-dev`; main `c0c8e82`
+  unchanged; exact-main CI `35815588844` PASS; deploy.yml secret contract
+  confirmed (staging: `STAGING_RELEASE_VERIFY_TOKEN` + Worker
+  `RELEASE_VERIFY_TOKEN`; production: `RELEASE_VERIFY_TOKEN` + Worker
+  `RELEASE_VERIFY_TOKEN`).
+- [blocked] Staging: run `35815905652` failed before deployment; GitHub
+  effective `STAGING_RELEASE_VERIFY_TOKEN` MISSING (runtime env evidence),
+  Cloudflare secrets PRESENT, Worker secret UNKNOWN. Operator must provision the
+  staging pair through authorized controls; this installation cannot.
+- [not-started] Staging certification, production identity/D1 certification,
+  production token pair, rollout, cross-flow, rollback proof.
+- [not-started] T20 (blocked until `T19_COMPLETE`).
+
+---
+
+
 # Current takeover receipt - 2026-09-23
 
 **Status: `T19_V2_CODE_COMPLETE_PRODUCTION_BLOCKED`. Production: `UNTOUCHED`.**
