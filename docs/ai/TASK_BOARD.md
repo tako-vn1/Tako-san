@@ -1,12 +1,13 @@
-# Takosan canonical migration and T19 reconstruction - 2026-09-23
+# Tako-san canonical migration and T19 reconstruction - 2026-09-24
 
-**Status: `TAKOSAN_T19_RECONSTRUCTED_PR_PREP`. Production: `UNTOUCHED`.
+**Status: `TAKO_SAN_T19_MIGRATION_PR_PREP`. Production: `UNTOUCHED`.
 T20: `BLOCKED`.**
 
-- [done] Migrated exact published history from `vn-tako5/Frigo-dev` (ID
-  `1368281478`) to canonical `vn-tako5/Takosan` (ID `1383530832`) without
-  rewriting: 75 branches, 0 tags, 506 commits, `git fsck --full` PASS and exact
-  source/target head parity. Backup repository unchanged.
+- [done] Migrated the complete predecessor Git state from `vn-tako5/Takosan` (ID
+  `1383530832`) to canonical `vn-tako4/Tako-san` (ID `1385308553`) without
+  rewriting: 76 branches, 0 tags, 511 commits, `git fsck --full` PASS and exact
+  source/target head parity before this identity receipt. Predecessor and original
+  backup `vn-tako5/Frigo-dev` remain unchanged.
 - [done] Verified canonical main
   `a4b5d7268537e88c3d2e31d418fc2e3691597b80` and published T19 source
   `hoplite/akanthos-df8cfb50` at
@@ -25,21 +26,18 @@ T20: `BLOCKED`.**
   2 low) across `undici`, `ws` and `sharp` paths; no dependency change included
   in this migration-only branch.
 - [done] Recreated non-secret Actions settings, strict `validate` main protection,
-  repository variables and staging/production Environments on Takosan.
+  repository variables and staging/production Environments on Tako-san. Deploy and
+  Production D1 Migration are disabled during migration certification.
 - [blocked] Reprovision required environment secret values:
   `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`,
   `STAGING_RELEASE_VERIFY_TOKEN`, `RELEASE_VERIFY_TOKEN`. Names only are recorded.
-- [blocked] Production reviewer parity: GitHub rejected adding source reviewer
-  `vn-taphoanhatung` to Takosan. `usehoplite` App installation access remains
-  unverified with the current user OAuth credential.
-- [done] Pushed `ops/t19-production-cert-pr-prep` and opened draft
-  [Takosan PR #1](https://github.com/vn-tako5/Takosan/pull/1) to `main`.
-- [blocked] Fresh exact-head Takosan hosted CI: active CI workflow produced zero
-  Actions runs after open/synchronize/enable/reopen events. Installed `usehoplite`
-  has workflow write permission but remains queued with zero check runs.
-- [pending] Repair hosted CI scheduling, then restore the remaining blocked
-  control-plane items and require a green exact-head run.
-- [not-started] Staging-only proof from Takosan. Production remains frozen.
+- [blocked] Production reviewer parity: `vn-taphoanhatung` has a pending
+  collaborator invitation; apply the reviewer rule after acceptance. `usehoplite`
+  App installation access remains unverified for the new owner.
+- [pending] Push this identity receipt and recreate the draft T19 PR in
+  `vn-tako4/Tako-san`.
+- [pending] Require fresh exact-head Tako-san hosted CI and record the run receipt.
+- [not-started] Staging-only proof from Tako-san. Production remains frozen.
 - [not-started] T20 until `T19_COMPLETE`.
 
 ---

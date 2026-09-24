@@ -1,13 +1,14 @@
-# Takosan canonical migration and T19 checkpoint reconstruction - 2026-09-23
+# Tako-san canonical migration and T19 checkpoint reconstruction - 2026-09-24
 
-**Status: `TAKOSAN_T19_RECONSTRUCTED_PR_PREP`. Production: `UNTOUCHED`.
+**Status: `TAKO_SAN_T19_MIGRATION_PR_PREP`. Production: `UNTOUCHED`.
 T20: `BLOCKED`.**
 
-The canonical development repository is now `vn-tako5/Takosan` (ID
-`1383530832`). `vn-tako5/Frigo-dev` (ID `1368281478`) remains unchanged as the
-historical backup. Exact published remote history was migrated without rewriting:
-75 branches, 0 tags and 506 commits passed `git fsck --full`; source and target
-heads match exactly. Canonical `main` is
+The canonical development repository is now `vn-tako4/Tako-san` (ID
+`1385308553`). The predecessor `vn-tako5/Takosan` (ID `1383530832`) and original
+backup `vn-tako5/Frigo-dev` (ID `1368281478`) remain unchanged. Before this
+identity receipt, the complete predecessor Git state was migrated without
+rewriting: 76 branches, 0 tags and 511 commits passed `git fsck --full`, with
+exact source/target head parity. Canonical `main` is
 `a4b5d7268537e88c3d2e31d418fc2e3691597b80`. The published T19 source branch is
 `hoplite/akanthos-df8cfb50` at
 `2254816a5f9ae007f552b05dd96e45643fdb7ca5`.
@@ -36,31 +37,30 @@ Dependency audit is a recorded residual, not a T19 regression: `pnpm audit
 including transitive `wrangler`/`miniflare` `undici`, `jsdom` `ws`, and direct
 `sharp`. No dependency upgrade was mixed into this migration/reconstruction.
 
-Takosan non-secret control plane now matches the source for repository merge
+Tako-san non-secret control plane matches the predecessor for repository merge
 settings, Actions policy, read-only workflow token, `main` protection with strict
 `validate`, repository variables and the `staging` / `production` Environments.
-Secret values are not portable and are not available locally. Takosan still needs
+CI is active. Deploy and Production D1 Migration are disabled during migration
+certification so a main-history import cannot trigger staging or production work.
+Secret values are not portable and are not available locally. Tako-san still needs
 environment secrets `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`,
 `STAGING_RELEASE_VERIFY_TOKEN` (staging) and `CLOUDFLARE_ACCOUNT_ID`,
 `CLOUDFLARE_API_TOKEN`, `RELEASE_VERIFY_TOKEN` (production workflow contract).
-GitHub also rejected adding source production reviewer `vn-taphoanhatung` to the
-new repository, and the current user OAuth token cannot inspect the `usehoplite`
-App installation. Hosted CI is required after publication. No staging or
-production workflow was dispatched during this reconstruction.
+The production reviewer `vn-taphoanhatung` has a pending collaborator invitation;
+the reviewer rule cannot be applied until that invitation is accepted. `usehoplite`
+App access also needs verification for the new owner. Hosted CI is required after
+publication. No staging or production workflow was dispatched during this migration.
 
-Next: publish the reconstruction branch to Takosan, open the draft T19 PR and
-require exact-head hosted CI. Reprovision missing secrets through authorized
-controls and restore the production reviewer/App access before staging proof.
+Next: publish this identity receipt to Tako-san, open the draft T19 PR and require
+exact-head hosted CI. Reprovision missing secrets through authorized controls and
+restore the production reviewer/App access before staging proof.
 Do not deploy production, run production D1 migrations, mutate production secrets
 or traffic, merge the T19 PR, or start T20 in this task.
 
-Draft [Takosan PR #1](https://github.com/vn-tako5/Takosan/pull/1) is open from
-`ops/t19-production-cert-pr-prep` to `main`; its exact-head hosted CI remains the
-next publication gate. Hosted CI is currently blocked: the active CI workflow
-created no Actions run after PR open, branch synchronization, explicit workflow
-enable and repeated reopen events. The installed `usehoplite` App has workflow
-write permission but its check suite remains queued with zero check runs. Do not
-merge or use local tests as a substitute for hosted exact-head CI.
+The draft T19 PR will be recreated in `vn-tako4/Tako-san` from
+`ops/t19-production-cert-pr-prep` to `main`; exact-head hosted CI is the next
+publication gate. Do not merge or use local tests as a substitute for hosted
+exact-head CI.
 
 ---
 

@@ -1,13 +1,14 @@
-# Takosan canonical migration and T19 reconstruction handoff - 2026-09-23
+# Tako-san canonical migration and T19 reconstruction handoff - 2026-09-24
 
-**Status: `TAKOSAN_T19_RECONSTRUCTED_PR_PREP`. Production: `UNTOUCHED`.
+**Status: `TAKO_SAN_T19_MIGRATION_PR_PREP`. Production: `UNTOUCHED`.
 T20: `BLOCKED`.**
 
-- **Canonical identity:** `vn-tako5/Takosan` (ID `1383530832`), main
-  `a4b5d7268537e88c3d2e31d418fc2e3691597b80`. Backup
-  `vn-tako5/Frigo-dev` (ID `1368281478`) remains unchanged.
-- **Remote parity:** exact published history, 75 branches / 0 tags / 506 commits,
-  `git fsck --full` PASS. Published T19 source
+- **Canonical identity:** `vn-tako4/Tako-san` (ID `1385308553`), main
+  `a4b5d7268537e88c3d2e31d418fc2e3691597b80`. Predecessor
+  `vn-tako5/Takosan` (ID `1383530832`) and backup `vn-tako5/Frigo-dev` (ID
+  `1368281478`) remain unchanged.
+- **Remote parity checkpoint:** exact predecessor history, 76 branches / 0 tags /
+  511 commits, `git fsck --full` PASS before this identity receipt. Published T19 source
   `hoplite/akanthos-df8cfb50` =
   `2254816a5f9ae007f552b05dd96e45643fdb7ca5` on both repositories.
 - **Lost local checkpoint:** original objects `cb056f9`, `6e10fea`, `b8be01b`
@@ -22,21 +23,18 @@ T20: `BLOCKED`.**
 - **Residual dependency audit:** existing graph reports 21 findings (6 high,
   13 moderate, 2 low) in `undici`, `ws` and `sharp` paths. This migration does
   not mix in dependency upgrades; track remediation separately.
-- **Control plane:** Actions/read workflow permissions, strict `validate` main
-  protection, variables and both Environments were recreated. Secret values are
-  unavailable and must be reprovisioned. GitHub rejected adding production
-  reviewer `vn-taphoanhatung`; `usehoplite` App access is unverified because the
-  user OAuth token cannot list App installations.
-- **Next:** push the reconstruction branch, open a draft PR and require fresh
-  exact-head Takosan CI. Restore secrets, reviewer policy and App access before
+- **Control plane:** CI, read-only workflow permissions, strict `validate` main
+  protection, variables and both Environments were recreated. Deploy and Production
+  D1 Migration remain disabled during migration certification. Secret values are
+  unavailable and must be reprovisioned. Production reviewer `vn-taphoanhatung`
+  has a pending collaborator invitation; `usehoplite` App access remains unverified.
+- **Next:** push this identity receipt, open a draft PR and require fresh exact-head
+  Tako-san CI. Restore secrets, reviewer policy and App access before
   any staging-only proof. Do not merge, deploy production, mutate production D1,
   secrets or traffic, or start T20.
-- **PR:** draft [Takosan #1](https://github.com/vn-tako5/Takosan/pull/1), base
-  `main`, head `ops/t19-production-cert-pr-prep`; exact-head hosted CI required.
-- **Hosted CI blocker:** CI workflow is active but produced zero Actions runs
-  after PR open, synchronize, enable and reopen events. `usehoplite` is installed
-  with workflow write permission, but its suite is queued with zero check runs.
-  Do not merge until a fresh exact-head hosted run completes successfully.
+- **PR:** recreate a draft PR in `vn-tako4/Tako-san`, base `main`, head
+  `ops/t19-production-cert-pr-prep`; exact-head hosted CI required. Do not merge
+  until a fresh exact-head hosted run completes successfully.
 
 ---
 
