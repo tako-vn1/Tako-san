@@ -1,74 +1,45 @@
-# Tako-san canonical migration and T19 checkpoint reconstruction - 2026-09-24
+# Tako-san canonical migration and T19 merge state - 2026-09-24
 
-**Status: `TAKOSAN_T19_PR_CI_READY`. Production: `UNTOUCHED`.
+**Status: `TAKOSAN_T19_MERGED_EXACT_MAIN_CI_GREEN`. Production: `UNTOUCHED`.
 T20: `BLOCKED`.**
 
-The canonical development repository is now `vn-tako4/Tako-san` (ID
-`1385308553`). The predecessor `vn-tako5/Takosan` (ID `1383530832`) and original
-backup `vn-tako5/Frigo-dev` (ID `1368281478`) remain unchanged. Before this
-identity receipt, the complete predecessor Git state was migrated without
-rewriting: 76 branches, 0 tags and 511 commits passed `git fsck --full`, with
-exact source/target head parity. Canonical `main` is
-`a4b5d7268537e88c3d2e31d418fc2e3691597b80`. The published T19 source branch is
-`hoplite/akanthos-df8cfb50` at
-`2254816a5f9ae007f552b05dd96e45643fdb7ca5`.
+The canonical repository is `vn-tako4/Tako-san` (ID `1385308553`). PR #1,
+`ops(t19): add fail-closed production read-only certification`, merged normally
+from `ops/t19-production-cert-pr-prep` into `main` at `2026-09-24T13:55:01Z`.
+Its reviewed head was `0899c49a28906d09f1a51b8afe2c72e09c860f18`; the
+history-preserving merge commit and current canonical main are
+`d6204d91b1849bf98df89c1c590e74395c494c89`, with parents `a4b5d726` and
+`0899c49a`.
 
-Lost local checkpoint receipt: `cb056f9`, `6e10fea` and `b8be01b` were not
-recoverable as original Git objects. They were not forged or claimed as recovered.
-Their known intended changes were reconstructed semantically from the published
-T19 source SHA on `ops/t19-production-cert-pr-prep`. Implementation commit
-`107c5f653c67d7dce5fc439c7821b6f99bcdfc8c` makes production certification fail
-closed unless the Worker `GIT_COMMIT` binding is a lowercase 40-character hex SHA;
-`deployedSha: "UNKNOWN"` can no longer reach a PASS receipt. Permanent regression
-coverage includes valid, missing, empty, short, uppercase, non-hex and wrong-length
-values while preserving the audited read-only command, secret-redaction and safe
-binding-projection boundaries.
+PR-head CI run `36007943241` passed `validate`. Real exact-main CI run
+`36009002161` was created at `2026-09-24T13:55:05Z`, four seconds after the merge,
+with event `push`, branch `main`, and exact SHA `d6204d91`; it passed lint,
+typecheck, 190 files / 4,415 tests, migration smoke and build. The earlier
+observation that this SHA had zero runs was a stale post-merge snapshot taken
+before GitHub created the run, not a scheduler or control-plane defect. The merge
+actor was the human account `vn-tako4`; the active CI workflow already existed on
+pre-merge main, its `push` filter included `main`, no skip directive was present,
+Actions was enabled with allowed actions `all`, and strict required context
+`validate` remained bound to the GitHub Actions App.
 
-Fresh validation on Takosan: install with the frozen lockfile PASS; `git diff
---check` PASS; focused T19 suite 4 files / 243 tests PASS; lint PASS; typecheck
-PASS; migration smoke PASS; build PASS; full suite 190 files / 4,415 tests PASS.
-Review findings P0/P1/P2 = 0/0/0. The workflow remains manual-only, main-only,
-production-Environment gated, `contents: read` / `actions: read`, under
-`frigo-deploy-production`, with no deploy, migration apply, secret mutation,
-traffic mutation, rollback mutation or remote D1 write command.
+Successful exact-main CI automatically triggered Deploy run `36009510442` through
+the reviewed `workflow_run` path. The release and staging jobs succeeded and the
+production job was skipped. Its machine receipt proves deployed SHA `d6204d91`,
+environment `staging`, recipe mode `static`, canary `0`, cutover `false`, actual
+and global source `static`, 71 served recipes and `fallbackReason=null`. No manual
+Deploy dispatch was used.
 
-Dependency audit is a recorded residual, not a T19 regression: `pnpm audit
---audit-level high` reports 21 existing findings (6 high, 13 moderate, 2 low),
-including transitive `wrangler`/`miniflare` `undici`, `jsdom` `ws`, and direct
-`sharp`. No dependency upgrade was mixed into this migration/reconstruction.
+The T19 production read-only certification workflow remains available but was not
+dispatched. Production deploy, production D1 migration, production secret
+mutation, production traffic change and rollback remain `NONE`. T20 remains
+blocked. Existing dependency-audit findings, the Wrangler OAuth credential that
+should later be rotated to a dedicated durable token, and `usehoplite` queued
+suites with zero check runs remain separate non-blocking residuals; none is the
+protected `validate` context.
 
-Tako-san non-secret control plane matches the predecessor for repository merge
-settings, Actions policy, read-only workflow token, `main` protection with strict
-`validate`, repository variables and the `staging` / `production` Environments.
-CI, Deploy and Production D1 Migration are active. Exact-head pull-request CI run
-`35993945186` passed `validate` for
-`fd841ce366a6d36fdb24784198539ff32f06dbcc`; re-enabling Deploy and Production D1
-Migration created zero runs and no workflow was dispatched. The staging
-Environment now has `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` and
-`STAGING_RELEASE_VERIFY_TOKEN`; the `frigo-staging` Worker has the matching
-`RELEASE_VERIFY_TOKEN`. The Cloudflare credential was taken from the currently
-authenticated Wrangler 4 OAuth session and verified against account
-`ef250a88911fd24073cb73d1c07e0218` and D1 `frigo-db-staging-v3`; rotate it to a
-dedicated durable API token before relying on long-lived automation. Production
-Environment secrets remain intentionally absent under the production freeze.
-The collaborator invitation was accepted and the production Environment now has
-required reviewer `vn-taphoanhatung`; staging remains unprotected as intended.
-`usehoplite` receives every new-head event, confirming repository installation
-access, but its check suites remain queued with zero check runs; a user-OAuth
-rerequest returned 404 and caused no side effect. App-side check processing is a
-residual and is not the protected `validate` context.
-No staging or production workflow was dispatched during this migration.
-
-Next: keep draft PR #1 unmerged and require exact-head hosted CI after every
-successor commit. A future maintainer merge must first account for the fact that
-successful main-push CI will automatically trigger staging. Production credentials
-and App-side check processing remain separate follow-ups.
-Do not deploy production, run production D1 migrations, mutate production secrets
-or traffic, merge the T19 PR, or start T20 in this task.
-
-Draft PR #1 exists in `vn-tako4/Tako-san` from
-`ops/t19-production-cert-pr-prep` to `main`; it remains open and draft. Do not
-merge or use local tests as a substitute for hosted exact-head CI.
+Next: obtain an independent remote review of this exact-main state. Handle
+production prerequisites and Production Read-Only Certification as a separate,
+explicitly authorized task. Do not start rollout or T20 automatically.
 
 ---
 
