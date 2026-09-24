@@ -1,53 +1,32 @@
-# Tako-san canonical migration and T19 reconstruction - 2026-09-24
+# Tako-san canonical migration and T19 merge - 2026-09-24
 
-**Status: `TAKOSAN_T19_PR_CI_READY`. Production: `UNTOUCHED`.
+**Status: `TAKOSAN_T19_MERGED_EXACT_MAIN_CI_GREEN`. Production: `UNTOUCHED`.
 T20: `BLOCKED`.**
 
-- [done] Migrated the complete predecessor Git state from `vn-tako5/Takosan` (ID
-  `1383530832`) to canonical `vn-tako4/Tako-san` (ID `1385308553`) without
-  rewriting: 76 branches, 0 tags, 511 commits, `git fsck --full` PASS and exact
-  source/target head parity before this identity receipt. Predecessor and original
-  backup `vn-tako5/Frigo-dev` remain unchanged.
-- [done] Verified canonical main
-  `a4b5d7268537e88c3d2e31d418fc2e3691597b80` and published T19 source
-  `hoplite/akanthos-df8cfb50` at
-  `2254816a5f9ae007f552b05dd96e45643fdb7ca5` on both repositories.
-- [done] Recorded lost checkpoint `cb056f9` / `6e10fea` / `b8be01b` as not
-  recoverable; no original-object or SHA recovery claimed. Reconstructed the known
-  behavior as new commit `107c5f653c67d7dce5fc439c7821b6f99bcdfc8c`
-  on `ops/t19-production-cert-pr-prep`.
-- [done] Production Worker `GIT_COMMIT` now fails closed unless it is a lowercase
-  40-character hex SHA; valid/missing/empty/short/uppercase/non-hex/wrong-length
-  regression cases added. `deployedSha: "UNKNOWN"` cannot be certified.
-- [done] Frozen install, diff check, focused T19 243/243, lint, typecheck,
-  migration smoke, build and full suite 190 files / 4,415 tests PASS. Review
-  P0/P1/P2 = 0/0/0; read-only workflow boundaries preserved.
-- [follow-up] Existing dependency audit: 21 findings (6 high, 13 moderate,
-  2 low) across `undici`, `ws` and `sharp` paths; no dependency change included
-  in this migration-only branch.
-- [done] Recreated non-secret Actions settings, strict `validate` main protection,
-  repository variables and staging/production Environments on Tako-san. CI, Deploy
-  and Production D1 Migration are active; re-enabling Deploy/D1 created zero runs.
-- [done] Staging has `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` and
-  `STAGING_RELEASE_VERIFY_TOKEN`; Worker `frigo-staging` has the matching
-  `RELEASE_VERIFY_TOKEN`. The current credential is sourced from the verified
-  Wrangler 4 OAuth session; rotate to a dedicated durable token for long-lived CI.
-- [blocked] Production Environment secrets remain intentionally absent under the
-  production freeze: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`,
-  `RELEASE_VERIFY_TOKEN`.
-- [done] Production reviewer parity: `vn-taphoanhatung` accepted the collaborator
-  invitation and is the required reviewer on the production Environment. Staging
-  intentionally has no protection rules.
-- [follow-up] `usehoplite` installation access is confirmed by a new queued suite
-  for every head; App-side processing still creates zero check runs. User-OAuth
-  rerequest returned 404 without side effects; `validate` is unaffected.
-- [done] Draft PR #1 exists in `vn-tako4/Tako-san`, base `main`, head
-  `ops/t19-production-cert-pr-prep`; it remains open and draft.
-- [done] Exact-head hosted CI run `35993945186` passed `validate` for
-  `fd841ce366a6d36fdb24784198539ff32f06dbcc` (190 files / 4,415 tests, migration
-  smoke and build PASS). Require a new exact-head run after successor commits.
-- [not-started] Staging-only proof from Tako-san. Production remains frozen.
-- [not-started] T20 until `T19_COMPLETE`.
+- [done] Canonical repository verified as `vn-tako4/Tako-san` (ID `1385308553`).
+- [done] PR #1 merged reviewed head
+  `0899c49a28906d09f1a51b8afe2c72e09c860f18` into `main` as
+  `d6204d91b1849bf98df89c1c590e74395c494c89`.
+- [done] PR-head CI run `36007943241` passed protected context `validate`.
+- [done] Exact-main CI run `36009002161` exists as a real GitHub Actions
+  `push/main` run for `d6204d91` and passed lint, typecheck, 190 files / 4,415
+  tests, migration smoke and build.
+- [done] Classified the reported zero-run defect as a stale post-merge
+  observation: CI was created four seconds after the human merge. Workflow state,
+  triggers, Actions policy, skip semantics and branch protection are correct; no
+  CI or repository-setting repair was required.
+- [done] Automatic Deploy run `36009510442` followed exact-main CI. Release and
+  staging succeeded; production was skipped. Exact deployed SHA `d6204d91`, mode
+  `static`, canary `0`, cutover `false`, source `static`, 71 served recipes and
+  null fallback were recorded.
+- [done] Current operational docs corrected without changing application,
+  workflow, migration or release code.
+- [follow-up] Existing dependency audit, dedicated durable Cloudflare-token
+  rotation and `usehoplite` App-side zero-check-run behavior remain separate.
+- [blocked] Production Read-Only Certification, production deploy/D1/secrets/
+  traffic/rollback and T20 require separate explicit authorization.
+- [next] Independent remote review of the exact-main state; do not start rollout
+  automatically.
 
 ---
 
