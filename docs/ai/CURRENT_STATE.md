@@ -1,6 +1,6 @@
 # Tako-san canonical migration and T19 checkpoint reconstruction - 2026-09-24
 
-**Status: `TAKO_SAN_T19_MIGRATION_PR_PREP`. Production: `UNTOUCHED`.
+**Status: `TAKOSAN_T19_PR_CI_READY`. Production: `UNTOUCHED`.
 T20: `BLOCKED`.**
 
 The canonical development repository is now `vn-tako4/Tako-san` (ID
@@ -40,27 +40,29 @@ including transitive `wrangler`/`miniflare` `undici`, `jsdom` `ws`, and direct
 Tako-san non-secret control plane matches the predecessor for repository merge
 settings, Actions policy, read-only workflow token, `main` protection with strict
 `validate`, repository variables and the `staging` / `production` Environments.
-CI is active. Deploy and Production D1 Migration are disabled during migration
-certification so a main-history import cannot trigger staging or production work.
-Secret values are not portable and are not available locally. Tako-san still needs
-environment secrets `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`,
+CI, Deploy and Production D1 Migration are active. Exact-head pull-request CI run
+`35993945186` passed `validate` for
+`fd841ce366a6d36fdb24784198539ff32f06dbcc`; re-enabling Deploy and Production D1
+Migration created zero runs and no workflow was dispatched. Secret values are not
+portable and are not available locally. Tako-san still needs environment secrets
+`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`,
 `STAGING_RELEASE_VERIFY_TOKEN` (staging) and `CLOUDFLARE_ACCOUNT_ID`,
 `CLOUDFLARE_API_TOKEN`, `RELEASE_VERIFY_TOKEN` (production workflow contract).
-The production reviewer `vn-taphoanhatung` has a pending collaborator invitation;
-the reviewer rule cannot be applied until that invitation is accepted. `usehoplite`
-App access also needs verification for the new owner. Hosted CI is required after
-publication. No staging or production workflow was dispatched during this migration.
+The collaborator invitation was accepted and the production Environment now has
+required reviewer `vn-taphoanhatung`; staging remains unprotected as intended.
+`usehoplite` received the new-head event but its check suite remains queued with
+zero check runs; a user-OAuth rerequest returned 404 and caused no side effect.
+No staging or production workflow was dispatched during this migration.
 
-Next: publish this identity receipt to Tako-san, open the draft T19 PR and require
-exact-head hosted CI. Reprovision missing secrets through authorized controls and
-restore the production reviewer/App access before staging proof.
+Next: reprovision missing secrets through authorized controls and repair or verify
+the `usehoplite` installation before any staging-only proof. Keep draft PR #1
+unmerged and require exact-head hosted CI after every successor commit.
 Do not deploy production, run production D1 migrations, mutate production secrets
 or traffic, merge the T19 PR, or start T20 in this task.
 
-The draft T19 PR will be recreated in `vn-tako4/Tako-san` from
-`ops/t19-production-cert-pr-prep` to `main`; exact-head hosted CI is the next
-publication gate. Do not merge or use local tests as a substitute for hosted
-exact-head CI.
+Draft PR #1 exists in `vn-tako4/Tako-san` from
+`ops/t19-production-cert-pr-prep` to `main`; it remains open and draft. Do not
+merge or use local tests as a substitute for hosted exact-head CI.
 
 ---
 

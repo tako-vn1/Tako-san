@@ -1,6 +1,6 @@
 # Tako-san canonical migration and T19 reconstruction - 2026-09-24
 
-**Status: `TAKO_SAN_T19_MIGRATION_PR_PREP`. Production: `UNTOUCHED`.
+**Status: `TAKOSAN_T19_PR_CI_READY`. Production: `UNTOUCHED`.
 T20: `BLOCKED`.**
 
 - [done] Migrated the complete predecessor Git state from `vn-tako5/Takosan` (ID
@@ -26,17 +26,21 @@ T20: `BLOCKED`.**
   2 low) across `undici`, `ws` and `sharp` paths; no dependency change included
   in this migration-only branch.
 - [done] Recreated non-secret Actions settings, strict `validate` main protection,
-  repository variables and staging/production Environments on Tako-san. Deploy and
-  Production D1 Migration are disabled during migration certification.
+  repository variables and staging/production Environments on Tako-san. CI, Deploy
+  and Production D1 Migration are active; re-enabling Deploy/D1 created zero runs.
 - [blocked] Reprovision required environment secret values:
   `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`,
   `STAGING_RELEASE_VERIFY_TOKEN`, `RELEASE_VERIFY_TOKEN`. Names only are recorded.
-- [blocked] Production reviewer parity: `vn-taphoanhatung` has a pending
-  collaborator invitation; apply the reviewer rule after acceptance. `usehoplite`
-  App installation access remains unverified for the new owner.
-- [pending] Push this identity receipt and recreate the draft T19 PR in
-  `vn-tako4/Tako-san`.
-- [pending] Require fresh exact-head Tako-san hosted CI and record the run receipt.
+- [done] Production reviewer parity: `vn-taphoanhatung` accepted the collaborator
+  invitation and is the required reviewer on the production Environment. Staging
+  intentionally has no protection rules.
+- [blocked] `usehoplite` received the branch event but its suite remains queued
+  with zero check runs; user-OAuth rerequest returned 404 without side effects.
+- [done] Draft PR #1 exists in `vn-tako4/Tako-san`, base `main`, head
+  `ops/t19-production-cert-pr-prep`; it remains open and draft.
+- [done] Exact-head hosted CI run `35993945186` passed `validate` for
+  `fd841ce366a6d36fdb24784198539ff32f06dbcc` (190 files / 4,415 tests, migration
+  smoke and build PASS). Require a new exact-head run after successor commits.
 - [not-started] Staging-only proof from Tako-san. Production remains frozen.
 - [not-started] T20 until `T19_COMPLETE`.
 

@@ -1,6 +1,6 @@
 # Tako-san canonical migration and T19 reconstruction handoff - 2026-09-24
 
-**Status: `TAKO_SAN_T19_MIGRATION_PR_PREP`. Production: `UNTOUCHED`.
+**Status: `TAKOSAN_T19_PR_CI_READY`. Production: `UNTOUCHED`.
 T20: `BLOCKED`.**
 
 - **Canonical identity:** `vn-tako4/Tako-san` (ID `1385308553`), main
@@ -23,18 +23,20 @@ T20: `BLOCKED`.**
 - **Residual dependency audit:** existing graph reports 21 findings (6 high,
   13 moderate, 2 low) in `undici`, `ws` and `sharp` paths. This migration does
   not mix in dependency upgrades; track remediation separately.
-- **Control plane:** CI, read-only workflow permissions, strict `validate` main
-  protection, variables and both Environments were recreated. Deploy and Production
-  D1 Migration remain disabled during migration certification. Secret values are
-  unavailable and must be reprovisioned. Production reviewer `vn-taphoanhatung`
-  has a pending collaborator invitation; `usehoplite` App access remains unverified.
-- **Next:** push this identity receipt, open a draft PR and require fresh exact-head
-  Tako-san CI. Restore secrets, reviewer policy and App access before
-  any staging-only proof. Do not merge, deploy production, mutate production D1,
-  secrets or traffic, or start T20.
-- **PR:** recreate a draft PR in `vn-tako4/Tako-san`, base `main`, head
-  `ops/t19-production-cert-pr-prep`; exact-head hosted CI required. Do not merge
-  until a fresh exact-head hosted run completes successfully.
+- **Control plane:** CI, Deploy and Production D1 Migration are active; workflow
+  permissions remain read-only and `main` strictly requires `validate`. Variables
+  and both Environments were recreated. Exact-head PR CI run `35993945186` passed
+  for `fd841ce366a6d36fdb24784198539ff32f06dbcc`; re-enabling Deploy/D1 created
+  zero runs. Production required reviewer `vn-taphoanhatung` is restored; staging
+  remains without protection rules. Secret values are unavailable and must be
+  reprovisioned. `usehoplite` created a queued suite but zero check runs, so its
+  processing remains uncertified.
+- **Next:** provision secrets through authorized controls and repair or verify
+  `usehoplite` before any staging-only proof. Do not merge, deploy production,
+  mutate production D1, secrets or traffic, or start T20.
+- **PR:** draft PR #1 exists in `vn-tako4/Tako-san`, base `main`, head
+  `ops/t19-production-cert-pr-prep`. Keep it draft and require exact-head hosted CI
+  after every successor commit.
 
 ---
 
