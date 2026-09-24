@@ -28,12 +28,15 @@ T20: `BLOCKED`.**
   and both Environments were recreated. Exact-head PR CI run `35993945186` passed
   for `fd841ce366a6d36fdb24784198539ff32f06dbcc`; re-enabling Deploy/D1 created
   zero runs. Production required reviewer `vn-taphoanhatung` is restored; staging
-  remains without protection rules. Secret values are unavailable and must be
-  reprovisioned. `usehoplite` created a queued suite but zero check runs, so its
-  processing remains uncertified.
-- **Next:** provision secrets through authorized controls and repair or verify
-  `usehoplite` before any staging-only proof. Do not merge, deploy production,
-  mutate production D1, secrets or traffic, or start T20.
+  remains without protection rules. Staging has all three GitHub Environment
+  secrets and the matching Worker `RELEASE_VERIFY_TOKEN`; its Cloudflare credential
+  comes from the verified Wrangler 4 OAuth session and should be rotated to a
+  dedicated durable token for long-lived automation. Production secrets remain
+  intentionally absent. `usehoplite` installation access is proven by new-head
+  suites, but App-side suites remain queued with zero check runs.
+- **Next:** keep the PR draft. A future maintainer merge will require exact-main CI
+  and will automatically trigger staging after CI success. Do not deploy production,
+  mutate production D1, production secrets or traffic, or start T20.
 - **PR:** draft PR #1 exists in `vn-tako4/Tako-san`, base `main`, head
   `ops/t19-production-cert-pr-prep`. Keep it draft and require exact-head hosted CI
   after every successor commit.

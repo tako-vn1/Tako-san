@@ -43,20 +43,26 @@ settings, Actions policy, read-only workflow token, `main` protection with stric
 CI, Deploy and Production D1 Migration are active. Exact-head pull-request CI run
 `35993945186` passed `validate` for
 `fd841ce366a6d36fdb24784198539ff32f06dbcc`; re-enabling Deploy and Production D1
-Migration created zero runs and no workflow was dispatched. Secret values are not
-portable and are not available locally. Tako-san still needs environment secrets
-`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`,
-`STAGING_RELEASE_VERIFY_TOKEN` (staging) and `CLOUDFLARE_ACCOUNT_ID`,
-`CLOUDFLARE_API_TOKEN`, `RELEASE_VERIFY_TOKEN` (production workflow contract).
+Migration created zero runs and no workflow was dispatched. The staging
+Environment now has `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` and
+`STAGING_RELEASE_VERIFY_TOKEN`; the `frigo-staging` Worker has the matching
+`RELEASE_VERIFY_TOKEN`. The Cloudflare credential was taken from the currently
+authenticated Wrangler 4 OAuth session and verified against account
+`ef250a88911fd24073cb73d1c07e0218` and D1 `frigo-db-staging-v3`; rotate it to a
+dedicated durable API token before relying on long-lived automation. Production
+Environment secrets remain intentionally absent under the production freeze.
 The collaborator invitation was accepted and the production Environment now has
 required reviewer `vn-taphoanhatung`; staging remains unprotected as intended.
-`usehoplite` received the new-head event but its check suite remains queued with
-zero check runs; a user-OAuth rerequest returned 404 and caused no side effect.
+`usehoplite` receives every new-head event, confirming repository installation
+access, but its check suites remain queued with zero check runs; a user-OAuth
+rerequest returned 404 and caused no side effect. App-side check processing is a
+residual and is not the protected `validate` context.
 No staging or production workflow was dispatched during this migration.
 
-Next: reprovision missing secrets through authorized controls and repair or verify
-the `usehoplite` installation before any staging-only proof. Keep draft PR #1
-unmerged and require exact-head hosted CI after every successor commit.
+Next: keep draft PR #1 unmerged and require exact-head hosted CI after every
+successor commit. A future maintainer merge must first account for the fact that
+successful main-push CI will automatically trigger staging. Production credentials
+and App-side check processing remain separate follow-ups.
 Do not deploy production, run production D1 migrations, mutate production secrets
 or traffic, merge the T19 PR, or start T20 in this task.
 

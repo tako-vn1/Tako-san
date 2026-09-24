@@ -28,14 +28,19 @@ T20: `BLOCKED`.**
 - [done] Recreated non-secret Actions settings, strict `validate` main protection,
   repository variables and staging/production Environments on Tako-san. CI, Deploy
   and Production D1 Migration are active; re-enabling Deploy/D1 created zero runs.
-- [blocked] Reprovision required environment secret values:
-  `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`,
-  `STAGING_RELEASE_VERIFY_TOKEN`, `RELEASE_VERIFY_TOKEN`. Names only are recorded.
+- [done] Staging has `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` and
+  `STAGING_RELEASE_VERIFY_TOKEN`; Worker `frigo-staging` has the matching
+  `RELEASE_VERIFY_TOKEN`. The current credential is sourced from the verified
+  Wrangler 4 OAuth session; rotate to a dedicated durable token for long-lived CI.
+- [blocked] Production Environment secrets remain intentionally absent under the
+  production freeze: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`,
+  `RELEASE_VERIFY_TOKEN`.
 - [done] Production reviewer parity: `vn-taphoanhatung` accepted the collaborator
   invitation and is the required reviewer on the production Environment. Staging
   intentionally has no protection rules.
-- [blocked] `usehoplite` received the branch event but its suite remains queued
-  with zero check runs; user-OAuth rerequest returned 404 without side effects.
+- [follow-up] `usehoplite` installation access is confirmed by a new queued suite
+  for every head; App-side processing still creates zero check runs. User-OAuth
+  rerequest returned 404 without side effects; `validate` is unaffected.
 - [done] Draft PR #1 exists in `vn-tako4/Tako-san`, base `main`, head
   `ops/t19-production-cert-pr-prep`; it remains open and draft.
 - [done] Exact-head hosted CI run `35993945186` passed `validate` for
