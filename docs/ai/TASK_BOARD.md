@@ -22,7 +22,7 @@ T20: `BLOCKED`.**
   null fallback were recorded.
 - [done] Current operational docs corrected without changing application,
   workflow, migration or release code.
-- [done] Docs recovery PR #2 merged `2002dfd2` as current main `a86ed095`;
+- [done] Docs recovery PR #2 merged `2002dfd2` as `a86ed095`;
   exact-main CI `36016668591` passed and automatic Deploy `36017207468` was
   created through `workflow_run`.
 - [blocked] Deploy `36017207468`: release SUCCESS, production SKIPPED, staging

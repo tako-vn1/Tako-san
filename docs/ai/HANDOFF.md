@@ -4,8 +4,8 @@
 Production: `UNTOUCHED`.
 T20: `BLOCKED`.**
 
-- **Canonical identity:** `vn-tako4/Tako-san` (ID `1385308553`), current main
-  `a86ed095ba77d1e3e1ba549ee5b28240d50ba731`.
+- **Canonical identity:** `vn-tako4/Tako-san` (ID `1385308553`); docs-recovery
+  merge baseline `a86ed095ba77d1e3e1ba549ee5b28240d50ba731`.
 - **PR #1:** merged normally at `2026-09-24T13:55:01Z`; reviewed head
   `0899c49a28906d09f1a51b8afe2c72e09c860f18`; merge commit `d6204d91`.
 - **PR CI:** run `36007943241`, exact head `0899c49a`, `validate` SUCCESS.

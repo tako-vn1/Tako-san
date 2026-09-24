@@ -29,7 +29,7 @@ environment `staging`, recipe mode `static`, canary `0`, cutover `false`, actual
 and global source `static`, 71 served recipes and `fallbackReason=null`. No manual
 Deploy dispatch was used.
 
-Documentation recovery PR #2 merged as current main
+Documentation recovery PR #2 merged at
 `a86ed095ba77d1e3e1ba549ee5b28240d50ba731`. Exact-main CI run `36016668591`
 was created two seconds after that merge and passed `validate`. Deploy run
 `36017207468` was then created automatically through `workflow_run`; its release
