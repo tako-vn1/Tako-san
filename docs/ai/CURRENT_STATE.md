@@ -1,15 +1,15 @@
-# Tako-san canonical migration and T19 merge state - 2026-09-24
+# Tako-san canonical migration and T19 release-control state - 2026-09-25
 
-**Status: `TAKOSAN_T19_MERGED_EXACT_MAIN_CI_GREEN`. Production: `UNTOUCHED`.
+**Status: `TAKOSAN_STAGING_BLOCKED`. Exact-main CI: `GREEN`.
+Production: `UNTOUCHED`.
 T20: `BLOCKED`.**
 
 The canonical repository is `vn-tako4/Tako-san` (ID `1385308553`). PR #1,
 `ops(t19): add fail-closed production read-only certification`, merged normally
 from `ops/t19-production-cert-pr-prep` into `main` at `2026-09-24T13:55:01Z`.
-Its reviewed head was `0899c49a28906d09f1a51b8afe2c72e09c860f18`; the
-history-preserving merge commit and current canonical main are
-`d6204d91b1849bf98df89c1c590e74395c494c89`, with parents `a4b5d726` and
-`0899c49a`.
+Its reviewed head was `0899c49a28906d09f1a51b8afe2c72e09c860f18`; the T19
+application merge commit is `d6204d91b1849bf98df89c1c590e74395c494c89`, with
+parents `a4b5d726` and `0899c49a`.
 
 PR-head CI run `36007943241` passed `validate`. Real exact-main CI run
 `36009002161` was created at `2026-09-24T13:55:05Z`, four seconds after the merge,
@@ -29,17 +29,34 @@ environment `staging`, recipe mode `static`, canary `0`, cutover `false`, actual
 and global source `static`, 71 served recipes and `fallbackReason=null`. No manual
 Deploy dispatch was used.
 
+Documentation recovery PR #2 merged as current main
+`a86ed095ba77d1e3e1ba549ee5b28240d50ba731`. Exact-main CI run `36016668591`
+was created two seconds after that merge and passed `validate`. Deploy run
+`36017207468` was then created automatically through `workflow_run`; its release
+job passed and production was skipped, but staging failed closed before build or
+deployment. Wrangler's read-only Worker-secret lookup returned Cloudflare
+`Authentication error [code: 10000]` for the stored GitHub staging
+`CLOUDFLARE_API_TOKEN`. The three staging secret names are present, and the local
+Wrangler OAuth session can refresh and list the existing Worker
+`RELEASE_VERIFY_TOKEN`; therefore the stored GitHub access-token snapshot is no
+longer valid. No `a86ed095` deployment occurred. Staging remains healthy on the
+previous exact deployment `d6204d91`, with public readiness `ok`, database `ok`,
+mode `static`, canary `0`, cutover `false` and null fallback.
+
 The T19 production read-only certification workflow remains available but was not
 dispatched. Production deploy, production D1 migration, production secret
 mutation, production traffic change and rollback remain `NONE`. T20 remains
 blocked. Existing dependency-audit findings, the Wrangler OAuth credential that
-should later be rotated to a dedicated durable token, and `usehoplite` queued
-suites with zero check runs remain separate non-blocking residuals; none is the
+must be replaced with a dedicated durable least-privilege token, and `usehoplite`
+queued suites with zero check runs remain separate residuals; none is the
 protected `validate` context.
 
-Next: obtain an independent remote review of this exact-main state. Handle
-production prerequisites and Production Read-Only Certification as a separate,
-explicitly authorized task. Do not start rollout or T20 automatically.
+Next: provision a durable staging Cloudflare API token through authorized
+Cloudflare controls, replace only the staging Environment
+`CLOUDFLARE_API_TOKEN`, and re-run the reviewed automatic staging path against the
+same exact-main lineage. Handle production prerequisites and Production Read-Only
+Certification as a separate, explicitly authorized task. Do not start rollout or
+T20 automatically.
 
 ---
 

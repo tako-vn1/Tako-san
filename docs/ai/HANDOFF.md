@@ -1,10 +1,11 @@
-# Tako-san canonical migration and T19 merge handoff - 2026-09-24
+# Tako-san canonical migration and T19 release-control handoff - 2026-09-25
 
-**Status: `TAKOSAN_T19_MERGED_EXACT_MAIN_CI_GREEN`. Production: `UNTOUCHED`.
+**Status: `TAKOSAN_STAGING_BLOCKED`. Exact-main CI: `GREEN`.
+Production: `UNTOUCHED`.
 T20: `BLOCKED`.**
 
 - **Canonical identity:** `vn-tako4/Tako-san` (ID `1385308553`), current main
-  `d6204d91b1849bf98df89c1c590e74395c494c89`.
+  `a86ed095ba77d1e3e1ba549ee5b28240d50ba731`.
 - **PR #1:** merged normally at `2026-09-24T13:55:01Z`; reviewed head
   `0899c49a28906d09f1a51b8afe2c72e09c860f18`; merge commit `d6204d91`.
 - **PR CI:** run `36007943241`, exact head `0899c49a`, `validate` SUCCESS.
@@ -19,14 +20,23 @@ T20: `BLOCKED`.**
   main CI. Release and staging succeeded; production was skipped. The receipt
   records exact SHA `d6204d91`, `static`, canary `0`, cutover `false`, source
   `static`, 71 served recipes and null fallback.
+- **Docs recovery:** PR #2 merged docs-only head `2002dfd2` as `a86ed095`.
+  Exact-main CI run `36016668591` passed `validate`; automatic Deploy
+  `36017207468` ran release successfully and skipped production.
+- **Current staging blocker:** staging stopped before build/deploy because the
+  stored GitHub `CLOUDFLARE_API_TOKEN` was rejected by Cloudflare with code
+  `10000`. Secret names remain present. Local Wrangler OAuth can refresh and read
+  the Worker secret list, proving the stored access-token snapshot expired or was
+  invalidated. Staging remains on healthy SHA `d6204d91`; `a86ed095` was not
+  deployed.
 - **Safety:** Production certification was not run. Production deploy, D1,
   secrets, traffic and rollback remain untouched. T20 remains blocked.
-- **Residuals:** dependency audit, durable Cloudflare-token rotation and the
-  separate `usehoplite` zero-check-run behavior remain follow-ups; protected
-  `validate` is green and unaffected.
-- **Next:** independent remote review of exact-main state, followed only by a
-  separately authorized production-prerequisite/certification task. Do not start
-  rollout or T20 automatically.
+- **Residuals:** dependency audit and the separate `usehoplite` zero-check-run
+  behavior remain follow-ups; protected `validate` is green and unaffected.
+- **Next:** provision a durable least-privilege Cloudflare token, replace only the
+  staging Environment credential, then repeat the reviewed staging path. Handle
+  production prerequisites/certification separately. Do not start rollout or T20
+  automatically.
 
 ---
 
