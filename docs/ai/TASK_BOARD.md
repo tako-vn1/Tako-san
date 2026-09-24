@@ -1,3 +1,83 @@
+# Tako-san canonical migration and T19 reconstruction - 2026-09-24
+
+**Status: `TAKOSAN_T19_PR_CI_READY`. Production: `UNTOUCHED`.
+T20: `BLOCKED`.**
+
+- [done] Migrated the complete predecessor Git state from `vn-tako5/Takosan` (ID
+  `1383530832`) to canonical `vn-tako4/Tako-san` (ID `1385308553`) without
+  rewriting: 76 branches, 0 tags, 511 commits, `git fsck --full` PASS and exact
+  source/target head parity before this identity receipt. Predecessor and original
+  backup `vn-tako5/Frigo-dev` remain unchanged.
+- [done] Verified canonical main
+  `a4b5d7268537e88c3d2e31d418fc2e3691597b80` and published T19 source
+  `hoplite/akanthos-df8cfb50` at
+  `2254816a5f9ae007f552b05dd96e45643fdb7ca5` on both repositories.
+- [done] Recorded lost checkpoint `cb056f9` / `6e10fea` / `b8be01b` as not
+  recoverable; no original-object or SHA recovery claimed. Reconstructed the known
+  behavior as new commit `107c5f653c67d7dce5fc439c7821b6f99bcdfc8c`
+  on `ops/t19-production-cert-pr-prep`.
+- [done] Production Worker `GIT_COMMIT` now fails closed unless it is a lowercase
+  40-character hex SHA; valid/missing/empty/short/uppercase/non-hex/wrong-length
+  regression cases added. `deployedSha: "UNKNOWN"` cannot be certified.
+- [done] Frozen install, diff check, focused T19 243/243, lint, typecheck,
+  migration smoke, build and full suite 190 files / 4,415 tests PASS. Review
+  P0/P1/P2 = 0/0/0; read-only workflow boundaries preserved.
+- [follow-up] Existing dependency audit: 21 findings (6 high, 13 moderate,
+  2 low) across `undici`, `ws` and `sharp` paths; no dependency change included
+  in this migration-only branch.
+- [done] Recreated non-secret Actions settings, strict `validate` main protection,
+  repository variables and staging/production Environments on Tako-san. CI, Deploy
+  and Production D1 Migration are active; re-enabling Deploy/D1 created zero runs.
+- [done] Staging has `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` and
+  `STAGING_RELEASE_VERIFY_TOKEN`; Worker `frigo-staging` has the matching
+  `RELEASE_VERIFY_TOKEN`. The current credential is sourced from the verified
+  Wrangler 4 OAuth session; rotate to a dedicated durable token for long-lived CI.
+- [blocked] Production Environment secrets remain intentionally absent under the
+  production freeze: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`,
+  `RELEASE_VERIFY_TOKEN`.
+- [done] Production reviewer parity: `vn-taphoanhatung` accepted the collaborator
+  invitation and is the required reviewer on the production Environment. Staging
+  intentionally has no protection rules.
+- [follow-up] `usehoplite` installation access is confirmed by a new queued suite
+  for every head; App-side processing still creates zero check runs. User-OAuth
+  rerequest returned 404 without side effects; `validate` is unaffected.
+- [done] Draft PR #1 exists in `vn-tako4/Tako-san`, base `main`, head
+  `ops/t19-production-cert-pr-prep`; it remains open and draft.
+- [done] Exact-head hosted CI run `35993945186` passed `validate` for
+  `fd841ce366a6d36fdb24784198539ff32f06dbcc` (190 files / 4,415 tests, migration
+  smoke and build PASS). Require a new exact-head run after successor commits.
+- [not-started] Staging-only proof from Tako-san. Production remains frozen.
+- [not-started] T20 until `T19_COMPLETE`.
+
+---
+
+# Historical T19 production read-only certification workflow - 2026-09-23
+
+**Status: `T19_V2_PRODUCTION_CERT_WORKFLOW_PR_PENDING`. Production: `UNTOUCHED`.**
+
+- [done] Re-resolved repository `1368281478` / `vn-tako4/Frigo-dev`; main
+  `a4b5d726` and exact-main CI `35817133131` PASS.
+- [done] Staging certified: Deploy `35817440484`, attempt 2, release/staging
+  SUCCESS, production SKIPPED; exact-main static authority, 71 recipes, no fallback.
+- [done] Dedicated manual, approval-gated read-only certification workflow;
+  reused reviewed verifiers, guarded SQL, sanitized-only artifacts, rollback
+  baseline reads, final main/ledger/Worker rechecks. No application/tooling change.
+- [done] Focused 236/236 tests, lint/typecheck, local config check, migration smoke
+  (after existing sqlite setup repair), build, diff/shell syntax checks. Local
+  full suite exceeded 600 seconds (exit 124); hosted full-suite CI remains required.
+- [blocked] Publication: GitHub App lacks `workflows` permission; push rejected,
+  PR creation failed because no remote head branch exists. Implementation is
+  retained locally at `aee4e2e`. Operator must authorize Workflows write for this
+  installation before publication can resume; no credentials in chat.
+- [pending] Narrow PR, exact-head hosted CI/review, maintainer merge, new main CI,
+  production Environment approval and actual read-only certification.
+- [not-started] Production rollout, cross-flow, rollback proof, final D1 restoration.
+- [not-started] T20 (blocked until `T19_COMPLETE`).
+
+See `CURRENT_STATE.md` for exact checks, limitations and next action.
+
+---
+
 # Release-secret provisioning receipt - 2026-09-23
 
 **Status: `T19_V2_RELEASE_SECRET_PROVISIONING_BLOCKED`. Production: `UNTOUCHED`.**

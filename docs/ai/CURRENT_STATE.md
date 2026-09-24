@@ -1,3 +1,144 @@
+# Tako-san canonical migration and T19 checkpoint reconstruction - 2026-09-24
+
+**Status: `TAKOSAN_T19_PR_CI_READY`. Production: `UNTOUCHED`.
+T20: `BLOCKED`.**
+
+The canonical development repository is now `vn-tako4/Tako-san` (ID
+`1385308553`). The predecessor `vn-tako5/Takosan` (ID `1383530832`) and original
+backup `vn-tako5/Frigo-dev` (ID `1368281478`) remain unchanged. Before this
+identity receipt, the complete predecessor Git state was migrated without
+rewriting: 76 branches, 0 tags and 511 commits passed `git fsck --full`, with
+exact source/target head parity. Canonical `main` is
+`a4b5d7268537e88c3d2e31d418fc2e3691597b80`. The published T19 source branch is
+`hoplite/akanthos-df8cfb50` at
+`2254816a5f9ae007f552b05dd96e45643fdb7ca5`.
+
+Lost local checkpoint receipt: `cb056f9`, `6e10fea` and `b8be01b` were not
+recoverable as original Git objects. They were not forged or claimed as recovered.
+Their known intended changes were reconstructed semantically from the published
+T19 source SHA on `ops/t19-production-cert-pr-prep`. Implementation commit
+`107c5f653c67d7dce5fc439c7821b6f99bcdfc8c` makes production certification fail
+closed unless the Worker `GIT_COMMIT` binding is a lowercase 40-character hex SHA;
+`deployedSha: "UNKNOWN"` can no longer reach a PASS receipt. Permanent regression
+coverage includes valid, missing, empty, short, uppercase, non-hex and wrong-length
+values while preserving the audited read-only command, secret-redaction and safe
+binding-projection boundaries.
+
+Fresh validation on Takosan: install with the frozen lockfile PASS; `git diff
+--check` PASS; focused T19 suite 4 files / 243 tests PASS; lint PASS; typecheck
+PASS; migration smoke PASS; build PASS; full suite 190 files / 4,415 tests PASS.
+Review findings P0/P1/P2 = 0/0/0. The workflow remains manual-only, main-only,
+production-Environment gated, `contents: read` / `actions: read`, under
+`frigo-deploy-production`, with no deploy, migration apply, secret mutation,
+traffic mutation, rollback mutation or remote D1 write command.
+
+Dependency audit is a recorded residual, not a T19 regression: `pnpm audit
+--audit-level high` reports 21 existing findings (6 high, 13 moderate, 2 low),
+including transitive `wrangler`/`miniflare` `undici`, `jsdom` `ws`, and direct
+`sharp`. No dependency upgrade was mixed into this migration/reconstruction.
+
+Tako-san non-secret control plane matches the predecessor for repository merge
+settings, Actions policy, read-only workflow token, `main` protection with strict
+`validate`, repository variables and the `staging` / `production` Environments.
+CI, Deploy and Production D1 Migration are active. Exact-head pull-request CI run
+`35993945186` passed `validate` for
+`fd841ce366a6d36fdb24784198539ff32f06dbcc`; re-enabling Deploy and Production D1
+Migration created zero runs and no workflow was dispatched. The staging
+Environment now has `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` and
+`STAGING_RELEASE_VERIFY_TOKEN`; the `frigo-staging` Worker has the matching
+`RELEASE_VERIFY_TOKEN`. The Cloudflare credential was taken from the currently
+authenticated Wrangler 4 OAuth session and verified against account
+`ef250a88911fd24073cb73d1c07e0218` and D1 `frigo-db-staging-v3`; rotate it to a
+dedicated durable API token before relying on long-lived automation. Production
+Environment secrets remain intentionally absent under the production freeze.
+The collaborator invitation was accepted and the production Environment now has
+required reviewer `vn-taphoanhatung`; staging remains unprotected as intended.
+`usehoplite` receives every new-head event, confirming repository installation
+access, but its check suites remain queued with zero check runs; a user-OAuth
+rerequest returned 404 and caused no side effect. App-side check processing is a
+residual and is not the protected `validate` context.
+No staging or production workflow was dispatched during this migration.
+
+Next: keep draft PR #1 unmerged and require exact-head hosted CI after every
+successor commit. A future maintainer merge must first account for the fact that
+successful main-push CI will automatically trigger staging. Production credentials
+and App-side check processing remain separate follow-ups.
+Do not deploy production, run production D1 migrations, mutate production secrets
+or traffic, merge the T19 PR, or start T20 in this task.
+
+Draft PR #1 exists in `vn-tako4/Tako-san` from
+`ops/t19-production-cert-pr-prep` to `main`; it remains open and draft. Do not
+merge or use local tests as a substitute for hosted exact-head CI.
+
+---
+
+# Historical T19 production read-only certification workflow - 2026-09-23
+
+**Status: `T19_V2_PRODUCTION_CERT_WORKFLOW_PR_PENDING`. Production: `UNTOUCHED`.**
+Repository `1368281478` resolves to `vn-tako4/Frigo-dev`; starting main is
+`a4b5d7268537e88c3d2e31d418fc2e3691597b80`, with exact-main CI `35817133131`
+PASS. Deploy `35817440484`, attempt 2, is SUCCESS: release/staging passed and
+production was skipped. Its machine receipt proves exact-main staging in
+static/0/cutover=false, static source, 71 served recipes, release
+`rel-bd00a4f53fcaeee4`, null fallback. Staging D1 readiness is `not_evaluated`,
+not production D1 certification. Earlier secret-blocker entries below are historical.
+
+Added `.github/workflows/production-certify.yml`: manual dispatch on main only,
+explicit read-only confirmation and approved hardening SHA, existing release
+gate/exact-SHA CI, pinned checkout, production Environment approval, and read-only
+GitHub permissions. It reuses the existing config/identity/schema/catalog/runtime/
+integrity verifiers without changing application, migration or release tooling.
+Only metadata reads, guarded SELECTs (including the existing schema CTE), and
+`foreign_key_check`/`quick_check` are executed remotely. Worker/account/binding
+proof captures a future rollback baseline without changing traffic. Final ledger,
+Worker stability and current-main/CI rechecks precede the PASS receipt.
+
+Only `release-manifest.json` is uploaded. Raw identity/binding/catalog data stay
+in the Actions workspace; account identity is hashed in the receipt. Authority
+remains `UNKNOWN_RELEASE_SECRET_NOT_AVAILABLE`: this path does not request the
+verification secret and does not certify the production secret pair. A PASS is
+read-only evidence, not rollout authorization. The existing Cloudflare credential
+may have broader privileges; the safety guarantee is the reviewed command/SQL
+surface and regression guard, not a new IAM restriction. SQL filtering is
+conservative, not a general-purpose SQL parser. Certification shares Deploy's
+production concurrency group; migration workflow remains unchanged. Operators
+must not run that separate migration workflow during certification: the final
+ledger check is point-in-time evidence, not a lock against subsequent mutations.
+
+Verification executed: `pnpm install --frozen-lockfile`; `pnpm lint`;
+`pnpm typecheck`; `node scripts/d1-migration-check.mjs config`; and
+`pnpm exec vitest run tests/unit/production-certify-workflow.test.mjs
+tests/unit/release-check.test.mjs tests/unit/d1-migration-check.test.mjs
+tests/integration/d1-schema-gate.test.ts` (**236/236**, including 41 workflow
+safety tests). `pnpm check:migrations` initially failed because sqlite3 was
+absent; applying the existing `.hoplite/settings.json` sqlite setup repaired it.
+Repeated migration smoke and `pnpm build` PASS; `git diff --check` and `bash -n`
+on all eight workflow shell blocks PASS. The additional `pnpm test` full-suite
+attempt exceeded the 600-second sandbox command budget (exit 124); it is not
+claimed as a pass. Focused checks above were rerun on the final workflow. Hosted
+PR-head CI remains required for the complete suite. No Cloudflare calls, deploy,
+migration, secret change, rollback or other production mutation was performed.
+
+Publication attempted from `hoplite/akanthos-df8cfb50` at local implementation
+commit `aee4e2e`. `git push origin HEAD:hoplite/akanthos-df8cfb50` was rejected:
+GitHub refuses a GitHub App creating/updating
+`.github/workflows/production-certify.yml` without `workflows` permission.
+The subsequent `gh pr create` failed because the remote head branch does not
+exist. **No PR exists and no new hosted CI ran.** No alternate publication route
+was attempted. Local work is retained; no default-branch change occurred.
+
+Next: an operator must grant/approve Workflows write permission for the authorized
+repository GitHub App installation, then retry this branch push and narrow PR.
+Do not provide credentials in chat or bypass the App. Require exact-head hosted
+CI and review; an authorized maintainer must merge. Then require new exact-main
+CI and dispatch only Production Read-Only Certification
+with that full SHA, the owner-approved hardening SHA and confirmation. Respect
+production Environment review. Do not dispatch Deploy or Production D1 Migration.
+Production rollout remains blocked until live certification and its separate
+prerequisites pass. T19 is incomplete; T20 NOT STARTED.
+
+---
+
 # Release-secret provisioning receipt - 2026-09-23
 
 **Status: `T19_V2_RELEASE_SECRET_PROVISIONING_BLOCKED`. Production: `UNTOUCHED`.**

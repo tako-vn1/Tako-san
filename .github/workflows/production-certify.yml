@@ -1,0 +1,222 @@
+name: Production Read-Only Certification
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Full immutable current-main SHA to certify (no deployment)
+        type: string
+        required: true
+      hardened_sha:
+        description: Exact final hardening SHA approved by the release owner (same policy as Deploy)
+        type: string
+        required: true
+      confirm_read_only_certification:
+        description: Confirm production read-only certification only
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  # Share Deploy's production lock; a final ledger recheck also detects concurrent schema changes.
+  group: frigo-deploy-production
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.confirm_read_only_certification == true
+    runs-on: ubuntu-latest
+    outputs:
+      certify_sha: ${{ steps.gate.outputs.deploy_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Require immutable current main and exact-SHA CI
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_REF: ${{ inputs.ref }}
+          HARDENED_SHA: ${{ inputs.hardened_sha }}
+          RELEASE_ENVIRONMENT: production
+          RECIPE_CATALOG_MODE: static
+          RECIPE_CATALOG_D1_CANARY_PERCENT: '0'
+        run: |
+          node --input-type=module -e 'if (!/^[a-f0-9]{40}$/.test(process.env.RELEASE_REF || "")) throw new Error("Full immutable SHA required")'
+          node scripts/release-check.mjs gate
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: production-certification-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-manifest.json
+          if-no-files-found: error
+          retention-days: 90
+
+  certify:
+    needs: gate
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate.outputs.certify_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: production-certification-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install locked certification tooling
+        run: pnpm install --frozen-lockfile
+
+      - name: Recheck exact main after Environment approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)" = "$(node -p 'require("./release-manifest.json").sha')"
+          node scripts/release-check.mjs recheck
+          node scripts/d1-migration-check.mjs config
+
+      - name: Generate and guard reviewed read-only SQL
+        run: |
+          node --input-type=module -e 'import { catalogQuery } from "./scripts/d1-migration-check.mjs"; process.stdout.write(catalogQuery())' > catalog.sql
+          node scripts/d1-migration-check.mjs runtime-catalog-query > runtime-catalog.sql
+          node scripts/d1-schema-gate.mjs render > schema-gate.sql
+          node --input-type=module <<'JS'
+          import { readFileSync } from 'node:fs';
+          // Conservative guard for these reviewed generators, not a general SQL parser.
+          for (const [file, count] of [['catalog.sql', 2], ['runtime-catalog.sql', 5], ['schema-gate.sql', 1]]) {
+            const sql = readFileSync(file, 'utf8').replace(/'(?:''|[^'])*'|--[^\n]*|\/\*[\s\S]*?\*\//g, ' ');
+            const statements = sql.split(';').map((s) => s.trim()).filter(Boolean);
+            if (statements.length !== count) throw new Error('Unexpected read-only statement count');
+            for (const statement of statements) {
+              const start = file === 'schema-gate.sql' ? /^WITH\b/i : /^SELECT\b/i;
+              if (!start.test(statement) || /\b(INSERT|UPDATE|DELETE|REPLACE|CREATE|DROP|ALTER|VACUUM|REINDEX|ATTACH|DETACH|PRAGMA|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|load_extension|writefile|readfile)\b/i.test(statement)) {
+                throw new Error('Non-read-only SQL rejected');
+              }
+              for (const name of statement.match(/\bpragma_\w+/gi) || []) {
+                if (!['pragma_foreign_key_check', 'pragma_table_info'].includes(name.toLowerCase())) throw new Error('Unapproved PRAGMA function');
+              }
+            }
+          }
+          JS
+
+      - name: Certify live production identity and capture rollback baseline (read-only)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          node --input-type=module -e 'if (!process.env.CLOUDFLARE_API_TOKEN || !/^[a-f0-9]{32}$/i.test(process.env.CLOUDFLARE_ACCOUNT_ID || "")) throw new Error("Production Cloudflare access required")'
+          pnpm wrangler whoami > cloudflare-identity.txt
+          node --input-type=module -e 'import { readFileSync } from "node:fs"; if (!readFileSync("cloudflare-identity.txt", "utf8").includes(process.env.CLOUDFLARE_ACCOUNT_ID)) throw new Error("Configured Cloudflare account not proven by whoami")'
+          pnpm wrangler d1 list --json > d1-list.json
+          if pnpm wrangler d1 info frigo-db --json > d1-info.json 2> d1-info.err; then
+            node scripts/d1-migration-check.mjs identity release-manifest.json d1-list.json d1-info.json
+          else
+            node scripts/d1-migration-check.mjs identity release-manifest.json d1-list.json
+          fi
+          pnpm wrangler deployments status --name frigo --json > previous-deployment.json
+          node scripts/release-check.mjs deployment-snapshot release-manifest.json previous-deployment.json
+          previous_version="$(node -p 'require("./release-manifest.json").previousDeployment.versionId')"
+          pnpm wrangler versions view "$previous_version" --name frigo --json > previous-version.json
+          node scripts/release-check.mjs rollback-target release-manifest.json previous-version.json
+          node --input-type=module <<'JS'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          import { createHash } from 'node:crypto';
+          const manifest = JSON.parse(readFileSync('release-manifest.json', 'utf8'));
+          const version = JSON.parse(readFileSync('previous-version.json', 'utf8'));
+          const text = (name) => version.resources.bindings.find((b) => b.type === 'plain_text' && b.name === name)?.text;
+          if (text('ENVIRONMENT') !== 'production') throw new Error('Worker environment mismatch');
+          const sha = text('GIT_COMMIT');
+          if (!/^[a-f0-9]{40}$/.test(sha || '')) throw new Error('Production Worker GIT_COMMIT must be a lowercase 40-character SHA');
+          manifest.productionBaseline = {
+            accountIdentifierSha256: createHash('sha256').update(process.env.CLOUDFLARE_ACCOUNT_ID).digest('hex'),
+            worker: 'frigo', environment: 'production',
+            versionId: manifest.previousDeployment.versionId,
+            deployedSha: sha,
+            bindingVerified: true,
+          };
+          manifest.productionAuthority = 'UNKNOWN_RELEASE_SECRET_NOT_AVAILABLE';
+          writeFileSync('release-manifest.json', JSON.stringify(manifest, null, 2) + '\n');
+          JS
+
+      - name: Certify schema, ledger, catalog and integrity (read-only)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          bash scripts/d1-schema-gate.sh remote
+          # Also require a complete response: the legacy shell gate treats missing result arrays as empty.
+          pnpm wrangler d1 execute frigo-db --remote --yes --json --file schema-gate.sql > schema-proof.json
+          node --input-type=module -e 'import { readFileSync } from "node:fs"; const s = JSON.parse(readFileSync("schema-proof.json", "utf8")); if (!Array.isArray(s) || s.length !== 1 || s[0].success !== true || !Array.isArray(s[0].results) || s[0].results.length !== 0) throw new Error("Schema proof incomplete or failed")'
+          pnpm wrangler d1 execute frigo-db --remote --yes --command "SELECT name FROM d1_migrations ORDER BY name" --json > migration-ledger.json
+          node scripts/release-check.mjs schema release-manifest.json migration-ledger.json
+          pnpm wrangler d1 execute frigo-db --remote --yes --json --file catalog.sql > catalog.json
+          pnpm wrangler d1 execute frigo-db --remote --yes --json --file runtime-catalog.sql > runtime-catalog.json
+          node scripts/d1-migration-check.mjs runtime-catalog release-manifest.json runtime-catalog.json
+          pnpm wrangler d1 execute frigo-db --remote --yes --json --command "PRAGMA foreign_key_check" > foreign-keys.json
+          pnpm wrangler d1 execute frigo-db --remote --yes --json --command "PRAGMA quick_check" > quick-check.json
+          node scripts/d1-migration-check.mjs release-certify release-manifest.json catalog.json foreign-keys.json quick-check.json
+
+      - name: Require unchanged production baseline
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          pnpm wrangler d1 execute frigo-db --remote --yes --command "SELECT name FROM d1_migrations ORDER BY name" --json > final-ledger.json
+          node scripts/release-check.mjs schema release-manifest.json final-ledger.json
+          pnpm wrangler deployments status --name frigo --json > final-deployment.json
+          node --input-type=module <<'JS'
+          import { readFileSync } from 'node:fs';
+          import { verifyStableWorkerDeployment } from './scripts/release-check.mjs';
+          const manifest = JSON.parse(readFileSync('release-manifest.json', 'utf8'));
+          const current = verifyStableWorkerDeployment(JSON.parse(readFileSync('final-deployment.json', 'utf8')));
+          if (current.versionId !== manifest.previousDeployment.versionId || current.deploymentId !== manifest.previousDeployment.deploymentId) throw new Error('Production changed during certification');
+          JS
+
+      - name: Recheck exact main and finalize sanitized certification receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)" = "$(node -p 'require("./release-manifest.json").sha')"
+          node scripts/release-check.mjs recheck
+          node --input-type=module <<'JS'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const manifest = JSON.parse(readFileSync('release-manifest.json', 'utf8'));
+          if (manifest.repository !== process.env.GITHUB_REPOSITORY || manifest.environment !== 'production' || !manifest.productionBaseline?.bindingVerified || !manifest.catalog?.releaseComplete || !manifest.runtimeCatalog || !manifest.health) throw new Error('Incomplete certification');
+          manifest.certification = { result: 'PASS', readOnly: true, productionMutations: [], checkedAt: new Date().toISOString() };
+          writeFileSync('release-manifest.json', JSON.stringify(manifest, null, 2) + '\n');
+          JS
+
+      - name: Save sanitized receipt (PASS requires certification.result)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-certification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-manifest.json
+          if-no-files-found: error
+          retention-days: 90

@@ -1,3 +1,85 @@
+# Tako-san canonical migration and T19 reconstruction handoff - 2026-09-24
+
+**Status: `TAKOSAN_T19_PR_CI_READY`. Production: `UNTOUCHED`.
+T20: `BLOCKED`.**
+
+- **Canonical identity:** `vn-tako4/Tako-san` (ID `1385308553`), main
+  `a4b5d7268537e88c3d2e31d418fc2e3691597b80`. Predecessor
+  `vn-tako5/Takosan` (ID `1383530832`) and backup `vn-tako5/Frigo-dev` (ID
+  `1368281478`) remain unchanged.
+- **Remote parity checkpoint:** exact predecessor history, 76 branches / 0 tags /
+  511 commits, `git fsck --full` PASS before this identity receipt. Published T19 source
+  `hoplite/akanthos-df8cfb50` =
+  `2254816a5f9ae007f552b05dd96e45643fdb7ca5` on both repositories.
+- **Lost local checkpoint:** original objects `cb056f9`, `6e10fea`, `b8be01b`
+  were not recoverable. No SHA recovery is claimed. Their known intended behavior
+  was reconstructed honestly on `ops/t19-production-cert-pr-prep`; implementation
+  commit `107c5f653c67d7dce5fc439c7821b6f99bcdfc8c` fails closed for every missing
+  or malformed production Worker `GIT_COMMIT` and never emits `UNKNOWN` as a
+  certified deployed SHA.
+- **Verification:** frozen install, diff check, lint, typecheck, migration smoke
+  and build PASS; focused T19 4 files / 243 tests PASS; full suite 190 files /
+  4,415 tests PASS; review P0/P1/P2 = 0/0/0. Read-only boundaries remain intact.
+- **Residual dependency audit:** existing graph reports 21 findings (6 high,
+  13 moderate, 2 low) in `undici`, `ws` and `sharp` paths. This migration does
+  not mix in dependency upgrades; track remediation separately.
+- **Control plane:** CI, Deploy and Production D1 Migration are active; workflow
+  permissions remain read-only and `main` strictly requires `validate`. Variables
+  and both Environments were recreated. Exact-head PR CI run `35993945186` passed
+  for `fd841ce366a6d36fdb24784198539ff32f06dbcc`; re-enabling Deploy/D1 created
+  zero runs. Production required reviewer `vn-taphoanhatung` is restored; staging
+  remains without protection rules. Staging has all three GitHub Environment
+  secrets and the matching Worker `RELEASE_VERIFY_TOKEN`; its Cloudflare credential
+  comes from the verified Wrangler 4 OAuth session and should be rotated to a
+  dedicated durable token for long-lived automation. Production secrets remain
+  intentionally absent. `usehoplite` installation access is proven by new-head
+  suites, but App-side suites remain queued with zero check runs.
+- **Next:** keep the PR draft. A future maintainer merge will require exact-main CI
+  and will automatically trigger staging after CI success. Do not deploy production,
+  mutate production D1, production secrets or traffic, or start T20.
+- **PR:** draft PR #1 exists in `vn-tako4/Tako-san`, base `main`, head
+  `ops/t19-production-cert-pr-prep`. Keep it draft and require exact-head hosted CI
+  after every successor commit.
+
+---
+
+# Historical T19 production read-only certification workflow - 2026-09-23
+
+**Status: `T19_V2_PRODUCTION_CERT_WORKFLOW_PR_PENDING`. Production: `UNTOUCHED`.**
+
+- **Base/branch:** `vn-tako4/Frigo-dev` (ID `1368281478`), main `a4b5d726`,
+  exact-main CI `35817133131` PASS; branch `hoplite/akanthos-df8cfb50`.
+- **Staging:** Deploy `35817440484` attempt 2 SUCCESS, production SKIPPED.
+  Exact-main SHA, static/0/no-cutover, static source, 71 served recipes,
+  `rel-bd00a4f53fcaeee4`, null fallback; machine receipt independently checked.
+- **Changes:** manual `production-certify.yml` plus focused workflow tests.
+  Existing release and D1 algorithms are reused unchanged. Production Environment
+  approval remains mandatory. Read-only SQL/metadata only; no mutation command.
+  Only sanitized manifest artifacts; no secret access for authority proof.
+- **Checks:** focused 236/236, lint, typecheck, local config, migration smoke,
+  build and diff check PASS. Missing sqlite3 initially blocked migration smoke;
+  the existing repository setup repaired it. `pnpm test` exceeded the local
+  600-second command budget (exit 124); no full-suite pass is claimed. Hosted
+  complete-suite CI remains required; all eight workflow blocks pass `bash -n`.
+  Exact commands and structural-vs-IAM safety limits: `CURRENT_STATE.md`.
+- **Publication:** implementation commit `aee4e2e` is local only. Push of
+  `HEAD:hoplite/akanthos-df8cfb50` failed: this GitHub App lacks `workflows`
+  permission for the new workflow file. PR creation then failed because the
+  remote head branch does not exist. No PR/new hosted CI; do not claim publication.
+- **Next:** operator authorizes Workflows write for the existing repository App
+  installation, then retry the explicit branch push and narrow PR (never bypass
+  permissions). Require exact-head CI/review and maintainer merge, new main CI, then
+  dispatch Production Read-Only Certification on main with `ref=<full new main>`,
+  `hardened_sha=<owner-approved exact SHA>`,
+  `confirm_read_only_certification=true`. Wait for production Environment approval.
+  Inspect `certification.result=PASS` and the full sanitized receipt; a candidate
+  or partial failure artifact does not certify production. Missing ledger entries
+  must HOLD, never migrate in this workflow. Secret pair remains a separate gate.
+- **Boundary:** agent merge is prohibited; no live certification has run. No
+  deployment, migration, secret/config change or traffic mutation. T20 NOT STARTED.
+
+---
+
 # Release-secret provisioning receipt - 2026-09-23
 
 **Status: `T19_V2_RELEASE_SECRET_PROVISIONING_BLOCKED`. Production: `UNTOUCHED`.**
