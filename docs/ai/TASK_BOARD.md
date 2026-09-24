@@ -1,6 +1,7 @@
-# Tako-san canonical migration and T19 merge - 2026-09-24
+# Tako-san canonical migration and T19 release control - 2026-09-25
 
-**Status: `TAKOSAN_T19_MERGED_EXACT_MAIN_CI_GREEN`. Production: `UNTOUCHED`.
+**Status: `TAKOSAN_STAGING_BLOCKED`. Exact-main CI: `GREEN`.
+Production: `UNTOUCHED`.
 T20: `BLOCKED`.**
 
 - [done] Canonical repository verified as `vn-tako4/Tako-san` (ID `1385308553`).
@@ -21,8 +22,22 @@ T20: `BLOCKED`.**
   null fallback were recorded.
 - [done] Current operational docs corrected without changing application,
   workflow, migration or release code.
-- [follow-up] Existing dependency audit, dedicated durable Cloudflare-token
-  rotation and `usehoplite` App-side zero-check-run behavior remain separate.
+- [done] Docs recovery PR #2 merged `2002dfd2` as `a86ed095`;
+  exact-main CI `36016668591` passed and automatic Deploy `36017207468` was
+  created through `workflow_run`.
+- [blocked] Deploy `36017207468`: release SUCCESS, production SKIPPED, staging
+  failed closed before build/deploy because Cloudflare rejected the stored GitHub
+  `CLOUDFLARE_API_TOKEN` with authentication code `10000`. No `a86ed095`
+  deployment occurred; live staging remains healthy on `d6204d91`.
+- [evidence] All three staging secret names remain present. The local Wrangler
+  OAuth session can refresh and list the existing Worker `RELEASE_VERIFY_TOKEN`,
+  isolating the failure to the static OAuth access-token snapshot stored in
+  GitHub rather than a missing Worker secret.
+- [next] Provision a durable least-privilege Cloudflare API token and replace only
+  the staging Environment `CLOUDFLARE_API_TOKEN`, then repeat the reviewed staging
+  path.
+- [follow-up] Existing dependency audit and `usehoplite` App-side zero-check-run
+  behavior remain separate.
 - [blocked] Production Read-Only Certification, production deploy/D1/secrets/
   traffic/rollback and T20 require separate explicit authorization.
 - [next] Independent remote review of the exact-main state; do not start rollout
