@@ -1,4 +1,28 @@
-# Tako-san T19 legacy-Worker bootstrap fix - 2026-09-25 UTC
+# Tako-san T19 same-SHA promotion convergence fix - 2026-09-25 UTC
+
+**Status: `TAKOSAN_D1_PROMOTION_CONVERGENCE_FIX_IN_REVIEW`. Production at
+`canary-25` on `a3e1614`; d1 attempt rolled back. T19 incomplete, T20
+blocked.**
+
+`canonical_repository=tako-vn1/Tako-san`
+`canonical_repository_id=1385308553`
+
+- [done] Rollout on `a3e1614`: shadow `36140227253`, canary-1
+  `36141391948`, canary-5 `36142331814`, canary-25 `36143861402` SUCCESS.
+- [evidence] d1 `36144837880`: commit-only readiness wait passed at attempt
+  1 while the canary-25 version still answered; smoke failed on mode;
+  restore retried and recorded `restored` (step SUCCESS).
+- [done] Readiness wait now requires the approved authority state and 3
+  consecutive matches; authority proof polls only the pre-deploy state;
+  both bounded, all other mismatches fail closed. Workflow YAML unchanged.
+  `pnpm check` PASS (191 files / 4,453 tests).
+- [next] Merge → new-main CI → staging → certification → shadow on the new
+  SHA (rollback checkbox on) → canary 1 → 5 → 25 → d1 → rollback proof →
+  final d1.
+
+---
+
+# Historical T19 legacy-Worker bootstrap fix - 2026-09-25 UTC
 
 **Status: `TAKOSAN_PRODUCTION_BOOTSTRAP_FIX_IN_REVIEW`. Production Worker
 unchanged (pre-T19). T19 incomplete, T20 blocked.**

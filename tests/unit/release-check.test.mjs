@@ -21,6 +21,7 @@ import {
   verifyRollbackTarget,
   verifyStableWorkerDeployment,
   verifyWorkerD1Binding,
+  waitForRecipeAuthorityEvidence,
 } from '../../scripts/release-check.mjs';
 
 const repository = 'release-fixture/Frigo';
@@ -694,6 +695,59 @@ describe('T19 production transition and rollback safety', () => {
         { versionId: 'version-1', deploymentId: 'deployment-rollback' },
       ),
     ).toThrow('incomplete at expectedRecipeCount');
+  });
+
+  describe('post-deploy authority proof convergence (Deploy run 36144837880)', () => {
+    const d1Target = { ...target('d1'), previousRecipeAuthority: evidence('canary', 25) };
+    const run = (responses, extra = {}) => {
+      let clock = 0;
+      const logs = [];
+      const queue = [...responses];
+      const calls = { count: 0 };
+      const promise = waitForRecipeAuthorityEvidence(extra.manifest ?? d1Target, release, {
+        fetchEvidence: async () => {
+          calls.count += 1;
+          const next = queue.shift();
+          if (next === undefined) throw new Error('harness exhausted');
+          return next;
+        },
+        now: () => clock,
+        sleep: async (ms) => {
+          clock += ms;
+        },
+        log: (line) => logs.push(line),
+      });
+      return { promise, logs, calls, clock: () => clock };
+    };
+
+    it('retries while the pre-deploy canary-25 version still answers, then proves d1', async () => {
+      const h = run([evidence('canary', 25), evidence('canary', 25), evidence('d1')]);
+      await expect(h.promise).resolves.toMatchObject({ configuredMode: 'd1' });
+      expect(h.calls.count).toBe(3);
+      expect(h.logs.filter((line) => line.includes('still canary-25'))).toHaveLength(2);
+    });
+
+    it('fails after the bounded deadline when the old state never clears', async () => {
+      const h = run(Array.from({ length: 40 }, () => evidence('canary', 25)));
+      await expect(h.promise).rejects.toThrow('still served canary-25 instead of d1 after 90000 ms');
+      expect(h.clock()).toBeLessThanOrEqual(90_000);
+    });
+
+    it.each([
+      ['a D1 fallback on the approved state', evidence('d1', 0, { fallbackReason: 'd1_unavailable' })],
+      ['an unexpected intermediate state', evidence('canary', 5)],
+      ['the previous state on another commit', evidence('canary', 25, { commit: 'b'.repeat(40) })],
+    ])('fails immediately on %s', async (_label, first) => {
+      const h = run([first, evidence('d1')]);
+      await expect(h.promise).rejects.toThrow();
+      expect(h.calls.count).toBe(1);
+    });
+
+    it('never retries without preflight evidence (staging keeps a single proof attempt)', async () => {
+      const h = run([evidence('canary', 25), evidence('d1')], { manifest: target('d1') });
+      await expect(h.promise).rejects.toThrow();
+      expect(h.calls.count).toBe(1);
+    });
   });
 
   describe('legacy pre-T19 Worker authority endpoint (401 before routing)', () => {

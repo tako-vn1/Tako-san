@@ -8,7 +8,7 @@ const url = 'https://frigo-staging.example.workers.dev';
 const body = (over = {}) => ({ commit: newSha, environment: 'staging', status: 'ok', services: { database: 'ok' }, config: { ok: true }, ...over });
 
 // Deterministic harness: scripted responses, virtual clock advanced by `sleep`, no real timers.
-function harness(responses) {
+function harness(responses, requiredConsecutive = 1) {
   let clock = 0;
   const calls = [];
   const logs = [];
@@ -21,7 +21,7 @@ function harness(responses) {
     if (typeof next === 'string') return { ok: true, status: 200, json: async () => JSON.parse(next) };
     return { ok: true, status: 200, json: async () => next };
   };
-  const options = { url, fetch, now: () => clock, sleep: async (ms) => { clock += ms; }, deadlineMs: 90_000, intervalMs: 3_000, log: (line) => logs.push(line) };
+  const options = { url, fetch, now: () => clock, sleep: async (ms) => { clock += ms; }, deadlineMs: 90_000, intervalMs: 3_000, requiredConsecutive, log: (line) => logs.push(line) };
   return { options, calls, logs, clock: () => clock };
 }
 
@@ -114,5 +114,49 @@ describe('wait-for-deployed-release — bounded exact-SHA convergence', () => {
     for (const bad of ['http://frigo.example', 'https://frigo.example/path', 'frigo.example']) {
       await expect(waitForDeployedRelease(manifest, { ...harness([body()]).options, url: bad })).rejects.toThrow();
     }
+  });
+});
+
+describe('wait-for-deployed-release — same-SHA authority promotion (Deploy run 36144837880)', () => {
+  const authority = (mode, canaryPercent, cutoverEnabled) => ({ configuredMode: mode, canaryPercent, cutoverEnabled });
+  const canary25 = authority('canary', 25, true);
+  const d1 = authority('d1', 0, true);
+  const production = {
+    sha: newSha, environment: 'production',
+    recipeCatalogMode: 'd1', recipeCatalogCanaryPercent: 0, recipeCatalogCutoverEnabled: true,
+    previousRecipeAuthority: { commit: newSha, configuredMode: 'canary', canaryPercent: 25, cutoverEnabled: true },
+  };
+  const ready = (recipeAuthority, over = {}) => body({ environment: 'production', recipeAuthority, ...over });
+
+  it('does not accept the old canary-25 version just because it has the same commit', async () => {
+    const h = harness([ready(canary25), ready(canary25), ready(d1), ready(d1), ready(d1)], 3);
+    await expect(waitForDeployedRelease(production, h.options)).resolves.toMatchObject({ sha: newSha, attempts: 5 });
+    expect(h.logs.filter((line) => line.includes('observed_state=canary-25'))).toHaveLength(2);
+  });
+
+  it('requires consecutive approved observations; an old-version answer in between resets the count', async () => {
+    const h = harness([ready(d1), ready(d1), ready(canary25), ready(d1), ready(d1), ready(d1)], 3);
+    await expect(waitForDeployedRelease(production, h.options)).resolves.toMatchObject({ attempts: 6 });
+  });
+
+  it('fails after the deadline when the approved state never appears', async () => {
+    const h = harness(Array.from({ length: 40 }, () => ready(canary25)), 3);
+    await expect(waitForDeployedRelease(production, h.options)).rejects.toThrow('within 90000 ms');
+    expect(h.clock()).toBe(90_000);
+  });
+
+  it.each([
+    ['an unexpected valid state', authority('canary', 5, true)],
+    ['an invalid configuration', authority('invalid', 0, false)],
+    ['a contradictory cutover flag', authority('d1', 0, false)],
+  ])('fails closed immediately on %s instead of polling', async (_label, state) => {
+    const h = harness([ready(state), ready(d1), ready(d1), ready(d1)], 3);
+    await expect(waitForDeployedRelease(production, h.options)).rejects.toThrow('not the approved d1');
+    expect(h.calls).toHaveLength(1);
+  });
+
+  it('fails closed when the readiness summary omits recipe authority', async () => {
+    const h = harness([ready(undefined)], 3);
+    await expect(waitForDeployedRelease(production, h.options)).rejects.toThrow('recipeAuthority summary is missing');
   });
 });

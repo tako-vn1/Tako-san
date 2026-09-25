@@ -585,11 +585,124 @@ export function verifyDeployedRelease(manifest, readiness) {
     error.observedSha = readiness.commit;
     throw error;
   }
+  // Same-SHA promotions only change Worker vars, so the commit cannot tell old and new versions
+  // apart; the approved authority state must also be served before the release counts as deployed.
+  if (manifest.recipeCatalogMode !== undefined) {
+    const authority = readiness.recipeAuthority;
+    if (typeof authority !== 'object' || authority === null)
+      throw new Error('Readiness recipeAuthority summary is missing');
+    const observed = {
+      mode: authority.configuredMode,
+      canaryPercent: authority.canaryPercent,
+      cutoverEnabled: authority.cutoverEnabled,
+    };
+    const target = {
+      mode: manifest.recipeCatalogMode,
+      canaryPercent: manifest.recipeCatalogCanaryPercent,
+      cutoverEnabled: manifest.recipeCatalogCutoverEnabled,
+    };
+    if (!sameAuthorityState(observed, target)) {
+      if (!isPreviousAuthorityState(manifest, readiness.commit, observed)) {
+        throw new Error(
+          `Readiness recipe authority ${describeAuthorityState(observed)} is not the approved ${describeAuthorityState(target)} or the pre-deploy state`,
+        );
+      }
+      const error = new Error('Readiness still serves the pre-deploy recipe authority state');
+      error.code = RELEASE_PROPAGATION_PENDING;
+      error.observedSha = readiness.commit;
+      error.observedState = describeAuthorityState(observed);
+      throw error;
+    }
+  }
   return {
     sha: readiness.commit,
     environment: readiness.environment,
     checkedAt: new Date().toISOString(),
   };
+}
+
+function sameAuthorityState(a, b) {
+  return (
+    a.mode === b.mode && a.canaryPercent === b.canaryPercent && a.cutoverEnabled === b.cutoverEnabled
+  );
+}
+
+function describeAuthorityState(state) {
+  return state.mode === 'canary' ? `canary-${state.canaryPercent}` : String(state.mode);
+}
+
+/**
+ * True only when `observed` is a valid rollout state equal to the state captured by the production
+ * preflight for this exact commit (the old Worker version is still answering). Without preflight
+ * evidence (staging), any valid state on the approved SHA is treated as not yet converged; the
+ * bounded deadline still fails a Worker that never serves the approved state.
+ */
+function isPreviousAuthorityState(manifest, commit, observed) {
+  try {
+    const valid = validateRecipeCatalogRollout({
+      mode: observed.mode,
+      canaryPercent: observed.canaryPercent,
+    });
+    if (valid.cutoverEnabled !== observed.cutoverEnabled) return false;
+  } catch {
+    return false;
+  }
+  const previous = manifest.previousRecipeAuthority;
+  if (previous === undefined || previous === null) return true;
+  if (previous.unavailable === true || previous.commit !== commit) return false;
+  return sameAuthorityState(observed, {
+    mode: previous.configuredMode,
+    canaryPercent: previous.canaryPercent,
+    cutoverEnabled: previous.cutoverEnabled,
+  });
+}
+
+/**
+ * Polls the protected authority evidence until it proves the approved state. Only evidence that is
+ * exactly the preflight-captured previous state for the same commit (old version still answering)
+ * is retried, within a bounded deadline; every other mismatch fails immediately.
+ */
+export async function waitForRecipeAuthorityEvidence(manifest, release, {
+  fetchEvidence,
+  now = Date.now,
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  deadlineMs = 90_000,
+  intervalMs = 3_000,
+  log = console.log,
+}) {
+  const startedAt = now();
+  for (let attempt = 1; ; attempt += 1) {
+    const evidence = await fetchEvidence();
+    try {
+      return verifyRecipeAuthorityEvidence(manifest, evidence, release);
+    } catch (error) {
+      const observed = {
+        mode: evidence?.configuredMode,
+        canaryPercent: evidence?.canaryPercent,
+        cutoverEnabled: evidence?.cutoverEnabled,
+      };
+      const target = {
+        mode: manifest.recipeCatalogMode,
+        canaryPercent: manifest.recipeCatalogCanaryPercent,
+        cutoverEnabled: manifest.recipeCatalogCutoverEnabled,
+      };
+      const stale =
+        manifest.previousRecipeAuthority &&
+        evidence?.commit === manifest.sha &&
+        !sameAuthorityState(observed, target) &&
+        isPreviousAuthorityState(manifest, evidence.commit, observed);
+      if (!stale) throw error;
+      if (now() - startedAt + intervalMs > deadlineMs) {
+        throw new Error(
+          `Recipe authority still served ${describeAuthorityState(observed)} instead of ${describeAuthorityState(target)} after ${deadlineMs} ms (${attempt} attempts)`,
+        );
+      }
+      log(
+        `attempt ${attempt}: recipe authority still ${describeAuthorityState(observed)} (pre-deploy state), expected ${describeAuthorityState(target)}; propagation pending, retrying`,
+      );
+      await sleep(intervalMs);
+    }
+  }
 }
 
 function writeManifest(file, manifest) {
@@ -822,14 +935,20 @@ async function main() {
       );
     } else if (command === 'authority') {
       // Evidence file (offline) or live protected endpoint (APP_SMOKE_URL + RELEASE_VERIFY_TOKEN).
-      const evidence = evidenceFile
-        ? JSON.parse(readFileSync(evidenceFile, 'utf8'))
-        : await fetchRecipeAuthorityEvidence(
-            process.env.APP_SMOKE_URL,
-            process.env.RELEASE_VERIFY_TOKEN,
-          );
       const release = JSON.parse(readFileSync(CATALOG_RELEASE_MANIFEST_PATH, 'utf8'));
-      manifest.recipeAuthority = verifyRecipeAuthorityEvidence(manifest, evidence, release);
+      manifest.recipeAuthority = evidenceFile
+        ? verifyRecipeAuthorityEvidence(
+            manifest,
+            JSON.parse(readFileSync(evidenceFile, 'utf8')),
+            release,
+          )
+        : await waitForRecipeAuthorityEvidence(manifest, release, {
+            fetchEvidence: () =>
+              fetchRecipeAuthorityEvidence(
+                process.env.APP_SMOKE_URL,
+                process.env.RELEASE_VERIFY_TOKEN,
+              ),
+          });
       console.log(
         `Recipe authority verified: mode=${manifest.recipeAuthority.configuredMode} source=${manifest.recipeAuthority.actualSource} served=${manifest.recipeAuthority.servedRecipeCount} release=${manifest.recipeAuthority.releaseId} fallback=${manifest.recipeAuthority.fallbackReason}`,
       );
