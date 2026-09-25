@@ -1,4 +1,40 @@
-# Tako-san T19 same-SHA promotion convergence handoff - 2026-09-25 UTC
+# Tako-san T19 operator closure / T20 unlocked - 2026-09-25 UTC
+
+**Status: `T19_COMPLETE_OPERATOR_ACCEPTED`. T20: `UNLOCKED`.**
+
+`canonical_repository=tako-vn1/Tako-san`
+`canonical_repository_id=1385308553`
+`main_baseline=136cb6ff3d2921eac237c7b106b37ab5ee12a13f` (PR #6 merge)
+
+T19 closure was accepted by the operator based on the successful final D1
+deployment, the rollback proof, the final restoration, exact-main CI, the
+existing production read-only certification and runtime release evidence.
+The evidence below is operator-reported for runs on the same main SHA; this
+agent did not re-run or re-read those production runs in this task.
+
+- Exact-main CI `36149295615` SUCCESS; current-main staging `36149849086`
+  SUCCESS.
+- Production sequence: shadow `36150427552`, canary-1 `36151130515`,
+  canary-5 `36152198646`, canary-25 `36153116467`, first d1 `36153948951`
+  (all SUCCESS).
+- Rollback proof `36154980456` SUCCESS (d1 → shadow): PASS.
+- Final restore: canary-1 `36167843671`, canary-5 `36176092421`, canary-25
+  `36176824421`, final d1 `36183890785` (all SUCCESS): PASS.
+- Final production authority: `mode=d1`, `percent=0`, `cutover=true`,
+  `source=d1`, served recipes `500`, release `rel-bd00a4f53fcaeee4`,
+  `fallback=null`, runtime fingerprint `f8cf8c7ff59df9fe29e246b9e3c9aad0fd155fa8df35bf671ac4d03fa2b5ab37`.
+
+**The final post-rollout read-only recertification was waived by the
+operator. No post-final-D1 certification run occurred; do not invent a PASS
+receipt for it.**
+
+T20 (Meal Composition V2) is unlocked and implemented on
+`feat/t20-meal-composition-v2`; see the T20 section above this one once it is
+recorded. T20 must not change production recipe authority (d1/0/true, 500).
+
+---
+
+# Historical T19 same-SHA promotion convergence handoff - 2026-09-25 UTC
 
 **Status: `TAKOSAN_D1_PROMOTION_CONVERGENCE_FIX_IN_REVIEW`. Production
 stable at `canary-25` (`a3e1614`). T19 incomplete; T20 blocked.**
