@@ -41,13 +41,15 @@ export class T20Harness {
   db = new SqliteD1();
   cookies: Record<string, string> = {};
   users: Record<string, string> = {};
-  private counter = 0;
+  // Isolate-local rate-limit counters outlive a test, so every seeded user is globally unique.
+  private static counter = 0;
   mode: Mode = 'd1';
   extraEnv: Partial<Env> = {};
 
   async seedHousehold(householdId: string, stock: ReadonlyArray<readonly [string, string, number, string, string]> = T20_STOCK) {
-    this.counter += 1;
-    const userId = `t20-user-${householdId}-${this.counter}`;
+    T20Harness.counter += 1;
+    const counter = T20Harness.counter;
+    const userId = `t20-user-${householdId}-${counter}`;
     this.db.seed(`INSERT INTO users (id, email, is_guest) VALUES ('${userId}', '${userId}@example.test', 0);
       INSERT INTO households (id, name, created_by) VALUES ('${householdId}', 'T20', '${userId}');
       INSERT INTO household_members (id, household_id, user_id, role) VALUES ('hm-${householdId}', '${householdId}', '${userId}', 'owner');`);
@@ -55,9 +57,9 @@ export class T20Harness {
       this.db.seed(`INSERT INTO inventory_items (id, household_id, ingredient_id, name, quantity, unit, category, storage, freshness, data_source, version) VALUES
         ${stock.map(([id, name, qty, unit, category]) => `('t20-${id.toLowerCase()}-${householdId}', '${householdId}', '${id}', '${name}', ${qty}, '${unit}', '${category}', 'fridge', 'fresh', 'manual', 1)`).join(',\n')};`);
     }
-    const token = `t20-session-${householdId}-${this.counter}`;
+    const token = `t20-session-${householdId}-${counter}`;
     await this.db.prepare(`INSERT INTO sessions_v2 (id, user_id, household_id, token_hash, expires_at) VALUES (?, ?, ?, ?, '2099-01-01T00:00:00Z')`)
-      .bind(`sess-${householdId}-${this.counter}`, userId, householdId, await sha256Hex(token)).run();
+      .bind(`sess-${householdId}-${counter}`, userId, householdId, await sha256Hex(token)).run();
     this.cookies[householdId] = `${SESSION_COOKIE}=${token}`;
     this.users[householdId] = userId;
     return userId;

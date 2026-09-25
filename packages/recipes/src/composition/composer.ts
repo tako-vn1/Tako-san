@@ -26,7 +26,7 @@ export const COMPOSITION_BUDGET = Object.freeze({
   maxOptions: 3,
   maxCatalogCandidates: 320,
 });
-export type CompositionBudgetLimits = typeof COMPOSITION_BUDGET;
+export type CompositionBudgetLimits = { [Key in keyof typeof COMPOSITION_BUDGET]: number };
 
 export const SCORE_WEIGHTS = Object.freeze({
   roleCompleteness: 0.3, inventoryCoverage: 0.2, shoppingCostProxy: 0.15, preferenceFit: 0.15,

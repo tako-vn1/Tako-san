@@ -28,7 +28,6 @@ import {
  * stale revision, so a concurrent or retried stale request can never overwrite newer intent.
  */
 const ScopeSchema = z.object({ householdId: CatalogIdSchema, userId: CatalogIdSchema }).strict();
-type Scope = z.infer<typeof ScopeSchema>;
 const RevisionSchema = z.number().int().safe().min(1).max(Number.MAX_SAFE_INTEGER - 1);
 const SlotIdSchema = z.string().min(1).max(64);
 const TimestampSchema = z.string().datetime({ offset: true });
@@ -98,7 +97,7 @@ const OWNED_PLAN = `SELECT 1 FROM generated_meal_plans plan
   JOIN household_members member ON member.household_id = plan.household_id AND member.user_id = plan.creator_user_id
   WHERE plan.id = ? AND plan.household_id = ? AND plan.creator_user_id = ?`;
 
-async function all(db: D1DatabaseBinding, statement: D1PreparedStatement, label: string): Promise<unknown[]> {
+async function all(statement: D1PreparedStatement, label: string): Promise<unknown[]> {
   const result = await statement.all<unknown>();
   if (!result.success || !Array.isArray(result.results)) throw new Error(`Meal composition ${label} read failed`);
   return result.results;
@@ -144,7 +143,7 @@ export async function readPlanCompositions(db: D1DatabaseBinding, rawScope: unkn
 export async function planHasCompositions(db: D1DatabaseBinding, rawScope: unknown, rawPlanId: unknown): Promise<boolean> {
   const scope = ScopeSchema.parse(rawScope);
   const planId = CatalogIdSchema.parse(rawPlanId);
-  const rows = await all(db, db.prepare(`SELECT 1 FROM generated_meal_plan_compositions
+  const rows = await all(db.prepare(`SELECT 1 FROM generated_meal_plan_compositions
     WHERE plan_id = ? AND EXISTS (${OWNED_PLAN}) LIMIT 1`).bind(planId, planId, scope.householdId, scope.userId), 'existence');
   return rows.length === 1;
 }
@@ -152,7 +151,7 @@ export async function planHasCompositions(db: D1DatabaseBinding, rawScope: unkno
 /** Persisted role rows for exactly the requested (authority-visible) recipes. */
 export async function readRoleAssignments(db: D1DatabaseBinding, visibleRecipeIds: ReadonlySet<string>): Promise<PersistedRoleAssignment[]> {
   if (!visibleRecipeIds.size) return [];
-  const rows = await all(db, db.prepare(`SELECT recipe_id, role, source, decision, confidence, reviewed
+  const rows = await all(db.prepare(`SELECT recipe_id, role, source, decision, confidence, reviewed
     FROM recipe_role_assignments ORDER BY recipe_id, role, source`), 'role assignment');
   return rows.map((raw) => RoleRowSchema.parse(raw)).filter((row) => visibleRecipeIds.has(row.recipe_id))
     .map((row) => ({ recipeId: row.recipe_id, role: row.role, source: row.source, decision: row.decision,

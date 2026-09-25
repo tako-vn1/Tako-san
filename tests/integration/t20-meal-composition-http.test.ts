@@ -1,13 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MealPlanDtoSchema, PlanShoppingDtoSchema } from '../../packages/domain/src/meal-planning-api';
+import { MealPlanDtoSchema } from '../../packages/domain/src/meal-planning-api';
 import {
-  AssistProposalDtoSchema,
-  AutoOptionsDtoSchema,
-  PickerPageDtoSchema,
   PlanCompositionsDtoSchema,
   SlotCompositionDtoSchema,
 } from '../../packages/domain/src/meal-composition-api';
-import { ALL_RECIPES } from '../../packages/recipes/src/data';
 import { resetRecipeAuthorityCacheForTests } from '../../src/worker/services/recipe-authority';
 import { resetRoleIndexMemoForTests } from '../../src/worker/services/meal-composition';
 import { quietLogs, T20Harness, T20_INTENT } from '../helpers/t20-composition-harness';
@@ -16,7 +12,6 @@ vi.mock('../../src/worker/services/email', () => ({ sendEmail: vi.fn(), buildOtp
 
 const HOUSE = 't20-house-a';
 const OTHER = 't20-house-b';
-const STATIC_IDS = new Set(ALL_RECIPES.map((recipe) => recipe.id));
 // D1-only pilot recipe (Tôm xào bông cải xanh), fully covered by the harness stock.
 const D1_ONLY = 'imp-26a36c69306143bc';
 const CASE_TIMEOUT = 30_000;

@@ -61,7 +61,7 @@ export function simpleFoodDefinition(food: SimpleFood): RecipeDefinition | null 
   if (!food.portion) return null;
   // Evaluation vehicle only: never added to a catalog, authority, picker or response.
   return {
-    id: `sf.${food.id}`, slug: food.id, title: food.title.en, cuisine: 'simple_food', servings: 1,
+    id: `simple-food-${food.id}`, slug: food.id, title: food.title.en, cuisine: 'simple_food', servings: 1,
     cookTimeMinutes: food.prepMinutes, difficulty: 'easy', provenance: { sourceType: 'curated', verificationState: 'unverified' },
     ingredients: [{ ingredientId: food.portion.ingredientId, name: food.title.en, requiredQuantity: food.portion.quantity,
       unit: food.portion.unit, isOptional: false }],

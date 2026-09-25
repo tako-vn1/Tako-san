@@ -55,15 +55,18 @@ export function normalizeText(value: string): string {
 
 const CANONICAL_CATEGORY = new Map(CANONICAL_INGREDIENTS.map((item) => [item.id, item.category]));
 const PROTEIN_CATEGORIES = new Set(['meat', 'seafood', 'egg']);
-const PROTEIN_WORDS = /\b(thit|ba chi|suon|bo|ga|heo|vit|ca|tom|muc|cua|ngheu|so diep|trung|dau phu|dau hu|hai san|bach tuoc|oc|xuc xich|cha|nem|lap xuong|ca hoi|tofu|chicken|beef|pork|salmon|shrimp|egg)\b/;
+// Matched on diacritic-preserving lowercase text: "cà chua" (tomato) is not "cá" (fish), "bơ" is not "bò".
+const PROTEIN_WORDS = /(?<![\p{L}\p{N}])(thịt|ba chỉ|sườn|bò|gà|heo|lợn|vịt|cá|tôm|mực|cua|ghẹ|nghêu|sò|hàu|trứng|đậu phụ|đậu hũ|hải sản|bạch tuộc|ốc|xúc xích|chả|nem|lạp xưởng|giò|pate|thăn|bacon|chicken|beef|pork|salmon|shrimp|egg|tofu)(?![\p{L}\p{N}])/u;
+const lower = (value: string) => value.normalize('NFC').toLowerCase();
 const NOODLE_OR_RICE = /^(pho|bun|mi|mien|hu tieu|banh canh|udon|ramen|ramyeon|soba|pad thai|com|xoi|chao|risotto|pasta|spaghetti|lasagna|banh mi|naengmyeon|japchae|bibimbap|gimbap|kimbap|mi quang|cao lau|pizza)\b/;
 const BROTHY_NOODLE = /^(pho|chao|ramen|ramyeon|udon|banh canh|hu tieu|mien|bun|mi quang)\b/;
 const NOT_BROTHY = /\b(xao|tron|cha|lanh|kho|y|nuong|chien)\b/;
-const SOUP_TITLE = /^(canh|sup|tom yum|miso|soup)\b|\b(jjigae|guk|tang|soup|sup)\b/;
-const DESSERT_TITLE = /^(che|banh flan|flan|kem|pudding|mochi|tiramisu|panna cotta|sua chua|thach|banh plan)\b/;
+// Diacritic-preserving: "canh" (soup) is not "cánh" (wing); "chè" (dessert) is not "chế".
+const SOUP_TITLE = /^(canh|súp|soup|tom yum|miso)(?![\p{L}\p{N}])|(?<![\p{L}\p{N}])(jjigae|guk|soup|súp)(?![\p{L}\p{N}])/u;
+const DESSERT_TITLE = /^(chè|bánh flan|flan|kem|pudding|mochi|tiramisu|panna cotta|sữa chua|thạch|bánh plan)(?![\p{L}\p{N}])/u;
 const SIDE_TITLE = /^(goi|nom|salad|dua|kim chi|cu cai|rau song|banh trang tron|edamame|sunomono)\b/;
 const ROLL_TITLE = /^(cuon|goi cuon|nem|cha gio|bo bia)\b|\bcuon\b/;
-const VEG_METHOD = /\b(xao|luoc|hap|nuong|om|tron|chien|ap chao|nau)\b/;
+const VEG_METHOD = /\b(xao|luoc|hap|nuong|om|tron|chien|ap chao|nau|kho|rang)\b/;
 const HOTPOT = /^lau\b/;
 const PLAIN_STAPLE = /^(com trang|com nong|xoi trang|banh mi khong|com gao lut)\b/;
 
@@ -77,7 +80,10 @@ function proteinLine(recipe: Recipe): string | null {
   for (const line of recipe.ingredients) {
     if (line.isOptional) continue;
     const category = CANONICAL_CATEGORY.get(line.ingredientId);
-    if ((category && PROTEIN_CATEGORIES.has(category)) || PROTEIN_WORDS.test(normalizeText(line.name))) {
+    const name = lower(line.name);
+    // Mushrooms named after meat ("nấm đùi gà") are not a protein line.
+    if (name.startsWith('nấm')) continue;
+    if ((category && PROTEIN_CATEGORIES.has(category)) || PROTEIN_WORDS.test(name)) {
       return line.ingredientId;
     }
   }
@@ -87,6 +93,7 @@ function proteinLine(recipe: Recipe): string | null {
 /** Pure rule classification of one runtime recipe. */
 export function classifyRecipeRoles(recipe: Recipe): RecipeRoleProfile {
   const title = normalizeText(recipe.title);
+  const exact = lower(recipe.title);
   const tags = recipe.tags.map(normalizeText);
   const category = recipe.category ?? null;
   const protein = proteinLine(recipe);
@@ -95,7 +102,7 @@ export function classifyRecipeRoles(recipe: Recipe): RecipeRoleProfile {
   const required = recipe.ingredients.filter((line) => !line.isOptional).length;
   if (/\b(chien|ran|tempura|karaage|tonkatsu)\b/.test(title) || category === 'mon_chien') traits.add('fried');
 
-  if (DESSERT_TITLE.test(title) || tags.some((tag) => tag === 'trang mieng' || tag === 'mon ngot')) {
+  if (DESSERT_TITLE.test(exact) || tags.some((tag) => tag === 'trang mieng' || tag === 'mon ngot')) {
     add(assignments, 'dessert', 'title_or_tag:dessert');
   } else if (PLAIN_STAPLE.test(title)) {
     add(assignments, 'staple', 'title:plain_staple');
@@ -103,7 +110,7 @@ export function classifyRecipeRoles(recipe: Recipe): RecipeRoleProfile {
   } else if (HOTPOT.test(title) || category === 'mon_lau_tiec') {
     add(assignments, 'main', 'category_or_title:hotpot');
     traits.add('complete_meal'); traits.add('brothy');
-  } else if (category === 'mon_canh' || SOUP_TITLE.test(title) || tags.some((tag) => tag === 'mon canh' || tag === 'canh' || tag === 'sup')) {
+  } else if (category === 'mon_canh' || SOUP_TITLE.test(exact) || tags.some((tag) => tag === 'mon canh' || tag === 'canh' || tag === 'sup')) {
     add(assignments, 'soup', category === 'mon_canh' ? 'category:mon_canh' : 'title_or_tag:soup');
     traits.add('brothy');
   } else if (NOODLE_OR_RICE.test(title) || category === 'mon_bun_pho') {
