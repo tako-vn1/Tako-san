@@ -23,11 +23,12 @@ const reviewedCommands = {
   'certify: Recheck exact main after Environment approval': 'aa81ef73b471de6553f8479ec179a3534902e91dbd0e24374184626b80ecda5f',
   'certify: Generate and guard reviewed read-only SQL': '9ca685fe87015090bafaf8544ff961d42e5efed2b63377357f3f241b4f9b634a',
   'certify: Certify live production identity and capture rollback baseline (read-only)': '34c78ea996af23f60c9ee0c16186f26752cf705dcaab9ceb3668609076d4c3f9',
-  'certify: Certify schema, ledger, catalog and integrity (read-only)': '1dd853444dc6e51ee1a7879a0a805cacad7c4306dcc4049cec45672aa56e9bfc',
+  'certify: Certify schema, ledger, catalog and integrity (read-only)': 'e2bcb4088e661d5b00016db447ce9062016e1beb7a6f9ee68035423af1183f1f',
   'certify: Require unchanged production baseline': '7152c73d337451a8dd765b025786184cc168b8b1d29a49bd4a0f21d1771c7fac',
   'certify: Recheck exact main and finalize sanitized certification receipt': '238204516ee89aa6389b3241d476c7c6293ee9903a89796439f6311d5efc131b',
 };
 const reviewedSchemaGate = {
+  'scripts/d1-readonly-query.mjs': '3567c70842edaca5deae7828454548983fd6fff6aae05ae1becf271bee2888c2',
   'scripts/d1-schema-gate.sh': 'e48596c6001f7fc20bb0d03213553f0bfe7575585bc02144d432f0a11cccb625',
   'scripts/d1-schema-gate.mjs': 'e443766807873c458581c82049cef1b0967dff2493b61804e1ae7f6bb6e7128a',
   'scripts/d1-schema-gate.sql': 'c6d7da1c5f5cb9b16e7738242723cf571cbf426f8aeb7c68ba01e37b2ba2888c',
@@ -163,9 +164,15 @@ describe('production certification workflow safety', () => {
       expect(commands).toContain(command);
       expect(deploy).toContain(command);
     }
+    for (const proof of ['schema', 'catalog', 'runtime-catalog']) {
+      expect(commands).toContain(`node scripts/d1-readonly-query.mjs ${proof}`);
+    }
     expect([...commands.matchAll(/--command "([^"]+)"/g)].map((m) => m[1])).toEqual([
       'SELECT name FROM d1_migrations ORDER BY name', 'PRAGMA foreign_key_check', 'PRAGMA quick_check',
     ]);
+    expect(commands).not.toMatch(/wrangler d1 execute [^\n]*--file\b/);
+    expect(deploy).toContain('node scripts/d1-readonly-query.mjs runtime-catalog');
+    expect(deploy).not.toContain('--file runtime-catalog.sql');
   });
 
   it('rejects absent or malformed schema proof, not just reported schema issues', () => {
