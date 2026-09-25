@@ -46,14 +46,21 @@ export function PlannerWeek({ plan, model, locale }: { plan: MealPlanDto; model:
           <div className="flex justify-between items-center mb-2"><span className="text-[11px] font-bold uppercase tracking-wide text-takosan-green-deep">{t[meal.mealType]} · {meal.time}</span><ChevronRight size={17} className="text-semantic-text-muted" /></div>
           {(() => {
             const composition = composing ? compositionFor(meal.slotId) : undefined;
-            if (!composition || (composition.source === 'v1_projection' && composition.components.length <= 1)) {
-              return <h3 className="text-lg font-heading font-bold text-semantic-text-primary leading-snug">{meal.title}</h3>;
-            }
-            return <><h3 className="sr-only">{t[meal.mealType]}</h3><CompositionList composition={composition} locale={locale} /></>;
+            if (!composition || composition.source === 'v1_projection') return <>
+              <h3 className="text-lg font-heading font-bold text-semantic-text-primary leading-snug">{meal.title}</h3>
+              <div className="flex flex-wrap gap-4 text-xs text-semantic-text-secondary mt-3"><span className="flex items-center gap-1"><Users size={14} />{meal.servings} {t.people}</span><span className="flex items-center gap-1"><Clock size={14} />{meal.cookTimeMinutes === null ? t.unknownTime : `${meal.cookTimeMinutes} ${t.minutes}`}</span></div>
+              <p className="text-xs mt-3 text-takosan-green-deep">{meal.requirements.some((item) => !item.optional && item.status === 'unresolved') ? t.quantityReview : meal.requirements.some((item) => !item.optional && item.status !== 'satisfied') ? t.needsShopping : t.available}</p>
+              {meal.reasons.length > 0 && <p className="text-xs text-semantic-text-muted mt-2">{reasonLabel(meal.reasons[0], locale)}</p>}
+            </>;
+            // A composed slot is described by its components, not by the V1 generation record.
+            const statuses = composition.components.map((item) => item.projection?.status);
+            return <>
+              <h3 className="sr-only">{t[meal.mealType]}</h3>
+              <CompositionList composition={composition} locale={locale} />
+              <div className="flex flex-wrap gap-4 text-xs text-semantic-text-secondary mt-3"><span className="flex items-center gap-1"><Users size={14} />{meal.servings} {t.people}</span></div>
+              <p className="text-xs mt-3 text-takosan-green-deep">{statuses.includes('unresolved') ? t.quantityReview : statuses.includes('needs_shopping') ? t.needsShopping : t.available}</p>
+            </>;
           })()}
-          <div className="flex flex-wrap gap-4 text-xs text-semantic-text-secondary mt-3"><span className="flex items-center gap-1"><Users size={14} />{meal.servings} {t.people}</span><span className="flex items-center gap-1"><Clock size={14} />{meal.cookTimeMinutes === null ? t.unknownTime : `${meal.cookTimeMinutes} ${t.minutes}`}</span></div>
-          <p className="text-xs mt-3 text-takosan-green-deep">{meal.requirements.some((item) => !item.optional && item.status === 'unresolved') ? t.quantityReview : meal.requirements.some((item) => !item.optional && item.status !== 'satisfied') ? t.needsShopping : t.available}</p>
-          {meal.reasons.length > 0 && <p className="text-xs text-semantic-text-muted mt-2">{reasonLabel(meal.reasons[0], locale)}</p>}
         </Link>
       </Card>)}
       {plan.result.unplannedSlots.filter((slot) => slot.date === date).map((slot) => <div className="rounded-2xl border border-dashed border-semantic-warning/50 p-4 bg-semantic-warning-soft/50" key={slot.slotId}><h3 className="text-sm font-semibold">{t[slot.mealType]} · {t.unplanned}</h3><ul className="text-xs text-semantic-text-secondary mt-2 space-y-1">{slot.reasons.map((code) => <li key={code}>{reasonLabel(code, locale)}</li>)}</ul>

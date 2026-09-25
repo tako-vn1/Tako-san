@@ -1,4 +1,70 @@
-# Tako-san T19 operator closure / T20 unlocked - 2026-09-25 UTC
+# Tako-san T20 Meal Composition V2 - 2026-09-25 UTC
+
+**Status: `T20_CODE_COMPLETE` candidate — local gates PASS; PR-head hosted CI
+is the remaining gate (see PR). T19: `T19_COMPLETE_OPERATOR_ACCEPTED`. Production
+untouched: recipe authority d1/0/cutover=true, 500 recipes; no T20 deploy; no
+production D1 migration.**
+
+`canonical_repository=tako-vn1/Tako-san`
+`canonical_repository_id=1385308553`
+`starting_main=136cb6ff3d2921eac237c7b106b37ab5ee12a13f`
+`branch=feat/t20-meal-composition-v2`
+
+Implemented (ADR-031, `MEAL_COMPOSITION_V2.md`):
+- T20A: additive migration `0039_meal_composition_v2.sql`
+  (`generated_meal_plan_compositions`, `generated_meal_plan_components`,
+  `recipe_role_assignments`; partial unique indexes for one dish per meal);
+  domain model, closed role enum, deterministic role rules with provenance,
+  nine bounded simple foods, flexible meal profiles, V1 read-time projection.
+- T20B: server-authoritative Manual builder API (add/remove/swap/lock/role/
+  reorder/replace) sharing the plan `revision` behind a batch fence; picker
+  (summary DTOs, role/kind/text filters, stable offset cursor, ≤ 24/page).
+- T20C/D: Assisted (complete / regenerate unlocked) and Auto (top ≤ 3) on one
+  bounded, deterministic beam search; suggestions never write; apply recomputes
+  and requires the same option ID; locks are domain-enforced.
+- T20E: all components of all meals projected against one running T04
+  inventory projection, then unchanged T05 aggregation (single subtraction).
+- T20F: composed week cards, meal composer, picker bottom sheet/dialog,
+  suggestion panels; vi/en; lock `aria-pressed`, one polite live region, focus
+  restoration, Escape cancels without mutation.
+- V1: unedited slots read as `main / legacy_v1`; V1 schemas unchanged; V1 swap
+  on a composed slot is 409 `COMPOSITION_MANAGED_SLOT`; V1 regenerate keeps
+  locked components; V1 shopping projects components. Flag off = pre-T20.
+- Flags: `MEAL_COMPOSITION_V2_ENABLED` (server) and
+  `VITE_MEAL_COMPOSITION_V2_ENABLED` (UI), both default off, independent of T19.
+- Preview: `PREVIEW_MEAL_COMPOSITION_V2=true node scripts/security-preview.mjs`
+  opts the isolated preview into V2 (default off keeps the T06B browser suite).
+
+Role distribution on the 500-recipe D1 release (pinned test): main 362, side
+87, soup 70, vegetable 37, simple_food 7, staple 0, dessert 0; unclassified 0,
+invalid 0, duplicates 0, contradictions 0, review-required 0.
+
+Checks executed (local, Node 24.19, sqlite3):
+- `pnpm check` PASS: typecheck, lint, Vitest **197 files / 4,502 tests**
+  (725.9 s), `migration-smoke=ok`, build. T20 suites: 6 files / 48 tests; T19
+  authority suites (split 11, persistence 18, observability 19) PASS;
+  d1-schema-gate 9 PASS.
+- Earlier full run: 4,496/4,497 with one unrelated 5 s timeout in
+  `production-certify-workflow.test.mjs` under parallel load; that file passed
+  48/48 in isolation and in the final `pnpm check`.
+- Browser (isolated preview, synthetic data, agent-browser): 375×812, 390×844,
+  768×1024, 1280×900 — plan generation, V1 cards, composer, Auto options and
+  accept, picker keyboard focus/Escape return, no horizontal overflow, no
+  unnamed controls.
+
+Not done / deferred: leftovers (T20B/T21), per-component servings, role review
+tooling and AI-assisted offline role proposals, picker ingredient/cuisine
+filters, whole-week Auto, price-aware scoring. `tests/fixtures/migration-sha256.json`
+gets the 0039 hash only after the migration is applied (fixture policy).
+
+Next: independent review of the T20 PR; require exact-head hosted `validate`.
+Rollout (separately authorized): apply 0039 to staging then production D1 (the
+schema gate fails closed on a 0038 ledger), then enable both flags. Do not change
+T19 recipe authority.
+
+---
+
+# Historical T19 operator closure / T20 unlocked - 2026-09-25 UTC
 
 **Status: `T19_COMPLETE_OPERATOR_ACCEPTED`. T20: `UNLOCKED`.**
 

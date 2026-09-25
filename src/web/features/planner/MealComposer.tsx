@@ -91,7 +91,7 @@ export function MealComposer({ plan, slotId, model, locale }: {
     {[...composition.missingRoles, ...composition.recommendedRoles].slice(0, 2).map((role) =>
       <div key={role} className="mt-3 rounded-xl bg-takosan-mint/60 p-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-takosan-green-deep">{c.missing(roleLabel(role, locale))}</p>
-        <Button size="sm" variant="outline" disabled={disabled} onClick={() => setPicker({ mode: 'add', role })}><Plus size={14} className="mr-1" />{c.addDish}</Button>
+        <Button size="sm" variant="outline" disabled={disabled} aria-label={`${c.addDish}: ${roleLabel(role, locale)}`} onClick={() => setPicker({ mode: 'add', role })}><Plus size={14} className="mr-1" />{c.addDish}</Button>
       </div>)}
     <div className="grid sm:grid-cols-3 gap-2 mt-4">
       <Button variant="secondary" disabled={disabled} onClick={() => setPicker({ mode: 'add' })}><Plus size={16} className="mr-2" />{c.addDish}</Button>

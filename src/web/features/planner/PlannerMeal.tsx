@@ -14,7 +14,7 @@ import { formatQuantity, ingredientLabel, reasonLabel } from './presentation';
 import { PlannerError } from './PlannerShell';
 import type { usePlanner } from './usePlanner';
 import { MealComposer } from './MealComposer';
-import { isMealCompositionEnabled } from './composition';
+import { isMealCompositionEnabled, usePlanCompositions } from './composition';
 
 export function PlannerMeal({ plan, slotId, model, locale }: {
   plan: MealPlanDto; slotId: string; model: ReturnType<typeof usePlanner>; locale: PlannerLocale;
@@ -39,6 +39,9 @@ export function PlannerMeal({ plan, slotId, model, locale }: {
   }, [swapOpen]);
 
   const composing = isMealCompositionEnabled();
+  const compositions = usePlanCompositions(plan, composing);
+  // Once a slot is composed, the V1 generation record (title, ingredients, method) no longer describes the meal.
+  const composed = composing && compositions.data?.compositions.find((entry) => entry.slotId === slotId)?.source === 'v2';
   if (!meal) return composing && plan.intent.slots.some((slot) => `${slot.date}:${slot.mealType}:${slot.sequence}` === slotId)
     ? <><Link className="inline-flex items-center gap-2 min-h-11 text-sm text-takosan-green-deep font-semibold" to={`/planner/${plan.id}`}><ArrowLeft size={16} />{t.back}</Link>
       <MealComposer plan={plan} slotId={slotId} model={model} locale={locale} /></>
@@ -57,12 +60,12 @@ export function PlannerMeal({ plan, slotId, model, locale }: {
     <Link className="inline-flex items-center gap-2 min-h-11 text-sm text-takosan-green-deep font-semibold" to={`/planner/${plan.id}`}><ArrowLeft size={16} />{t.back}</Link>
     <Card className="!p-5 sm:!p-6">
       <p className="text-xs font-bold text-takosan-green-deep uppercase tracking-wide">{t[meal.mealType]} · {meal.date}</p>
-      <h2 className="text-2xl font-heading font-bold text-semantic-text-primary mt-2 leading-tight">{meal.title}</h2>
-      <div className="flex gap-5 text-sm text-semantic-text-secondary mt-4"><span className="inline-flex items-center gap-1"><Users size={16} />{meal.servings} {t.people}</span><span className="inline-flex items-center gap-1"><Clock size={16} />{meal.cookTimeMinutes === null ? t.unknownTime : `${meal.cookTimeMinutes} ${t.minutes}`}</span></div>
+      <h2 className="text-2xl font-heading font-bold text-semantic-text-primary mt-2 leading-tight">{composed ? t[meal.mealType] : meal.title}</h2>
+      <div className="flex gap-5 text-sm text-semantic-text-secondary mt-4"><span className="inline-flex items-center gap-1"><Users size={16} />{meal.servings} {t.people}</span>{!composed && <span className="inline-flex items-center gap-1"><Clock size={16} />{meal.cookTimeMinutes === null ? t.unknownTime : `${meal.cookTimeMinutes} ${t.minutes}`}</span>}</div>
       {!composing && <Button className="mt-5" fullWidth variant="secondary" disabled={!!model.busy || plan.freshness.reasons.includes('planning_time_elapsed')} onClick={() => setSwapOpen(true)}><RefreshCw size={16} className="mr-2" />{t.swap}</Button>}
     </Card>
     {composing && <MealComposer plan={plan} slotId={slotId} model={model} locale={locale} />}
-    <Card><h3 className="font-heading font-bold text-lg">{t.ingredients}</h3>
+    {!composed && <><Card><h3 className="font-heading font-bold text-lg">{t.ingredients}</h3>
       <ul className="divide-y divide-semantic-border/70 mt-2">{meal.requirements.map((item, index) => <li key={`${item.ingredientId}:${index}`} className="py-4">
         <div className="flex flex-wrap justify-between gap-2"><span className="font-semibold text-sm">{ingredientLabel(item.ingredientId, locale)}{item.optional && <span className="block text-xs text-semantic-text-muted font-normal">{t.optional}</span>}</span><span className="text-sm font-semibold">{formatQuantity(item.required, locale)}</span></div>
         <p className="text-xs text-semantic-text-secondary mt-2">{t.covered}: {formatQuantity(item.covered, locale)}</p>
@@ -81,7 +84,7 @@ export function PlannerMeal({ plan, slotId, model, locale }: {
       {model.busy === 'explain' && <p role="status" className="text-sm mt-2">{t.explaining}</p>}
       {(explanation || aiFailed) && <p role="status" className="text-xs text-takosan-green-deep mt-3">{explanation?.source === 'ai' ? t.aiUsed : t.fallback}</p>}
       <p className="text-xs text-semantic-text-muted mt-3">{t.aiNote}</p>
-    </Card>
+    </Card></>}
     <Card><h3 className="font-heading font-bold text-lg">{t.feedback}</h3><div className="grid grid-cols-2 gap-2 mt-4">{(['liked', 'disliked', 'cooked', 'skipped', ...(swappedHere ? ['swapped' as const] : [])] as const).map((type) =>
       <Button key={type} variant={receipts.includes(type) ? 'secondary' : 'outline'} disabled={!!model.busy || receipts.includes(type)} onClick={() => void feedback(type)}>{receipts.includes(type) ? `${t.feedbackSaved}: ` : ''}{t[type]}</Button>)}</div><p className="text-xs text-semantic-text-muted mt-3">{t.cookedNote}</p></Card>
     {swapOpen && <dialog ref={dialog} onCancel={(event) => { if (model.busy) event.preventDefault(); else setSwapOpen(false); }} onKeyDown={(event) => {

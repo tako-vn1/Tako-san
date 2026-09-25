@@ -94,7 +94,7 @@ describe('T20 Meal composer UI', () => {
     const current = plan();
     const m = model(current);
     api.update.mockResolvedValue({});
-    await render(<MealComposer plan={current} slotId={slotId} model={m} locale="en" />);
+    await render(<MealComposer plan={current} slotId={slotId} model={m as never} locale="en" />);
     expect(container.textContent).toContain('Phở bò');
     expect(container.textContent).toContain('Steamed rice');
     expect(container.textContent).toContain('Staple');
@@ -115,7 +115,7 @@ describe('T20 Meal composer UI', () => {
     api.picker.mockResolvedValue({ schemaVersion: 1, items: [{ kind: 'simple_food', id: 'sf-sliced-cucumber', title: 'Dưa leo thái lát',
       roles: ['vegetable', 'side', 'simple_food'], cuisine: null, cookTimeMinutes: 5, difficulty: null, constraintState: 'none_requested' }],
     nextCursor: null, total: 1 });
-    await render(<MealComposer plan={current} slotId={slotId} model={model(current)} locale="en" />);
+    await render(<MealComposer plan={current} slotId={slotId} model={model(current) as never} locale="en" />);
     await act(async () => byLabel('Add dish').click());
     const dialog = document.querySelector('[role="dialog"]')!;
     expect(dialog.getAttribute('aria-modal')).toBe('true');
@@ -133,7 +133,7 @@ describe('T20 Meal composer UI', () => {
     api.picker.mockResolvedValue({ schemaVersion: 1, items: [{ kind: 'recipe', id: 'canh-chua', title: 'Canh chua',
       roles: ['soup'], cuisine: 'vietnamese', cookTimeMinutes: 30, difficulty: 'easy', constraintState: 'none_requested' }], nextCursor: null, total: 1 });
     api.add.mockResolvedValue({});
-    await render(<MealComposer plan={current} slotId={slotId} model={model(current)} locale="en" />);
+    await render(<MealComposer plan={current} slotId={slotId} model={model(current) as never} locale="en" />);
     await act(async () => byLabel('Add dish').click());
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 250)); });
     await act(async () => byLabel('Choose: Canh chua').click());
@@ -149,7 +149,7 @@ describe('T20 Meal composer UI', () => {
         explanations: [{ code: 'USES_INVENTORY', count: 3, role: null }, { code: 'ROLE_ADDED', count: null, role: 'soup' }],
         components: [{ kind: 'recipe', role: 'soup', recipeId: 'canh-chua', simpleFoodId: null, title: 'Canh chua', locked: false, existingComponentId: null }] } });
     api.assistApply.mockResolvedValue({});
-    await render(<MealComposer plan={current} slotId={slotId} model={model(current)} locale="en" />);
+    await render(<MealComposer plan={current} slotId={slotId} model={model(current) as never} locale="en" />);
     await act(async () => byLabel('Complete this meal').click());
     expect(container.textContent).toContain('Uses 3 ingredients already in your fridge.');
     expect(container.textContent).toContain('Soup added for meal balance.');

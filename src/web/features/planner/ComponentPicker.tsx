@@ -84,7 +84,7 @@ export function ComponentPicker({ locale, initialRole, busy, onChoose, onClose }
               <div className="min-w-0">
                 <p className="text-sm font-semibold truncate">{title}</p>
                 <p className="text-xs text-semantic-text-muted mt-0.5">{item.roles.map((value) => roleLabel(value, locale)).join(' · ')}
-                  {item.cookTimeMinutes !== null && ` · ${item.cookTimeMinutes}′`}</p>
+                  {!!item.cookTimeMinutes && ` · ${item.cookTimeMinutes}′`}</p>
                 {item.constraintState === 'unknown' && <p className="text-xs text-semantic-warning-strong mt-0.5">{c.safetyUnknown}</p>}
               </div>
               <Button size="sm" variant="secondary" disabled={busy} aria-label={`${c.choose}: ${title}`}
