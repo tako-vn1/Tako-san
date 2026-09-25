@@ -32,6 +32,11 @@ export const queryKeys = {
     ['mealPlanningAlternatives', ...scope(), planId, slotId] as const,
   mealPlanningAlternativesForPlan: (planId: string) =>
     ['mealPlanningAlternatives', ...scope(), planId] as const,
+  mealPlanningCompositions: (planId: string, revision: number) =>
+    ['mealPlanningCompositions', ...scope(), planId, revision] as const,
+  mealPlanningCompositionsForPlan: (planId: string) => ['mealPlanningCompositions', ...scope(), planId] as const,
+  mealCompositionPicker: (params: { role: string; q: string; kind: string }) =>
+    ['mealCompositionPicker', ...scope(), params] as const,
   notifications: () => ['notifications', ...scope()] as const,
   shoppingList: () => ['shoppingList', ...scope()] as const,
   foodPreferences: () => ['foodPreferences', ...scope()] as const,
