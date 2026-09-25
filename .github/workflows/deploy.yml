@@ -301,8 +301,12 @@ jobs:
           status="$(curl --silent --show-error --output previous-authority.json --write-out '%{http_code}' \
             --max-time 30 --header "Authorization: Bearer ${RELEASE_VERIFY_TOKEN}" \
             --header 'Accept: application/json' "${APP_SMOKE_URL}/api/v1/health/recipe-authority" || true)"
+          legacy_authority=false
           if [ "$status" = 404 ]; then
             printf '{"unavailable":true,"httpStatus":404}\n' > previous-authority.json
+          elif [ "$status" = 401 ]; then
+            # Pre-T19 Worker: auth middleware 401s before routing. Verified below against its GIT_COMMIT.
+            legacy_authority=true
           elif [ "$status" != 200 ]; then
             echo "Recipe authority preflight failed with HTTP ${status}"
             exit 1
@@ -312,6 +316,9 @@ jobs:
           previous_version="$(node -p 'require("./release-manifest.json").previousDeployment.versionId')"
           pnpm wrangler versions view "$previous_version" --name frigo --json > previous-version.json
           node scripts/release-check.mjs rollback-target release-manifest.json previous-version.json
+          if [ "$legacy_authority" = true ]; then
+            node scripts/release-check.mjs legacy-authority release-manifest.json previous-version.json previous-authority.json
+          fi
           node scripts/release-check.mjs transition release-manifest.json previous-authority.json
 
       - name: Deploy to Cloudflare production
@@ -355,6 +362,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           previous_version="$(node -e "const m=require('./release-manifest.json'); process.stdout.write(m.previousDeployment.versionId)")"
+          legacy_previous="$(node -e "const m=require('./release-manifest.json'); process.stdout.write(m.previousRecipeAuthority?.legacyWorkerCommit ? 'true' : 'false')")"
           node scripts/cloudflare-worker-rollback.mjs "$previous_version" > rollback-mutation.json
           restored=false
           deadline=$((SECONDS + 180))
@@ -366,10 +374,12 @@ jobs:
             status="$(curl --silent --show-error --output rollback-authority.json --write-out '%{http_code}' \
               --max-time 10 --header "Authorization: Bearer ${RELEASE_VERIFY_TOKEN}" \
               --header 'Accept: application/json' "${APP_SMOKE_URL}/api/v1/health/recipe-authority" || true)"
-            if [ "$status" = 404 ]; then
-              printf '{"unavailable":true,"httpStatus":404}\n' > rollback-authority.json
+            if [ "$status" = 404 ] || { [ "$status" = 401 ] && [ "$legacy_previous" = true ] && \
+              ! grep -q '"code":"RELEASE_VERIFY_UNAUTHORIZED"' rollback-authority.json; }; then
+              printf '{"unavailable":true,"httpStatus":%s}\n' "$status" > rollback-authority.json
+              status=unavailable
             fi
-            if { [ "$status" = 200 ] || [ "$status" = 404 ]; } && \
+            if { [ "$status" = 200 ] || [ "$status" = unavailable ]; } && \
               node scripts/release-check.mjs rollback release-manifest.json rollback-deployment.json rollback-authority.json previous-version.json rollback-mutation.json; then
               restored=true
               break

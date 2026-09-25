@@ -5,6 +5,7 @@ import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   RELEASE_PROPAGATION_PENDING,
+  classifyLegacyRecipeAuthorityEndpoint,
   migrationManifest,
   requireSuccessfulCi,
   validateRecipeCatalogManifestPolicy,
@@ -694,6 +695,69 @@ describe('T19 production transition and rollback safety', () => {
       ),
     ).toThrow('incomplete at expectedRecipeCount');
   });
+
+  describe('legacy pre-T19 Worker authority endpoint (401 before routing)', () => {
+    const legacySha = 'c'.repeat(40);
+    const manifest = {
+      sha: goodSha,
+      previousDeployment: { versionId: 'version-1', deploymentId: 'deployment-before' },
+    };
+    const legacyVersion = (commit = legacySha, id = 'version-1') =>
+      workerVersion(id, [
+        { type: 'd1', name: 'DB', id: 'f975ec39-b2c8-4a2a-80e1-0366054599d3' },
+        { type: 'plain_text', name: 'GIT_COMMIT', text: commit },
+      ]);
+    const legacyBody = { error: 'Unauthorized: Malformed JWT structure', code: 'TOKEN_INVALID' };
+    const options = (health = "healthRoutes.get('/health', ...)", ancestor = true) => ({
+      isAncestor: (a, d) => ancestor && a === legacySha && d === goodSha,
+      readHealthRoutes: () => health,
+    });
+
+    it('classifies a verified legacy Worker 401 as unavailable and bootstraps only static/shadow', () => {
+      const evidence = classifyLegacyRecipeAuthorityEndpoint(
+        manifest,
+        legacyVersion(),
+        legacyBody,
+        options(),
+      );
+      expect(evidence).toEqual({ unavailable: true, httpStatus: 401, legacyWorkerCommit: legacySha });
+      expect(
+        validateRecipeCatalogTransition(
+          target('shadow', 0, { recipeCatalogRollbackConfirmed: true }),
+          evidence,
+          release,
+        ).kind,
+      ).toBe('bootstrap');
+      expect(() =>
+        validateRecipeCatalogTransition(target('shadow'), evidence, release),
+      ).toThrow('explicit rollback/bootstrap confirmation');
+      expect(() => validateRecipeCatalogTransition(target('canary', 1), evidence, release)).toThrow(
+        'bootstrap',
+      );
+      // Restoring the legacy Worker must reproduce "unavailable" for rollback proof.
+      expect(() =>
+        verifyRecipeCatalogRollback(
+          { ...manifest, previousRecipeAuthority: evidence },
+          { id: 'deployment-rollback', versions: [{ version_id: 'version-1', percentage: 100 }] },
+          { unavailable: true, httpStatus: 401 },
+          legacyVersion(),
+          { versionId: 'version-1', deploymentId: 'deployment-rollback' },
+        ),
+      ).not.toThrow();
+    });
+
+    it.each([
+      ['new Worker token mismatch', [manifest, legacyVersion(), { code: 'RELEASE_VERIFY_UNAUTHORIZED' }, options()], 'token mismatch'],
+      ['Worker already serving the endpoint', [manifest, legacyVersion(), legacyBody, options("get('/health/recipe-authority'")], 'not a legacy gap'],
+      ['non-ancestor Worker commit', [manifest, legacyVersion(), legacyBody, options(undefined, false)], 'not an ancestor'],
+      ['missing GIT_COMMIT', [manifest, workerVersion(), legacyBody, options()], 'GIT_COMMIT'],
+      ['short GIT_COMMIT', [manifest, legacyVersion('4677ebb'), legacyBody, options()], 'GIT_COMMIT'],
+      ['different Worker version', [manifest, legacyVersion(legacySha, 'version-2'), legacyBody, options()], 'exact snapshotted'],
+      ['wrong D1 binding', [manifest, workerVersion('version-1', [{ type: 'd1', name: 'DB', id: 'other' }, { type: 'plain_text', name: 'GIT_COMMIT', text: legacySha }]), legacyBody, options()], 'D1 binding'],
+    ])('fails closed for %s', (_name, args, message) => {
+      expect(() => classifyLegacyRecipeAuthorityEndpoint(...args)).toThrow(message);
+    });
+  });
 });
 
 describe('release source of truth (local Git only)', () => {
@@ -1130,6 +1194,20 @@ describe('release workflow guardrails', () => {
     );
     expect(productionProof).toContain(
       'release-check.mjs rollback release-manifest.json rollback-deployment.json rollback-authority.json previous-version.json rollback-mutation.json',
+    );
+    // A legacy 401 is only accepted after the snapshotted Worker commit is proven to predate the
+    // endpoint, before `transition`; restore accepts it only for that proven legacy Worker.
+    const legacyCheck =
+      'node scripts/release-check.mjs legacy-authority release-manifest.json previous-version.json previous-authority.json';
+    expect(production.indexOf('release-check.mjs rollback-target')).toBeLessThan(
+      production.indexOf(legacyCheck),
+    );
+    expect(production.indexOf(legacyCheck)).toBeLessThan(
+      production.indexOf('release-check.mjs transition'),
+    );
+    expect(productionProof).toContain('previousRecipeAuthority?.legacyWorkerCommit');
+    expect(productionProof).toContain(
+      `! grep -q '"code":"RELEASE_VERIFY_UNAUTHORIZED"' rollback-authority.json`,
     );
     expect(
       productionProof.slice(0, productionProof.indexOf('release-check.mjs authority')),
