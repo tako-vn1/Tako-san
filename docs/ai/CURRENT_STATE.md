@@ -1,4 +1,63 @@
-# Tako-san T19 legacy-Worker bootstrap fix - 2026-09-25 UTC
+# Tako-san T19 same-SHA promotion convergence fix - 2026-09-25 UTC
+
+**Status: `TAKOSAN_D1_PROMOTION_CONVERGENCE_FIX_IN_REVIEW`. Production is at
+`canary-25` on main `a3e1614` (`a3e161470e3757f9a211bd443f560cb139c8654f`); the d1 promotion
+was rolled back automatically. T19 incomplete; T20 blocked.**
+
+`canonical_repository=tako-vn1/Tako-san`
+`canonical_repository_id=1385308553`
+
+After PR #5 merged, the owner ran shadow bootstrap and promotions on
+`a3e1614`: Deploy `36140227253` (shadow), `36141391948` (canary-1),
+`36142331814` (canary-5) and `36143861402` (canary-25) all SUCCESS;
+certification `36139684859` PASS on that SHA.
+
+d1 promotion `36144837880` (transition `canary-25 → d1`, kind `promotion`):
+deploy succeeded, then the proof step failed after ~4 s with `FAIL readiness:
+recipe authority mode canary != approved d1`. `wait-for-deployed-release.mjs`
+logged `attempt 1: readiness identifies release a3e16147` — it verified only
+the commit, and the old and new Worker versions share that commit (only vars
+differ), so it returned while the edge still answered from the canary-25
+version. Restore then ran: its first check logged `Rollback authority
+evidence differs at configuredMode` (the d1 version still answering), the
+existing 180 s loop retried, and the receipt records `rollback.result =
+restored`, exact previous version `8076dfe6-138f-4084-825e-7b4e6e46dad4`, new deployment
+`398ee771-e6c4-447d-b01e-7ce62d22e4cc`. The restore step concluded SUCCESS (the report's
+claim that the rollback proof failed is not supported by the run). The
+earlier promotions all passed at `attempt 1` too, so the race was latent.
+
+Fix (scripts only; workflow YAML unchanged):
+- `verifyDeployedRelease` also requires the readiness `recipeAuthority`
+  mode/percent/cutover to equal the manifest. A mismatch is retryable
+  (`RELEASE_PROPAGATION_PENDING`) only when it is a valid state equal to the
+  preflight-captured `previousRecipeAuthority` for the same commit (staging,
+  without preflight evidence: any valid state, still bounded); invalid,
+  contradictory or unexpected states and a missing summary fail at once.
+- `wait-for-deployed-release.mjs` requires 3 consecutive matching readiness
+  observations (old-version answers reset the count), within the existing
+  90 s deadline.
+- `release-check.mjs authority` polls via `waitForRecipeAuthorityEvidence`,
+  retrying only evidence equal to the pre-deploy state on the same commit
+  (90 s); fallback, other states or other commits fail immediately; with no
+  preflight evidence (staging) behaviour stays single-attempt.
+- The restore loop already tolerates this race and is unchanged.
+
+Checks: run/job/step timings, bounded logs and receipt of `36144837880`;
+logs of `36141391948`/`36142331814`/`36143861402`; focused Vitest
+(`wait-for-deployed-release` + `release-check`) 198 PASS with new
+regressions; full `pnpm check` PASS (lint, typecheck, 191 files / 4,453 tests, migration
+smoke, build).
+
+Next: review/merge. This moves main, so the same-SHA rule restarts the
+rollout: new-main CI → staging → read-only certification → production
+`shadow` on the new SHA with `confirm_recipe_catalog_rollback=true`
+(`validateRecipeCatalogTransition` classifies canary-25 → shadow as a
+rollback; the 25 % cohort returns to the static catalog until canary resumes)
+→ canary 1 → 5 → 25 → d1 → rollback proof → final d1.
+
+---
+
+# Historical T19 legacy-Worker bootstrap fix - 2026-09-25 UTC
 
 **Status: `TAKOSAN_PRODUCTION_BOOTSTRAP_FIX_IN_REVIEW`. Production Worker is
 still pre-T19 `4677ebb` (`4677ebbabbb580b9045423350da719acaf8f5742`); no production deploy has

@@ -15,12 +15,16 @@ export const DEFAULT_INTERVAL_MS = 3_000;
 export const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
 // Edge/network blips while the new version settles; anything past this count is a real outage.
 export const MAX_TRANSIENT_FAILURES = 3;
+// Consecutive matching observations required, so one edge answer from the new version is not
+// mistaken for convergence while other answers still come from the old one.
+export const DEFAULT_REQUIRED_CONSECUTIVE = 3;
 
 const short = (sha) => (typeof sha === 'string' && sha.length >= 8 ? sha.slice(0, 8) : 'unknown');
 
 export async function waitForDeployedRelease(manifest, {
   url, fetch: fetchImpl = globalThis.fetch, now = Date.now, sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   deadlineMs = DEFAULT_DEADLINE_MS, intervalMs = DEFAULT_INTERVAL_MS, requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS, log = console.log,
+  requiredConsecutive = DEFAULT_REQUIRED_CONSECUTIVE,
 }) {
   const origin = new URL(url);
   if (origin.protocol !== 'https:' || origin.origin !== url) throw new Error('Deployment URL must be an exact HTTPS origin');
@@ -28,6 +32,7 @@ export async function waitForDeployedRelease(manifest, {
   const startedAt = now();
   let attempt = 0;
   let transientFailures = 0;
+  let consecutive = 0;
   for (;;) {
     attempt += 1;
     let body;
@@ -55,12 +60,18 @@ export async function waitForDeployedRelease(manifest, {
     if (body !== undefined) {
       try {
         const deployed = verifyDeployedRelease(manifest, body);
-        log(`attempt ${attempt}: readiness identifies release ${short(deployed.sha)} in ${deployed.environment}`);
-        return { ...deployed, attempts: attempt, waitedMs: now() - startedAt };
+        consecutive += 1;
+        log(`attempt ${attempt}: readiness identifies release ${short(deployed.sha)} in ${deployed.environment} (${consecutive}/${requiredConsecutive})`);
+        if (consecutive >= requiredConsecutive) {
+          return { ...deployed, attempts: attempt, waitedMs: now() - startedAt };
+        }
       } catch (error) {
         if (error?.code !== RELEASE_PROPAGATION_PENDING) throw error;
-        log(`attempt ${attempt}: healthy ${manifest.environment} endpoint reports a different valid release, observed_sha=${short(error.observedSha)}, expected_sha=${short(manifest.sha)}; propagation pending, retrying`);
+        consecutive = 0;
+        log(`attempt ${attempt}: healthy ${manifest.environment} endpoint still serves a previous version, observed_sha=${short(error.observedSha)}${error.observedState ? ` observed_state=${error.observedState}` : ''}, expected_sha=${short(manifest.sha)}; propagation pending, retrying`);
       }
+    } else {
+      consecutive = 0;
     }
     if (now() - startedAt + intervalMs > deadlineMs) {
       throw new Error(`Readiness did not identify release ${short(manifest.sha)} within ${deadlineMs} ms (${attempt} attempts); the deployed version must be inspected by an operator`);

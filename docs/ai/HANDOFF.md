@@ -1,4 +1,25 @@
-# Tako-san T19 legacy-Worker bootstrap fix handoff - 2026-09-25 UTC
+# Tako-san T19 same-SHA promotion convergence handoff - 2026-09-25 UTC
+
+**Status: `TAKOSAN_D1_PROMOTION_CONVERGENCE_FIX_IN_REVIEW`. Production
+stable at `canary-25` (`a3e1614`). T19 incomplete; T20 blocked.**
+
+`canonical_repository=tako-vn1/Tako-san`
+`canonical_repository_id=1385308553`
+
+- d1 promotion `36144837880` failed because post-deploy readiness identified
+  the Worker by commit only; old and new versions share the commit. Automatic
+  restore succeeded after one retry (receipt `rollback.result=restored`).
+- Fix in `scripts/release-check.mjs` and `scripts/wait-for-deployed-release.mjs`
+  plus regressions; no workflow, secret, migration or app change.
+  `pnpm check` PASS (191 files / 4,453 tests).
+- **Next action:** after merge, restart on the new SHA from `shadow` with
+  `confirm_recipe_catalog_rollback=true` (required by the transition rules
+  when leaving canary-25), then canary 1 → 5 → 25 → d1, rollback proof and
+  final d1. Do not retry d1 on `a3e1614`: it can race again.
+
+---
+
+# Historical T19 legacy-Worker bootstrap fix handoff - 2026-09-25 UTC
 
 **Status: `TAKOSAN_PRODUCTION_BOOTSTRAP_FIX_IN_REVIEW`. No production deploy
 yet; production still `4677ebb`. T19 incomplete; T20 blocked.**
