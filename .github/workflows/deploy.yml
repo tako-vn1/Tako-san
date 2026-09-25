@@ -17,7 +17,7 @@ on:
         description: Full release SHA or refs/tags/v* tag resolving to current main (not a branch)
         type: string
         required: true
-      hardened_sha:
+      hardened_sha:          node scripts/d1-readonly-query.mjs runtime-catalog
         description: Exact final hardening SHA approved by the release owner; release must contain it
         type: string
         required: true
