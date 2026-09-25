@@ -174,6 +174,10 @@ function mapPlan(raw: unknown): GeneratedMealPlanRecord {
   };
 }
 
+/** Shared with the T20 composition writer so both write paths validate plan rows/payloads identically. */
+export const mapGeneratedMealPlanRow = (raw: unknown): GeneratedMealPlanRecord => mapPlan(raw);
+export const canonicalGeneratedMealPlanPayload = (raw: string, label: string): string => normalizedPayload(raw, label);
+
 function mapAnnotation(raw: unknown): GeneratedMealPlanAnnotation {
   const row = GeneratedMealPlanAnnotationRowSchema.parse(raw);
   return {

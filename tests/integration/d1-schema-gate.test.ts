@@ -19,11 +19,11 @@ describe('D1 schema gate — migration ledger equality derived from migrations/'
   };
   afterEach(() => { for (const db of databases.splice(0)) db.close(); });
 
-  it('requires exactly the repository migration list, including the post-catalog auth migration', () => {
+  it('requires exactly the repository migration list, including the post-catalog auth and T20 composition migrations', () => {
     const names = listMigrations();
     expect(names).toHaveLength(MIGRATION_LEDGER.count);
     expect(names.at(-1)).toBe(MIGRATION_LEDGER.tip);
-    expect(migrationTip()).toBe('0038_auth_onboarding_completion.sql');
+    expect(migrationTip()).toBe('0039_meal_composition_v2.sql');
     for (const name of names) expect(gate).toContain(`('${name}')`);
     expect(gate).not.toContain('@required_migrations');
     // D1 caps compound SELECTs at five terms; the CTE keeps the top-level query at five branches.
@@ -31,15 +31,23 @@ describe('D1 schema gate — migration ledger equality derived from migrations/'
     expect(renderSchemaGateCommand()).not.toMatch(/\n|--/);
   });
 
-  it('passes only when the ledger equals the repository list (tip 0038 with 500 recipes)', () => {
+  it('passes only when the ledger equals the repository list (tip 0039 with 500 recipes)', () => {
     const db = withLedger(listMigrations());
     expect(db.query(gate)).toEqual([]);
     expect(db.query<{ n: number }>('SELECT COUNT(*) AS n FROM recipes')[0].n).toBe(500);
   });
 
   it('fails closed when the ledger stops at the 0037 catalog tip', () => {
-    const db = withLedger(listMigrations().slice(0, -1), '0037_recipe_catalog_scale.sql');
-    expect(db.query(gate)).toEqual([{ issue: 'missing_migration', detail: '0038_auth_onboarding_completion.sql' }]);
+    const db = withLedger(listMigrations().slice(0, -2), '0037_recipe_catalog_scale.sql');
+    expect(db.query(gate)).toEqual([
+      { issue: 'missing_migration', detail: '0038_auth_onboarding_completion.sql' },
+      { issue: 'missing_migration', detail: '0039_meal_composition_v2.sql' },
+    ]);
+  });
+
+  it('fails closed when the ledger stops at the 0038 production tip (T20 migration not applied)', () => {
+    const db = withLedger(listMigrations().slice(0, -1), '0038_auth_onboarding_completion.sql');
+    expect(db.query(gate)).toEqual([{ issue: 'missing_migration', detail: '0039_meal_composition_v2.sql' }]);
   });
 
   it('fails closed when the ledger stops at 0034 or 0035 (legacy production tips)', () => {
@@ -60,15 +68,15 @@ describe('D1 schema gate — migration ledger equality derived from migrations/'
   });
 
   it('fails closed when the database is ahead of the repository (unknown future migration)', () => {
-    const db = withLedger([...listMigrations(), '0039_unknown_future.sql']);
-    expect(db.query(gate)).toEqual([{ issue: 'unexpected_migration', detail: '0039_unknown_future.sql' }]);
+    const db = withLedger([...listMigrations(), '0040_unknown_future.sql']);
+    expect(db.query(gate)).toEqual([{ issue: 'unexpected_migration', detail: '0040_unknown_future.sql' }]);
   });
 
   it('fails closed when the ledger names a migration the repository never had', () => {
-    const db = withLedger([...listMigrations().slice(0, -1), '0038_auth_onboarding_completion_v2.sql']);
+    const db = withLedger([...listMigrations().slice(0, -1), '0039_meal_composition_v2_v2.sql']);
     expect(db.query(gate)).toEqual([
-      { issue: 'missing_migration', detail: '0038_auth_onboarding_completion.sql' },
-      { issue: 'unexpected_migration', detail: '0038_auth_onboarding_completion_v2.sql' },
+      { issue: 'missing_migration', detail: '0039_meal_composition_v2.sql' },
+      { issue: 'unexpected_migration', detail: '0039_meal_composition_v2_v2.sql' },
     ]);
   });
 
