@@ -169,13 +169,13 @@ jobs:
           WRANGLER_SEND_METRICS: 'false'
         run: |
           bash scripts/d1-schema-gate.sh remote
-          # Also require a complete response: the legacy shell gate treats missing result arrays as empty.
-          pnpm wrangler d1 execute frigo-db --remote --yes --json --file schema-gate.sql > schema-proof.json
+          # Query, not import: --file uses D1's import API and cannot return proof rows.
+          node scripts/d1-readonly-query.mjs schema
           node --input-type=module -e 'import { readFileSync } from "node:fs"; const s = JSON.parse(readFileSync("schema-proof.json", "utf8")); if (!Array.isArray(s) || s.length !== 1 || s[0].success !== true || !Array.isArray(s[0].results) || s[0].results.length !== 0) throw new Error("Schema proof incomplete or failed")'
           pnpm wrangler d1 execute frigo-db --remote --yes --command "SELECT name FROM d1_migrations ORDER BY name" --json > migration-ledger.json
           node scripts/release-check.mjs schema release-manifest.json migration-ledger.json
-          pnpm wrangler d1 execute frigo-db --remote --yes --json --file catalog.sql > catalog.json
-          pnpm wrangler d1 execute frigo-db --remote --yes --json --file runtime-catalog.sql > runtime-catalog.json
+          node scripts/d1-readonly-query.mjs catalog
+          node scripts/d1-readonly-query.mjs runtime-catalog
           node scripts/d1-migration-check.mjs runtime-catalog release-manifest.json runtime-catalog.json
           pnpm wrangler d1 execute frigo-db --remote --yes --json --command "PRAGMA foreign_key_check" > foreign-keys.json
           pnpm wrangler d1 execute frigo-db --remote --yes --json --command "PRAGMA quick_check" > quick-check.json
