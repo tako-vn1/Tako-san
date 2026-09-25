@@ -1,7 +1,8 @@
 # Tako-san T20 Meal Composition V2 - 2026-09-25 UTC
 
-**Status: `T20_CODE_COMPLETE` candidate — local gates PASS; PR-head hosted CI
-is the remaining gate (see PR). T19: `T19_COMPLETE_OPERATOR_ACCEPTED`. Production
+**Status: `T20_CODE_COMPLETE` — local gates PASS; PR #7 hosted CI `validate`
+run `36197958265` SUCCESS on implementation head `0db541da8619fdf03f21bc4fb93d081fa335a0d5` (MERGEABLE,
+CLEAN; this docs-only commit gets its own PR-head run). T19: `T19_COMPLETE_OPERATOR_ACCEPTED`. Production
 untouched: recipe authority d1/0/cutover=true, 500 recipes; no T20 deploy; no
 production D1 migration.**
 
@@ -57,7 +58,8 @@ tooling and AI-assisted offline role proposals, picker ingredient/cuisine
 filters, whole-week Auto, price-aware scoring. `tests/fixtures/migration-sha256.json`
 gets the 0039 hash only after the migration is applied (fixture policy).
 
-Next: independent review of the T20 PR; require exact-head hosted `validate`.
+Next: independent review of PR #7 (not merged by the agent); require exact-head
+hosted `validate` on the final head.
 Rollout (separately authorized): apply 0039 to staging then production D1 (the
 schema gate fails closed on a 0038 ledger), then enable both flags. Do not change
 T19 recipe authority.
