@@ -1,4 +1,527 @@
-# Tako-san canonical migration and T19 release-control state - 2026-09-25
+# Tako-san T19 legacy-Worker bootstrap fix - 2026-09-25 UTC
+
+**Status: `TAKOSAN_PRODUCTION_BOOTSTRAP_FIX_IN_REVIEW`. Production Worker is
+still pre-T19 `4677ebb` (`4677ebbabbb580b9045423350da719acaf8f5742`); no production deploy has
+succeeded. T19 incomplete; T20 blocked.**
+
+`canonical_repository=tako-vn1/Tako-san`
+`canonical_repository_id=1385308553`
+
+Owner production shadow bootstrap Deploy `36133649176` (main `8603808`)
+failed at preflight: `RELEASE_VERIFY_TOKEN must be provisioned before
+deployment`. Owner then provisioned the production GitHub Environment secret
+and the `frigo` Worker secret (value not seen by the agent). Re-dispatch
+`36134994434` passed local gates, CI recheck, Cloudflare identity, schema
+0001–0038, runtime catalog 500 and release certification, then failed:
+`Recipe authority preflight failed with HTTP 401`. Neither run reached
+`Deploy to Cloudflare production`; receipts have no `deployed` field.
+
+Cause: `4677ebb` has no `/health/recipe-authority` route (added in
+`8205883`); its global auth middleware answers 401 before routing, while the
+preflight only accepted 200 or 404 (bootstrap). The reviewer's proposed
+match on `"code":"UNAUTHORIZED"` would still fail: that code is only returned
+without a Bearer header. With the workflow's Bearer token the legacy Worker
+returns `TOKEN_INVALID` (verified by read-only GETs: no header →
+`UNAUTHORIZED`, dummy Bearer → `TOKEN_INVALID`; new staging Worker with
+dummy Bearer → `RELEASE_VERIFY_UNAUTHORIZED`). The restore step had the same
+gap: after rolling back to the legacy Worker it would retry 401 until timeout
+and fail the rollback proof.
+
+Fix (not body matching): new `release-check.mjs legacy-authority` accepts a
+preflight 401 as `{unavailable:true,httpStatus:401,legacyWorkerCommit}` only
+when the exact snapshotted Worker version (pinned D1 binding) carries a full
+`GIT_COMMIT` that is an ancestor of the release and whose
+`src/worker/routes/health.ts` lacks `/health/recipe-authority`; a
+`RELEASE_VERIFY_UNAUTHORIZED` body always fails. It runs after
+`rollback-target` and before `transition`, so the existing bootstrap rules
+still apply (static/shadow only, explicit confirmation required). Restore
+accepts 401 only when the previous evidence was that proven legacy Worker and
+the body is not `RELEASE_VERIFY_UNAUTHORIZED`; exact previous version, new
+deployment ID, binding and mutation receipt are still required.
+
+Checks: bounded failed logs of both runs; `git show 4677ebb:` middleware and
+health route; read-only production/staging GETs without real tokens;
+classifier against real history (`4677ebb` accepted; `8205883` and main
+rejected); `bash -n` of the modified workflow steps plus branch simulation;
+focused Vitest 3 files / 228 PASS; `pnpm check` PASS (lint, typecheck,
+191 files / 4,440 tests, migration smoke, build). The GitHub App push now
+succeeds for workflow files.
+
+Next: review/merge the PR; confirm exact-new-main CI and automatic staging
+PASS; rerun Production Read-Only Certification on the new SHA; owner
+re-dispatches production shadow bootstrap with the new full SHA as `ref` and
+`hardened_sha` (other inputs unchanged). Then canary 1 → 5 → 25 → d1,
+rollback proof, final restoration. No other main merges during rollout.
+
+---
+
+# Historical T19 production read-only certification PASS - 2026-09-25 UTC
+
+**Status: `TAKOSAN_PRODUCTION_SHADOW_DISPATCH_REQUIRED`. New main `8603808`
+(`860380887350d4ab93e4d5e66a0fa4e074397608`): exact-main CI PASS, staging PASS, production read-only
+certification PASS. Production Worker is still the pre-T19 commit; no
+production rollout has run. T19 incomplete; T20 blocked.**
+
+`canonical_repository=tako-vn1/Tako-san`
+`canonical_repository_id=1385308553`
+
+- PR #4 (`t19-readonly-d1-query-proofs`, merged by `tako-vn1`, no reviews
+  recorded) merged as main `860380887350d4ab93e4d5e66a0fa4e074397608`. For all six
+  implementation files, `git diff 399ec9b origin/main` is empty; main differs
+  from `399ec9b` only in docs (local handoff commits were not published).
+  PR CI `36130608164` and exact-main push CI `36131217435` SUCCESS.
+- Staging: automatic Deploy `36131763935` (`workflow_run`) release/staging
+  SUCCESS, production SKIPPED. Receipt `release-staging-36131763935-1`: exact
+  deployed SHA = main, `static/0/cutover=false`, source static, 71 served,
+  release `rel-bd00a4f53fcaeee4`, fallback null, CI `36131217435`.
+- Production Read-Only Certification `36132078167` SUCCESS (reviewer-gated).
+  Receipt `production-certification-36132078167-1`: `certification.result=PASS`,
+  `readOnly=true`; Cloudflare account authenticated, `frigo-db` ID
+  `f975ec39-b2c8-4a2a-80e1-0366054599d3` info cross-check match; ledger 0038 (38 migrations);
+  catalog and runtime catalog 500/500, batches 2/2, release complete, runtime
+  fingerprint = expected, 0 hydration failures, media ready 0; foreign-key
+  check `[]`, `quick_check=ok`; production baseline Worker `frigo` version
+  `aada9b9d-93f9-4db5-97a6-d5c4741a67e7`, deployed SHA `4677ebbabbb580b9045423350da719acaf8f5742` (ancestor of new
+  main), binding verified. `productionAuthority` is
+  `UNKNOWN_RELEASE_SECRET_NOT_AVAILABLE` (cert job has no release token).
+- Other runs on the new SHA: Deploy `36131617559` failed at the release gate
+  (`Latest exact-SHA CI push run on main must be completed and successful`,
+  CI still running); `36131966475` staging cancelled before any step; push
+  run `36130289358` on an intermediate PR-branch commit was a workflow-file
+  failure with no jobs. None reached production.
+- No production D1 migration is needed: production ledger already equals the
+  repository tip and the 500-recipe release is complete.
+- Public `https://frigo.tungjpstore.net/api/v1/health/ready`: HTTP 200,
+  production, commit `4677ebbabbb580b9045423350da719acaf8f5742`, no `recipeAuthority` summary (pre-T19
+  Worker), so the protected authority endpoint is expected to be unavailable
+  and the first stage is a **bootstrap**.
+- Agent attempted `gh workflow run deploy.yml` for production `shadow`
+  (ref/hardened = main, `confirm_production=true`, percent 0, bootstrap
+  confirmation true) after re-verifying main and CI: HTTP 403 `Resource not
+  accessible by integration`; no run created.
+
+Next (owner dispatch, reviewer `vn-taphoanhatung` approves): Deploy on `main`
+with `environment=production`, `ref` = full main SHA, `hardened_sha` = the
+same full SHA used for certification, `confirm_production=true`,
+`recipe_catalog_mode=shadow`, percent `0`, `confirm_recipe_catalog_rollback=true`
+(required only for this bootstrap). Inspect receipt (deployed exact SHA,
+shadow probe D1 ready/500/release fingerprint, users static, no fallback).
+Then, one run each on the same SHA with the checkbox **off**: canary 1 → 5 →
+25 → d1. Then live rollback proof (d1 → shadow with checkbox on), then final
+restoration shadow → canary 1 → 5 → 25 → d1. Do **not** merge anything to
+main during rollout: a new main SHA invalidates the same-SHA sequence. These
+handoff docs therefore stay local until rollout ends. T20 blocked.
+
+Checks: `git fetch`; commits/PR/run/job/artifact GETs; downloaded and
+inspected receipts above (safe fields only); bounded failed log of
+`36131617559`; `git merge-base --is-ancestor 4677ebbabbb580b9045423350da719acaf8f5742 origin/main` (yes);
+public readiness GET; production shadow dispatch (403). No local tests rerun
+(no code change in this step).
+
+---
+
+# Historical T19 exact patch handoff - 2026-09-25 UTC
+
+**Status: `TAKOSAN_WORKFLOW_WRITE_PERMISSION_BLOCKED`. The exact implementation
+commit `399ec9b` is ready to hand to an authorized maintainer as a standalone
+patch; no branch or PR was published from this workspace. T19/T20 blocked;
+production certification remains failed, no production mutation.**
+
+`canonical_repository=tako-vn1/Tako-san`
+`canonical_repository_id=1385308553`
+
+Owner requested the patch so their reviewer can apply it from current main.
+Verified `git format-patch -1 399ec9b --stdout` contains only six files:
+the two reviewed workflows, `.hoplite/setup.sh`, the fixed read-only D1 query
+runner and two unit-test files. Its parent is local documentation on top of
+the unchanged `origin/main=f933f222df992768534283b38d32b358498563d2`, so `git diff main...399ec9b`
+would include unrelated historical docs. The **single-commit** patch was
+validated by `git diff --check 399ec9b^ 399ec9b` and `git apply --check -`
+in a fresh archive of `origin/main` (both PASS). No secrets or unrelated
+PayOS/auth/payment files were present. The user-facing reply includes the
+entire standalone implementation diff; the recipient must apply it in a
+review branch through their authorized GitHub path, with tests and normal
+review. A patch handed off in chat is not published or certified.
+
+Next: authorized maintainer applies the exact single-commit diff to current
+main, opens PR for review, and verifies CI. After merge, require new-SHA
+staging PASS and a new read-only production certification with required
+reviewer. No D1 migration/rollout or T20 before those gates.
+
+---
+
+# Historical T19 workflow publication permission gate - 2026-09-25 UTC
+
+**Status: `TAKOSAN_WORKFLOW_WRITE_PERMISSION_BLOCKED`. Production read-only
+certification still FAIL; reviewed local repair PASS but **NOT PUBLISHED**.
+T19 and T20 blocked; no production mutation by this work.**
+
+`canonical_repository=tako-vn1/Tako-san`
+`canonical_repository_id=1385308553`
+
+Local branch `hoplite/stymphalos-a3bdf6c6` has implementation checkpoint
+`399ec9b` and handoff checkpoint `17ab64c`. Full `pnpm check` PASS (191
+files / 4,432 tests, lint, typecheck, migration smoke, build). After confirming
+the active managed GitHub App credential matched repository ID `1385308553`,
+`git push origin HEAD:hoplite/stymphalos-a3bdf6c6` was **remote rejected**:
+`refusing to allow a GitHub App to create or update workflow
+.github/workflows/deploy.yml without workflows permission`. No remote branch
+or PR was created; main remains `f933f222df992768534283b38d32b358498563d2`. A read-only installation
+metadata API probe returned 401 (`A JSON web token could not be decoded`),
+not evidence of a new credential; the Git rejection is the permission proof.
+No stripping of workflow edits, ad-hoc prod query, manual deploy or workaround
+that bypasses access control was attempted. Pre-existing `.context/` is
+untracked and untouched.
+
+Next: an authorized GitHub App integration must gain **workflow-file write**
+permission for this repository (through the provider's approved permission
+path), or an authorized human maintainer must publish/review this exact tested
+patch. Do not request or exchange tokens. After a successful review/merge,
+require exact-new-main CI and staging before a **new** production read-only
+certification run with reviewer approval; no migration or rollout yet. This
+workspace cannot claim the repair is deployed or production is certified.
+
+Executed for this gate: `credential_control status` (active, correct repo ID);
+`git push origin HEAD:hoplite/stymphalos-a3bdf6c6` (rejected, no ref),
+`git ls-remote origin refs/heads/hoplite/stymphalos-a3bdf6c6` (absent),
+`gh pr list --state open` (empty), `gh api repos/tako-vn1/Tako-san/commits/main`
+(`f933f222df992768534283b38d32b358498563d2`). Reported platform integration permission blocker; see
+earlier section for full verification and run `36101940395` diagnosis.
+
+---
+
+# Historical T19 production read-only certification query repair - 2026-09-25 UTC
+
+**Status: `T19_PRODUCTION_READ_ONLY_CERTIFICATION_BLOCKED`. Production
+certification did not pass; no production mutation or rollout by this change.
+T20 remains blocked. The previous staging PASS applies only to main
+`f933f222df992768534283b38d32b358498563d2`, not to any future main commit.**
+
+`canonical_repository=tako-vn1/Tako-san`
+`canonical_repository_id=1385308553`
+
+Owner-dispatched Production Read-Only Certification run `36101940395`
+(attempt 1, `workflow_dispatch`, head `f933f222df992768534283b38d32b358498563d2`) completed FAILURE after
+production Environment approval. `gate`, `Recheck exact main`, SQL generator/
+guard and production identity/rollback baseline steps succeeded. In the
+read-only schema/catalog step, `bash scripts/d1-schema-gate.sh remote` reported
+PASS for the exact repository 0001–0038 migration ledger, security/Week and
+recipe schema, and foreign keys. The immediately following
+`pnpm wrangler d1 execute frigo-db --remote --yes --json --file
+schema-gate.sql` returned exit 1; no bounded log error details were emitted.
+The failure receipt artifact `production-certification-36101940395-1`
+contains a production Worker baseline but **no** `certification.result=PASS`,
+catalog, runtime, quick-check, final ledger or complete production readiness
+proof. It cannot certify production or prove that D1 already contains the
+500-recipe release. No new production credential, migration, deploy or write
+was performed.
+
+Root cause of the *workflow design* is independently confirmed in the pinned
+Wrangler `3.114.17` code: remote `--file` calls D1 `/import`, which can block
+the DB and returns an import summary instead of SELECT rows; remote
+`--command` calls D1 `/query`. The exact reason this particular `/import`
+call exited 1 was not exposed by the runner, so do not attribute that exit to
+an unproven Wrangler-version bug, Cloudflare outage or permission defect.
+Merely changing the schema command would still leave two unsafe `--file`
+queries for catalog (2 statements) and runtime content (5 statements).
+
+Reviewable repair: `scripts/d1-readonly-query.mjs` accepts only three fixed
+generated proof names (`schema`, `catalog`, `runtime-catalog`), checks exact
+statement counts and read-only SQL before any request, executes each SELECT
+using Wrangler's remote `--command` query path, rejects incomplete/malformed
+or unsuccessful JSON and writes an ordered receipt only after all queries
+succeed. Production certification now calls it for all three proofs; the
+existing production Deploy preflight also uses it for the runtime content
+proof. Independent schema/ledger/catalog/fingerprint/integrity verifiers,
+immutable exact-main/CI gates and Environment reviewer approval remain
+unchanged. Workflow/runner source is fingerprint-pinned and covered by
+positive and mutation-negative tests. Wrangler dependency was not upgraded.
+Missing workspace sqlite3 CLI was repaired with `.hoplite/setup.sh` (idempotent
+apt install plus frozen pnpm install), proven by `sandbox_control setup`.
+Tracked `.hoplite/settings.json` was not changed or staged.
+
+Checks: `gh api` run/jobs/artifact GET for `36101940395`; bounded
+`gh run view 36101940395 --log-failed`; safe receipt inspection;
+`git fetch origin --prune --quiet` and exact-main API (still
+`f933f222df992768534283b38d32b358498563d2`); pinned Wrangler local source `--file`/`--command` call-path
+inspection; `pnpm wrangler --version` (`3.114.17`); focused Vitest
+(5 files / 260 tests PASS); `pnpm lint` PASS; `pnpm typecheck` PASS;
+`git diff --check` PASS. Initial `pnpm check:migrations` failed only because
+sqlite3 CLI was missing; setup installed it, then
+`pnpm check:migrations` PASS (`migration-smoke=ok`). Full `pnpm check`
+PASS: lint, typecheck, **191 test files / 4,432 tests**, migration smoke
+and build (`ALL CHECKS PASSED SUCCESSFULLY`). Implementation checkpoint:
+`399ec9b` (query runner/workflows/tests/setup); handoff docs follow in a
+separate checkpoint. No live production query was run by the agent.
+
+Next: review and merge the scoped workflow repair via PR, require green
+exact-new-main CI and a fresh exact-SHA staging PASS after merge. Only then
+dispatch the read-only production certification on the new main SHA with
+approved hardening SHA and required production reviewer; examine the complete
+PASS artifact and unchanged production baseline before any separately
+authorized migration or rollout. A rerun of old workflow run `36101940395`
+would still use the old SHA and cannot certify this repair. T20 remains blocked.
+
+---
+
+# Historical T19 current-main staging certification - 2026-09-25 UTC
+
+**Status: `TAKOSAN_OWNER_TRANSFER_CONTROL_PLANE_MISMATCH` for production
+read-only certification dispatch: GitHub App lacks Actions write. Current-main
+staging: `PASS`; production certification: `NOT STARTED`; T19 and T20:
+`BLOCKED`. No production mutation.**
+
+`canonical_repository=tako-vn1/Tako-san`
+`canonical_repository_id=1385308553`
+
+After the owner updated the staging secret and retried Deploy
+`36018964086`, attempt 2 was `SKIPPED` for all three jobs: release/staging/
+production had no steps and no candidate artifact for that attempt. This did
+not certify staging; the exact reason the historical workflow-run release
+condition evaluated false on rerun is unproven. No workflow bypass or main
+change was made. The owner then dispatched the **reviewed manual staging path**
+as Deploy run `36092413084` attempt 1, event `workflow_dispatch`, on exact
+main `f933f222df992768534283b38d32b358498563d2` (`f933f22`), actor `tako-vn1`.
+
+Deploy `36092413084` completed SUCCESS: release SUCCESS, staging SUCCESS,
+production SKIPPED. Every staging step completed SUCCESS, including Worker
+secret-list preflight (previously Cloudflare code 10000), build, exact-main
+CI recheck, staging deploy, exact-SHA receipt, post-deploy smoke and protected
+recipe-authority proof. Inspected its attempt-scoped
+`release-staging-36092413084-1` artifact: repository
+`tako-vn1/Tako-san`, CI `36018278513`, exact deploy and main SHA
+`f933f222df992768534283b38d32b358498563d2`, environment `staging`, configured mode `static`, canary `0`,
+cutover `false`, actual/global source `static`, served count `71`, release ID
+`rel-bd00a4f53fcaeee4`, fallback `null`. Its D1 readiness is `not_evaluated` in
+static mode; the 500-recipe production D1 state is **not** certified by this.
+Bounded hosted smoke log confirms readiness `ok`, database `ok`, environment
+`staging`, authority proof PASS, no fallback and smoke PASS.
+
+The GitHub commits API and refreshed `origin/main` still match that staged
+release. The existing Production Read-Only Certification workflow is active,
+manual/main-only, and gated by the `production` Environment, which still lists
+required reviewer `vn-taphoanhatung`. Prepared its immutable full `ref` and
+approved `hardened_sha` from the verified staging receipt (no synthetic SHAs).
+`gh workflow run .github/workflows/production-certify.yml -R
+tako-vn1/Tako-san --ref main -f ref=<receipt.sha> -f
+hardened_sha=<receipt.hardenedSha> -f
+confirm_read_only_certification=true` was refused before dispatch: HTTP 403
+`Resource not accessible by integration`. No certification run exists and no
+production D1/Worker/ledger/rollback facts have been verified. Do not call
+staging PASS a production certification.
+
+Next: owner uses the GitHub Actions UI to run **Production Read-Only
+Certification** from `main`, entering the exact full `sha` and `hardenedSha`
+from run `36092413084` artifact `release-staging-36092413084-1`
+(`release-manifest.json`), with `confirm_read_only_certification=true`.
+The Environment's required reviewer must approve that **read-only** job; never
+bypass approval. Inspect the resulting PASS receipt (`readOnly=true`,
+`productionMutations=[]`) and live account/Worker/D1/ledger/catalog/integrity
+before any migration or rollout. If the UI cannot dispatch or the certificate
+fails, hold and report the specific gate. T20 remains blocked.
+
+Executed checks: `gh api` run/attempt/job/artifact GETs for `36018964086`
+and `36092413084`; `gh run download 36092413084` for candidate and staging
+receipt into temporary directories with explicit safe-field inspection;
+`gh run view 36092413084 --log` filtered to smoke/authority markers;
+`git fetch origin --prune --quiet`; exact-main GitHub commits API and CI
+`36018278513`; production Environment reviewer and certification workflow
+GETs; `gh workflow run production-certify.yml` (HTTP 403, no run).
+No local tests were rerun because application/workflow code did not change.
+
+---
+
+# Historical T19 staging retry permission checkpoint - 2026-09-25 UTC
+
+**Status: `TAKOSAN_OWNER_TRANSFER_CONTROL_PLANE_MISMATCH` (installation
+cannot rerun GitHub Actions). Staging secret update reported by owner but not
+independently readable. T19 and T20: `BLOCKED`. No production mutation.**
+
+`canonical_repository=tako-vn1/Tako-san`
+`canonical_repository_id=1385308553`
+
+Owner reported securely creating and setting the staging Cloudflare API token
+on 2026-09-25. GitHub Environment secret metadata is still inaccessible to
+this installation (`gh secret list -R tako-vn1/Tako-san --env staging`: HTTP
+403), so token type, scope, value and update time cannot be independently
+verified here. The only safe test is the existing fail-closed staging workflow.
+`git fetch origin --prune --quiet`, repository/commit API and CI run
+`36018278513` confirm same canonical ID, main `f933f222df992768534283b38d32b358498563d2`, protected
+`validate` SUCCESS. Latest Deploy `36018964086`, event `workflow_run`, SHA
+`f933f222df992768534283b38d32b358498563d2`, had release SUCCESS, staging FAILURE on Cloudflare code 10000,
+production SKIPPED. It remains `run_attempt=1`. The reviewed Deploy workflow
+on `origin/main` matches the local file. A full-run retry (necessary to
+regenerate the attempt-scoped release artifact) using
+`gh run rerun 36018964086 -R tako-vn1/Tako-san` failed immediately:
+`run 36018964086 cannot be rerun; Resource not accessible by integration`.
+Re-read run metadata: attempt 1 still complete/failed. **No staging or
+production deployment was initiated in this retry.** Local OAuth is scoped to
+user/account read only; `pnpm wrangler secret list --config
+wrangler.staging.jsonc --format json` also cannot read Worker metadata (`No
+access to the specified resource`). No ad-hoc deployment was attempted.
+
+Next authorized action: owner opens
+`https://github.com/tako-vn1/Tako-san/actions/runs/36018964086` and selects
+**Re-run jobs → Re-run all jobs** (not failed jobs only, to recreate the release
+artifact). This original `workflow_run` event was triggered by successful
+push/main CI and can only run staging; production's YAML gate requires a
+separate manual production dispatch. After owner initiates the retry, read
+run attempt/job/artifact and exact-SHA staging authority/smoke receipt before
+any production certification. If the retry again fails, inspect the bounded
+failed step and hold. Do not create a docs-only main commit as a substitute
+for missing Actions write; do not start T20.
+
+Checks this checkpoint: `git fetch origin --prune --quiet`;
+`git diff origin/main -- .github/workflows/deploy.yml` (no diff);
+`gh api repos/tako-vn1/Tako-san` (ID/default branch);
+`gh api repos/tako-vn1/Tako-san/commits/main --jq .sha`;
+`gh run view 36018278513`; `gh run list --workflow Deploy`;
+`gh api repos/tako-vn1/Tako-san/actions/runs/36018964086` (attempt 1);
+`gh secret list -R tako-vn1/Tako-san --env staging` (403);
+`gh run rerun 36018964086 -R tako-vn1/Tako-san` (permission denied);
+read-only Wrangler `whoami` and Worker secret-list probe (access denied).
+Application code/workflows unchanged; no local app tests run.
+
+---
+
+# Historical T19 Cloudflare login checkpoint - 2026-09-25 UTC
+
+**Status: `TAKOSAN_STAGING_CLOUDFLARE_TOKEN_REQUIRED`. T19: `BLOCKED`;
+T20: `BLOCKED`. No staging credential was replaced or deployment dispatched;
+production unchanged.**
+
+`canonical_repository=tako-vn1/Tako-san`
+`canonical_repository_id=1385308553`
+
+Follow-up after owner authorized the agent to proceed (2026-09-25 UTC):
+`credential_control rotate` minted a fresh authorized GitHub installation
+credential for this repository, but `gh api
+repos/tako-vn1/Tako-san/environments/staging/secrets` and the Actions policy
+GET still return HTTP 403 (`Resource not accessible by integration`). Cloudflare
+`pnpm dlx wrangler@4.119.0 whoami` still reports only `user:read`,
+`account:read` and `offline_access`; no `CLOUDFLARE_API_TOKEN` is available in
+the workspace and Wrangler offers no `API Tokens Write` OAuth scope. `gh api
+repos/tako-vn1/Tako-san/commits/main --jq .sha` remains `f933f222df992768534283b38d32b358498563d2`; the
+latest Deploy remains failed run `36018964086`. The owner's authorization does
+not itself change service-issued permissions. No token creation, GitHub secret
+write or workflow dispatch was attempted. Continue only after an approved
+Cloudflare token-management credential **and** GitHub Environment Secrets write
+permission are actually available through an authorized integration, or after
+the owner securely creates the dedicated token and updates the staging secret
+in the two providers' dashboards. Never request or paste credentials in chat.
+
+The owner approved a fresh Cloudflare device login using transient Wrangler
+`4.119.0`, without changing the repository-pinned Wrangler. The command
+`pnpm dlx wrangler@4.119.0 login --device --browser=false --scopes user:read account:read`
+succeeded. A sanitized `pnpm dlx wrangler@4.119.0 whoami` confirmed the account
+ID matching the earlier deployment record (`ef250a88911fd24073cb73d1c07e0218`); the granted OAuth
+scopes are `user:read`, `account:read` and `offline_access`. This is **not**
+authorization to manage API tokens or Workers. Cloudflare's `POST /user/tokens`
+requires `API Tokens Write`; Wrangler device OAuth does not offer that scope.
+The login token must not be copied into a GitHub secret as a durable deployment
+credential. No Worker secret metadata, staging D1 identity or deployment was
+verified through this limited OAuth session. The managed GitHub App CLI can
+access the canonical repository but is not a user CLI session; its inability to
+return `gh api user` does **not** establish that the owner lacks a GitHub browser
+login. Earlier `TAKOSAN_GITHUB_LOGIN_REQUIRED` wording below is historical and
+was too strong as a claim about the owner's browser session.
+
+Current `main` remained `f933f222df992768534283b38d32b358498563d2` (`f933f22`) by GitHub commits API.
+Exact-main CI `36018278513` passed, but Deploy `36018964086` still failed
+staging preflight with Cloudflare authentication code `10000`; no current-main
+staging certification exists. Owner action needed: in the Cloudflare dashboard
+create a **dedicated durable staging** API token limited to the deployment
+account and Worker-scripts write access (which covers the secret-list read and
+upload operations), then set **only** the GitHub `staging` Environment
+`CLOUDFLARE_API_TOKEN` through a secure secret-management UI. Do not place the
+value in chat, a terminal log, docs or repository files. The current installation
+cannot read or edit GitHub Environment secrets. Verify the token's actual scope
+and staging account/Worker/D1 identity before retrying the reviewed Deploy path;
+do not touch the other staging secrets or production. T20 stays blocked.
+
+Checks: `pnpm dlx wrangler@4.119.0 --version` (4.119.0), `login --help`
+(`--device` available), `login --scopes-list` (no token-management scope), device
+login and sanitized `whoami` PASS; `gh api repos/tako-vn1/Tako-san/commits/main
+--jq .sha` returned `f933f222df992768534283b38d32b358498563d2`; `gh auth status` shows managed installation.
+`git status --short --branch` showed only pre-existing untracked `.context/`.
+`git diff --check` and assertions for all three current T19 document identities,
+blockers and historical records passed. No application tests were rerun,
+because code and workflows were not changed.
+
+---
+
+# Historical T19 owner-transfer takeover - 2026-09-24 UTC
+
+**Status: `TAKOSAN_GITHUB_LOGIN_REQUIRED`; staging also requires a durable
+Cloudflare API token. T19: `BLOCKED`. T20: `BLOCKED`. No production mutation was
+performed in this takeover.**
+
+`canonical_repository=tako-vn1/Tako-san`
+`canonical_repository_id=1385308553`
+
+The owner was transferred from `vn-tako4` to `tako-vn1`; the numeric repository
+ID and Git history were preserved. `origin` already points to
+`https://github.com/tako-vn1/Tako-san.git`; `git fetch origin --prune` and the
+GitHub commits API agree that current `main` is `f933f222df992768534283b38d32b358498563d2` (`f933f22`),
+also the local branch base. PRs #1-#3 remain merged in this repository, and the
+CI run's repository and head-repository both identify ID `1385308553`.
+
+The workspace's managed `gh` installation reports account `x-access-token`,
+not a user session as `tako-vn1`; `gh api user --jq .login` returns HTTP 403
+(`Resource not accessible by integration`). Do not log out or overwrite the
+managed installation token. A human-approved `tako-vn1` user login in an
+authorized CLI context is still needed to satisfy the requested account gate.
+The current installation also gets HTTP 403 reading Actions policy, workflow
+token permissions, full branch-protection settings, repository/environment
+variable names, repository/environment secret names, and webhooks; app
+installation lookup returns HTTP 401. Their post-transfer settings/secret names
+are **unverified**, not presumed missing. The accessible branch endpoint says
+`main` is protected and requires the GitHub Actions `validate` check (App ID
+15368); visible repository rulesets and effective branch rules return `[]`.
+Both Environments exist. Production still lists required reviewer
+`vn-taphoanhatung`, whose repository permission API reports `write`; staging has
+no reviewer gate. Re-audit inaccessible policy and secret inventory with owner
+authorization before release.
+
+Exact-main CI `36018278513` (`push/main`, SHA `f933f222df992768534283b38d32b358498563d2`) passed `validate`:
+ESLint, typecheck, 190 test files / 4,415 tests, migration smoke and build.
+Last successful staging receipt was Deploy `36009510442` at
+`d6204d91b1849bf98df89c1c590e74395c494c89` (release/staging SUCCESS, production SKIPPED); that receipt
+does **not** certify current main. Latest Deploy `36018964086` at
+`f933f222df992768534283b38d32b358498563d2` has release SUCCESS, staging FAILURE, production SKIPPED.
+Its failed step, `Require staging proof configuration before deployment`,
+shows Wrangler's read-only `/workers/scripts/frigo-staging/secrets` request
+rejected with Cloudflare authentication code `10000`. Build, exact-head recheck,
+Cloudflare deployment and smoke were skipped. Do not claim that current main was
+deployed. No Cloudflare credential or Wrangler OAuth session is available in
+this workspace; no staging token was created or replaced, and no Cloudflare
+account/Worker/D1 identity was remotely verified here. Pinned configuration
+names `frigo-staging` / `frigo-db-staging-v3` and production `frigo` /
+`frigo-db`; the current catalog manifest expects 500 recipes (71 static).
+
+Read-only checks: `gh auth status`; `git remote -v`; `git fetch origin --prune`;
+`gh api user --jq .login` (HTTP 403); `gh api repos/tako-vn1/Tako-san`;
+`gh api repos/tako-vn1/Tako-san/commits/main --jq .sha`;
+`gh api repos/tako-vn1/Tako-san/branches/main`; Environment, reviewer,
+Actions policy, protection, rules, variable and secret-name GETs (limitations
+above); `gh run view 36018278513` and `36018964086` including job steps and
+failed logs; `gh run list --workflow Deploy`; `git status --short`; release
+manifest and Wrangler config inspection. No local test/build was executed:
+application and workflow code were not changed. `git diff --check` passed;
+`python3` assertions passed for current identity, T20/blocker markers and
+preserved historical references in all three current operational docs.
+
+Next: establish the `tako-vn1` CLI identity through approved browser login;
+with authorized Cloudflare access, issue a dedicated durable staging API token
+with only reviewed workflow permissions, verify account/Worker/D1 identities,
+and replace **only** the staging Environment `CLOUDFLARE_API_TOKEN`. Re-audit
+inaccessible owner-transfer controls, then re-run the existing reviewed Deploy
+path for exact current main and require staging PASS before requesting the
+production read-only certification/Environment approval. Do not start T20.
+
+---
+
+# Historical pre-transfer T19 release-control snapshot - 2026-09-25
 
 **Status: `TAKOSAN_STAGING_BLOCKED`. Exact-main CI: `GREEN`.
 Production: `UNTOUCHED`.
