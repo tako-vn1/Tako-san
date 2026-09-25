@@ -17,7 +17,7 @@ on:
         description: Full release SHA or refs/tags/v* tag resolving to current main (not a branch)
         type: string
         required: true
-      hardened_sha:          node scripts/d1-readonly-query.mjs runtime-catalog
+      hardened_sha:
         description: Exact final hardening SHA approved by the release owner; release must contain it
         type: string
         required: true
@@ -272,7 +272,7 @@ jobs:
           catalog_query="$(node -e 'import("./scripts/d1-migration-check.mjs").then((m) => process.stdout.write(m.catalogQuery()))')"
           pnpm wrangler d1 execute frigo-db --remote --yes --json --command "$catalog_query" > catalog.json
           node scripts/d1-migration-check.mjs runtime-catalog-query > runtime-catalog.sql
-          pnpm wrangler d1 execute frigo-db --remote --yes --json --file runtime-catalog.sql > runtime-catalog.json
+          node scripts/d1-readonly-query.mjs runtime-catalog
           node scripts/d1-migration-check.mjs runtime-catalog release-manifest.json runtime-catalog.json
           pnpm wrangler d1 execute frigo-db --remote --yes --json --command "PRAGMA foreign_key_check" > foreign-keys.json
           pnpm wrangler d1 execute frigo-db --remote --yes --json --command "PRAGMA quick_check" > quick-check.json
