@@ -268,6 +268,59 @@ export function verifyRollbackTarget(manifest, versionEvidence) {
   return binding;
 }
 
+/**
+ * A pre-T19 Worker has no `/health/recipe-authority` route, and its global auth middleware answers
+ * 401 before routing instead of 404. Accept that 401 as "endpoint unavailable" only when the exact
+ * snapshotted Worker version's GIT_COMMIT is an ancestor of the release and provably lacks the route.
+ */
+export function classifyLegacyRecipeAuthorityEndpoint(
+  manifest,
+  versionEvidence,
+  responseBody,
+  options = {},
+) {
+  if (responseBody?.code === 'RELEASE_VERIFY_UNAUTHORIZED') {
+    throw new Error('Recipe authority endpoint rejected RELEASE_VERIFY_TOKEN; token mismatch');
+  }
+  const binding = verifyWorkerD1Binding(versionEvidence);
+  if (!SHA.test(manifest?.sha || '') || binding.versionId !== manifest.previousDeployment?.versionId) {
+    throw new Error('Legacy authority classification requires the exact snapshotted Worker version');
+  }
+  const commit = versionEvidence.resources.bindings.find(
+    (entry) => entry?.type === 'plain_text' && entry?.name === 'GIT_COMMIT',
+  )?.text;
+  if (!SHA.test(commit || '')) {
+    throw new Error('Previous Worker GIT_COMMIT must be a canonical full SHA');
+  }
+  const cwd = options.cwd ?? process.cwd();
+  const isAncestor =
+    options.isAncestor ??
+    ((ancestor, descendant) => {
+      try {
+        git(cwd, 'merge-base', '--is-ancestor', ancestor, descendant);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+  if (!isAncestor(commit, manifest.sha)) {
+    throw new Error('Previous Worker commit is not an ancestor of the release');
+  }
+  const readHealthRoutes =
+    options.readHealthRoutes ??
+    ((sha) => {
+      try {
+        return git(cwd, 'show', `${sha}:src/worker/routes/health.ts`);
+      } catch {
+        return '';
+      }
+    });
+  if (readHealthRoutes(commit).includes('/health/recipe-authority')) {
+    throw new Error('Previous Worker serves the recipe authority endpoint; a 401 is not a legacy gap');
+  }
+  return { unavailable: true, httpStatus: 401, legacyWorkerCommit: commit };
+}
+
 export function verifyDeployedWorker(manifest, deploymentEvidence, versionEvidence) {
   const deployment = verifyStableWorkerDeployment(deploymentEvidence);
   const binding = verifyWorkerD1Binding(versionEvidence);
@@ -735,6 +788,20 @@ async function main() {
         manifest,
         JSON.parse(readFileSync(evidenceFile, 'utf8')),
       );
+    } else if (command === 'legacy-authority') {
+      // Rewrites the captured 401 body with verified "unavailable" evidence for `transition`.
+      let body = null;
+      try {
+        body = JSON.parse(readFileSync(extraEvidenceFile, 'utf8'));
+      } catch {
+        body = null;
+      }
+      const evidence = classifyLegacyRecipeAuthorityEndpoint(
+        manifest,
+        JSON.parse(readFileSync(evidenceFile, 'utf8')),
+        body,
+      );
+      writeFileSync(extraEvidenceFile, `${JSON.stringify(evidence)}\n`);
     } else if (command === 'deployed-binding') {
       manifest.deployedWorker = verifyDeployedWorker(
         manifest,
