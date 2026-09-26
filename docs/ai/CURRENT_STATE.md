@@ -1,5 +1,22 @@
 # T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
 
+Final merge-readiness pass (2026-09-26 UTC): `origin/main` remains `bf57451`
+(`bf57451e4a1a047eeff7a0938b903d1a37b6f8c9`), whose CI `36221190222` failed in the T20 concurrency test.
+PR #8 remains open at `5b0a6b9` (`5b0a6b995786b338999286023eb2e46de4bc45a7`), MERGEABLE/CLEAN, no
+unresolved review threads; exact-head hosted `validate` run `36226026618`
+passed lint, typecheck, full Vitest, migration smoke and build. A fresh
+`pnpm exec vitest run` of the T20 flows, picker/shopping, HTTP and composer UI
+suites passed (4 files / 37 tests); `git diff --check origin/main...HEAD`
+passed. Its diff adds no migration, infrastructure, secret, deploy workflow or
+flag change. PR #8 is ready for a normal intermediate merge by the maintainer,
+not a T20 release: the existing flags remain OFF and PR #9 is stacked on #8
+for revision semantics, Manual safety and picker response hardening. No remote
+migration, deployment, enablement or production mutation was performed.
+Next: merge #8 through the PR flow, check exact-main CI, then retarget and
+certify #9 before T20 staging work.
+
+---
+
 PR #8 hosted `validate` run `36225377465` failed 1/4554:
 `competing lock/regenerate` got `[200, 404]`. Regenerate won; the losing PATCH
 targeted the unlocked legacy component, which the winning regenerate replaced.

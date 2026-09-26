@@ -1,5 +1,16 @@
 # T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
 
+- [x] Final PR #8 merge-readiness audit: current main `bf57451`, reviewed
+  head `5b0a6b9`, hosted `validate` `36226026618` SUCCESS; MERGEABLE/CLEAN,
+  zero unresolved review threads; fresh focused T20 suites 37/37 PASS and
+  `git diff --check origin/main...HEAD` PASS. No new migration/configuration
+  change in #8. This is merge readiness, not T20 production certification.
+- [ ] Maintainer merges PR #8 normally (agents cannot merge protected main),
+  verifies exact-main CI, retargets stacked PR #9 to main and certifies it.
+  No staging D1 migration/deploy or production mutation in this pass.
+
+---
+
 PR #8 hosted `validate` run `36225377465` failed 1/4554:
 `competing lock/regenerate` got `[200, 404]`. Regenerate won; the losing PATCH
 targeted the unlocked legacy component, which the winning regenerate replaced.
