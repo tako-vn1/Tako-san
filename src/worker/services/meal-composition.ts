@@ -333,16 +333,32 @@ export class MealCompositionService {
     });
     const firstAffected = affectedIndex < 0 ? current.components.length : affectedIndex;
     const affected = components.slice(firstAffected);
-    if (affected.length) {
+    const following = loaded.slots.slice(loaded.slots.findIndex((entry) => entry.slotId === slotId) + 1)
+      .flatMap((entry) => this.compositionFor(loaded, entry.slotId).components.map((component) => ({ slot: entry, component })));
+    const changed = affectedIndex >= 0 || current.components.length !== components.length;
+    if (affected.length || (changed && following.length)) {
       const proposed = { ...current, mode, components };
       const projected = this.projection(loaded, this.allCompositions(loaded, proposed), undefined,
-        new Set(affected.map((component) => component.id)));
-      for (const component of affected) {
+        new Set([...affected.map((component) => component.id), ...following.map(({ component }) => component.id)]));
+      const checks = affected.map((component) => ({ slot, component }));
+      if (changed && following.length) {
+        const previous = this.projection(loaded, this.allCompositions(loaded));
+        for (const entry of following) {
+          const before = previous.components.get(entry.component.id);
+          const after = projected.components.get(entry.component.id);
+          if (!before || !after) throw new Error('Missing T02 evaluation for later component');
+          // An unrelated later meal keeps its existing safety verdict when its T02 evaluation is unchanged.
+          if (before.status !== after.status || canonicalJson(before.requirements) !== canonicalJson(after.requirements)) {
+            checks.push(entry);
+          }
+        }
+      }
+      for (const { slot: checkedSlot, component } of checks) {
         const target: ComponentTarget = component.kind === 'recipe' ? { kind: 'recipe', recipeId: component.recipeId! }
           : { kind: 'simple_food', simpleFoodId: component.simpleFoodId! };
         const inventory = projected.inventoryBeforeComponents.get(component.id);
         if (!inventory) throw new Error('Missing T02 inventory checkpoint for affected component');
-        const reasons = this.restrictionReasons(loaded, slot, target, inventory);
+        const reasons = this.restrictionReasons(loaded, checkedSlot, target, inventory);
         if (reasons.length) {
           logEvent('composition_hard_restriction_rejected', { mode, reasons: reasons.join(',') });
           throw new MealPlanningError('HARD_CONSTRAINT_CONFLICT', 422, 'This dish conflicts with a household restriction');

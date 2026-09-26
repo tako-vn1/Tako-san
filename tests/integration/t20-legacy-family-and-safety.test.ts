@@ -157,6 +157,54 @@ describe('T20 Manual enforces the same T03 hard contract as Auto', () => {
     await assertRejectedUnchanged(plan.id, path, before, swap);
   }, CASE_TIMEOUT);
 
+  it('rejects an upstream-slot swap that makes a later slot use forbidden shrimp', async () => {
+    const { plan, first, downstreamId, path } = await forbiddenSubstitutionFixture();
+    const neutral = await h.call(HOUSE, 'PUT', `${path}/composition`, { revision: plan.revision, components: [
+      { id: `v1.${first.slotId}`, target: riceTarget, role: 'staple', locked: false },
+    ] });
+    expect(neutral.status, JSON.stringify(neutral.json)).toBe(200);
+    const nextPath = slotPath(plan.id, plan.result.meals[1].slotId);
+    const later = await h.call(HOUSE, 'PUT', `${nextPath}/composition`, {
+      revision: SlotCompositionDtoSchema.parse(neutral.json).planRevision, components: [
+        { target: recipeTarget(downstreamId), role: 'vegetable', locked: false },
+      ],
+    });
+    expect(later.status, JSON.stringify(later.json)).toBe(200);
+    const before = await readComposition(path);
+    const laterBefore = await readComposition(nextPath);
+    expect(laterBefore.composition.components[0].projection?.status).toBe('covered');
+    const swap = await h.call(HOUSE, 'POST', `${path}/components/${encodeURIComponent(before.composition.components[0].id)}/swap`,
+      { revision: before.planRevision, target: recipeTarget(first.source.id), role: 'main' });
+    await assertRejectedUnchanged(plan.id, path, before, swap);
+    expect(await readComposition(nextPath)).toEqual(laterBefore);
+  }, CASE_TIMEOUT);
+
+  it('does not rejudge a later dish when an earlier edit changes unrelated inventory', async () => {
+    const { plan, first, downstreamId, path } = await forbiddenSubstitutionFixture();
+    const neutral = await h.call(HOUSE, 'PUT', `${path}/composition`, { revision: plan.revision, components: [
+      { id: `v1.${first.slotId}`, target: riceTarget, role: 'staple', locked: false },
+    ] });
+    expect(neutral.status, JSON.stringify(neutral.json)).toBe(200);
+    const nextPath = slotPath(plan.id, plan.result.meals[1].slotId);
+    const later = await h.call(HOUSE, 'PUT', `${nextPath}/composition`, {
+      revision: SlotCompositionDtoSchema.parse(neutral.json).planRevision, components: [
+        { target: recipeTarget(downstreamId), role: 'vegetable', locked: false },
+      ],
+    });
+    expect(later.status, JSON.stringify(later.json)).toBe(200);
+    const before = await readComposition(path);
+    const laterBefore = await readComposition(nextPath);
+    h.db.seed(`UPDATE household_ranking_preferences
+      SET values_json = '{"version":1,"values":{"forbiddenIngredientIds":["TOFU"]}}'
+      WHERE household_id = '${HOUSE}'`);
+    const swap = await h.call(HOUSE, 'POST', `${path}/components/${encodeURIComponent(before.composition.components[0].id)}/swap`,
+      { revision: before.planRevision, target: { kind: 'simple_food', simpleFoodId: 'sf-bread' } });
+    expect(swap.status, JSON.stringify(swap.json)).toBe(200);
+    const laterAfter = await readComposition(nextPath);
+    expect(laterAfter.planRevision).toBe(laterBefore.planRevision + 1);
+    expect(laterAfter.composition.components).toEqual(laterBefore.composition.components);
+  }, CASE_TIMEOUT);
+
   it.each(['PATCH reorder', 'PUT replace'] as const)('%s rejects an unsafe inventory-prefix change', async (method) => {
     const { plan, first, downstreamId, path } = await forbiddenSubstitutionFixture();
     const start = await h.call(HOUSE, 'PUT', `${path}/composition`, { revision: plan.revision, components: [
