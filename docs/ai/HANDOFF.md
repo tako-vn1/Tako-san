@@ -1,13 +1,13 @@
 # T20 PR #7 — final P2 handoff, 2026-09-26 UTC
 
-**Status `T20_PR7_READY_FOR_FINAL_REVIEW` (docs-only CI pending); no production operation or merge.**
+**Status `T20_PR7_READY_FOR_FINAL_REVIEW`; no production operation or merge.**
 Reviewed main `136cb6f`, prior head `a337a2b`: hosted CI `validate` run
 `36216083854` SUCCESS. Application head `0b465d5`: hosted `validate` run
 `36216675722` SUCCESS (MERGEABLE/CLEAN, no review comments). Final pass
 `0b465d5` removes the stray EOF blank line in
 `src/worker/services/meal-composition.ts` so the full PR diff check passes;
-no logic changed. This documentation-only checkpoint needs its own exact-head
-CI. App checkpoints `e3aef74`
+no logic changed. Handoff head `d7aef32`: hosted `validate` run `36217199489`
+SUCCESS (MERGEABLE/CLEAN, no review comments). App checkpoints `e3aef74`
 (total candidate pool cap 320 including eligible simple foods, fair multi-role
 selection and ranked backfill) + `4f60157` (pre-score operation gate, cached
 scores and best already-scored partials on exhaustion). No T19 authority change.
@@ -34,9 +34,15 @@ parity skipped locally. Independent code/release audits found no new
 P0/P1/P2 or merge blocker. Migration 0039 is deployment-only (target D1 owner),
 and enabling the paired default-off Worker/UI flag is a release-owner decision.
 
-**Next:** push this documentation checkpoint and confirm exact-head hosted
-`validate` SUCCESS. Then hand PR #7 to the user for the merge decision; do not
-merge, deploy or claim `T20_COMPLETE` here.
+Final narrow check: `pnpm exec vitest run tests/unit/composition-flags.test.mjs
+tests/integration/d1-schema-gate.test.ts tests/unit/t20-composer-candidates.test.ts
+tests/unit/t20-meal-composition.test.ts` PASS (4 files / 46 tests);
+`git diff --check origin/main...HEAD` PASS. No runtime, migration or workflow
+changes; no new merge blocker. Production/staging migration and release flag
+activation remain separate operator decisions, not merge blockers.
+
+**Next:** verify exact-head CI immediately before handing PR #7 to the user for
+the merge decision; do not merge, deploy or claim `T20_COMPLETE` here.
 
 ---
 

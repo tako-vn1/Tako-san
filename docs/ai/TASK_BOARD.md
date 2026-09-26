@@ -1,11 +1,12 @@
 # T20 PR #7 — remaining P2 budget items, 2026-09-26 UTC
 
-**Status: `T20_PR7_READY_FOR_FINAL_REVIEW` (docs-only CI pending).** Reviewed main
+**Status: `T20_PR7_READY_FOR_FINAL_REVIEW`.** Reviewed main
 `136cb6f`; prior head `a337a2b` has hosted `validate` SUCCESS (run
 `36216083854`). The final-pass
 head `0b465d5` removes a stray EOF blank line from the PR diff, with no logic
 change. Full PR diff check now PASS; application-head `validate` SUCCESS (run
-`36216675722`).
+`36216675722`), handoff head `d7aef32` `validate` SUCCESS (run `36217199489`,
+MERGEABLE/CLEAN, no review comments).
 Implementation checkpoints: `e3aef74` (P2-1) and `4f60157` (P2-2).
 
 | Item | Implementation | Proof |
@@ -28,10 +29,15 @@ fixed in `0b465d5`). `pnpm check` PASS: typecheck, lint, 201 test files /
 and Week parity skipped locally. Independent code and release audits:
 no new P0/P1/P2 or merge blockers. Deployment requires 0039 on target D1;
 the paired Worker/UI flag defaults off and needs a release-owner opt-in after
-migration. **Next:** verify hosted `validate` on this docs-only checkpoint, then hand the
-merge decision to the user. No merge/deploy/production D1 mutation authorized.
+migration. Final narrow check: `pnpm exec vitest run
+tests/unit/composition-flags.test.mjs tests/integration/d1-schema-gate.test.ts
+tests/unit/t20-composer-candidates.test.ts tests/unit/t20-meal-composition.test.ts`
+PASS (4 files / 46 tests); `git diff --check origin/main...HEAD` PASS. No
+implementation change in this final audit.
+**Next:** verify CI on the exact PR head immediately before a user-authorized
+merge. No merge/deploy/production D1 mutation authorized here.
 No merge, deploy, production migration/data change, flag enablement or T19
-authority change. Next: exact-head CI then independent final review.
+authority change.
 
 ---
 

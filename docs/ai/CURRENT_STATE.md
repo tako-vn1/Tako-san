@@ -1,10 +1,19 @@
 # T20 PR #7 — final P2 budget remediation, 2026-09-26 UTC
 
-**Status: `T20_PR7_READY_FOR_FINAL_REVIEW` (docs-only CI pending); not merged or deployed.**
+**Status: `T20_PR7_READY_FOR_FINAL_REVIEW`; no merge or deployment.**
 Review base: `main` at `136cb6f`; prior head `a337a2b` passed hosted `validate`
 run `36216083854`. Application head `0b465d5` passed hosted `validate` run
-`36216675722` (SUCCESS, MERGEABLE/CLEAN, no review comments). Application
-checkpoints `e3aef74` (candidate pool) and `4f60157` (scoring limit) remain on
+`36216675722` (SUCCESS, MERGEABLE/CLEAN, no review comments). The
+handoff head `d7aef32` passed hosted `validate` run `36217199489` (SUCCESS,
+MERGEABLE/CLEAN, no review comments). No implementation changes remain. The
+final audit found no new merge blockers; local `pnpm exec vitest run
+tests/unit/composition-flags.test.mjs tests/integration/d1-schema-gate.test.ts
+tests/unit/t20-composer-candidates.test.ts tests/unit/t20-meal-composition.test.ts`
+passed (4 files / 46 tests), and `git diff --check origin/main...HEAD` passed.
+This handoff note introduces no runtime, migration or workflow changes. The
+operator still has to apply 0039 before target deployment; the release owner
+should enable paired server/UI flags only after migration (default off).
+Application checkpoints `e3aef74` (candidate pool) and `4f60157` (scoring limit) remain on
 `feat/t20-meal-composition-v2` (PR #7). Final pass commit `0b465d5` removes a
 stray blank line at EOF in `src/worker/services/meal-composition.ts` (the full
 PR diff had failed `git diff --check origin/main...HEAD`); no runtime logic
@@ -45,9 +54,8 @@ code and release audits found no new P0/P1/P2 or merge blocker. Deployment
 owner must apply 0039 to the target D1 before deployment; release owner must
 enable the paired server/UI T20 flags only after migration (default off).
 
-Next: confirm the documentation checkpoint's exact-head hosted `validate` is
-SUCCESS; then the user may decide whether to merge. No release operation is
-authorized by this handoff.
+Next: verify CI on the exact PR head immediately before merging, then let the
+user decide whether to merge. No release operation is authorized by this handoff.
 
 ---
 
