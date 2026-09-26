@@ -50,6 +50,27 @@ T20 flags OFF. `staging_migration=NO`, `staging_deploy=NO`,
 
 ## T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
 
+Final PR #8 readiness receipt (2026-09-26 UTC): base `main` `bf57451`
+(`bf57451e4a1a047eeff7a0938b903d1a37b6f8c9`), last main CI `36221190222` failed in the pre-#8 race test;
+PR #8 remote head `5b0a6b9` (`5b0a6b995786b338999286023eb2e46de4bc45a7`), hosted full `validate`
+`36226026618` SUCCESS. MERGEABLE/CLEAN, no unresolved human review threads,
+working tree clean. Executed `pnpm exec vitest run
+tests/integration/t20-meal-composition-flows.test.ts
+tests/integration/t20-roles-picker-shopping.test.ts
+tests/unit/t20-meal-composer-ui.test.tsx
+tests/integration/t20-meal-composition-http.test.ts` — 4 files / 37 PASS;
+`git diff --check origin/main...HEAD` PASS. Diff/config audit: no PR #8
+migrations, environment or secret requirements, infrastructure, deploy/CI
+workflow, production backfill or new flag; the pre-existing T20 flags default
+OFF. PR #8 is ready for an intermediate normal merge, not T20 production
+enablement. PR #9 contains the separately tested torn-read, same-slot safety
+and stale-picker fixes and remains stacked on #8. No migration or deploy was
+run. Next: maintainer merges #8 via PR flow, verifies exact-main CI, retargets
+#9 to main and requires its exact-head hosted CI before merging #9. Do not
+direct-push main or change production.
+
+---
+
 PR #8 hosted `validate` run `36225377465` failed 1/4554:
 `competing lock/regenerate` got `[200, 404]`. Regenerate won; the losing PATCH
 targeted the unlocked legacy component, which the winning regenerate replaced.
