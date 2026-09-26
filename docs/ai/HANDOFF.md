@@ -1,3 +1,84 @@
+# T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
+
+Final PR #8 readiness receipt (2026-09-26 UTC): base `main` `bf57451`
+(`bf57451e4a1a047eeff7a0938b903d1a37b6f8c9`), last main CI `36221190222` failed in the pre-#8 race test;
+PR #8 remote head `5b0a6b9` (`5b0a6b995786b338999286023eb2e46de4bc45a7`), hosted full `validate`
+`36226026618` SUCCESS. MERGEABLE/CLEAN, no unresolved human review threads,
+working tree clean. Executed `pnpm exec vitest run
+tests/integration/t20-meal-composition-flows.test.ts
+tests/integration/t20-roles-picker-shopping.test.ts
+tests/unit/t20-meal-composer-ui.test.tsx
+tests/integration/t20-meal-composition-http.test.ts` — 4 files / 37 PASS;
+`git diff --check origin/main...HEAD` PASS. Diff/config audit: no PR #8
+migrations, environment or secret requirements, infrastructure, deploy/CI
+workflow, production backfill or new flag; the pre-existing T20 flags default
+OFF. PR #8 is ready for an intermediate normal merge, not T20 production
+enablement. PR #9 contains the separately tested torn-read, same-slot safety
+and stale-picker fixes and remains stacked on #8. No migration or deploy was
+run. Next: maintainer merges #8 via PR flow, verifies exact-main CI, retargets
+#9 to main and requires its exact-head hosted CI before merging #9. Do not
+direct-push main or change production.
+
+---
+
+PR #8 hosted `validate` run `36225377465` failed 1/4554:
+`competing lock/regenerate` got `[200, 404]`. Regenerate won; the losing PATCH
+targeted the unlocked legacy component, which the winning regenerate replaced.
+Test-only fix (`754fb2e`): the race
+now targets the locked rice component, which regenerate preserves by ID, so the
+loser always reaches the revision fence (409 `PLAN_REVISION_CONFLICT`); final
+state asserted for both winners. Executed: flows file 5/5 runs PASS (16 tests);
+throwaway sequential regenerate-then-stale-PATCH check PASS (409, rice still
+locked; not committed); `pnpm typecheck` PASS; eslint on the file PASS.
+
+Follow-up finding (production code NOT changed, per scope): `MealCompositionService.load`
+reads the plan row and `readPlanCompositions` in separate awaits. A stale
+component edit can pass `assertRevision` on the old row, then read a newer
+composition and fail with 404 `COMPONENT_NOT_FOUND` before the fenced write.
+Writes remain revision-fenced (no data loss); only the error classification is
+wrong. Next: reclassify to `PLAN_REVISION_CONFLICT` when the plan revision
+moved (or read row + compositions in one batch), with a regression test.
+
+---
+
+# T20 post-merge CI fix + picker cuisine filter, 2026-09-26 UTC
+
+Branch `fix/t20-postmerge-ci-picker-cuisine` from main `bf57451` (PR #7 merge).
+- `87c8e64` (test-only): main CI run `36221190222` failed at
+  `tests/integration/t20-meal-composition-flows.test.ts:177` because the
+  add/remove race can legitimately be won by DELETE (empty composition) while
+  the test assumed `components[0]`. The combined race is split into three
+  independent cases; each asserts exactly one 200 + one typed 409
+  (`PLAN_REVISION_CONFLICT`; auto-apply losing to a save may be the documented
+  `PROPOSAL_STALE`) and a final state matching the winner. DELETE-wins refills
+  at the current revision; lock/regenerate and save/auto-apply start from a
+  deterministic sequential setup. No production logic changed.
+- `65084fc`: T20 picker `cuisine` query (strict enum of existing `CuisineType`
+  values), filtered server-side on stored recipe cuisine together with role/q/
+  kind; simple foods have no cuisine and are excluded when the filter is set.
+  UI: labelled cuisine select and filtered empty state with Clear filters.
+  Candidate authority, hard restrictions, composer, shopping, T19 unchanged.
+
+Executed: focused `vitest run` of t20-meal-composer-ui, t20-roles-picker-shopping,
+t20-meal-composition-flows, t20-meal-composition-http: 4 files / 37 tests PASS;
+flows file 6/6 repeated runs PASS; DELETE-first sequence verified with a
+throwaway sequential test (not committed). `pnpm typecheck`, lint PASS.
+`pnpm check` on `65084fc`: typecheck, lint PASS; vitest 4,552 PASS / 2 FAIL —
+`tests/unit/d1-readonly-query.test.mjs` and
+`tests/unit/production-certify-workflow.test.mjs` hit the 5 s default timeout in
+this sandbox (both PASS with `--testTimeout=60000`, ~6.2 s each; unrelated to
+T20). Because the script stops at tests, `pnpm check:migrations`
+(`migration-smoke=ok`) and `pnpm build` (`✓ built in 10.45s`) were run
+separately: PASS. `git diff --check origin/main...HEAD` PASS. The running-app
+UI check was not performed (the T20 UI flag stays off here). Nothing merged,
+deployed or migrated; production D1 not accessed; no T20 flags enabled.
+
+Next: open a PR from this branch, confirm hosted `validate` is green (it should
+no longer flake at the old line 177), then run a flag-enabled local visual check
+of the picker cuisine select before any T20 release.
+
+---
+
 # T20 PR #7 — final merge-readiness handoff, 2026-09-26 UTC
 
 No implementation changes remained after review of `6882ba3` against main

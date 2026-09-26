@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MealPlanDtoSchema, PlanShoppingDtoSchema } from '../../packages/domain/src/meal-planning-api';
-import { PickerPageDtoSchema, SlotCompositionDtoSchema } from '../../packages/domain/src/meal-composition-api';
+import { PICKER_CUISINES, PickerPageDtoSchema, SlotCompositionDtoSchema } from '../../packages/domain/src/meal-composition-api';
 import { ALL_RECIPES } from '../../packages/recipes/src/data';
 import { auditRoleDistribution, buildRoleIndex } from '../../packages/recipes/src/composition/roles';
 import { resetRecipeAuthorityCacheForTests, resolveRecipeAuthority } from '../../src/worker/services/recipe-authority';
@@ -119,9 +119,40 @@ describe('T20 picker at 500 recipes', () => {
 
   it('rejects malformed picker queries', async () => {
     await h.seedHousehold(HOUSE);
-    for (const query of ['role=dessertx', 'limit=0', 'limit=500', 'cursor=-1', 'role=main&role=side', 'unknown=1', 'kind=family']) {
+    for (const query of ['role=dessertx', 'limit=0', 'limit=500', 'cursor=-1', 'role=main&role=side', 'unknown=1', 'kind=family',
+      'cuisine=french', 'cuisine=Korean', 'cuisine=korean&cuisine=thai']) {
       expect((await h.call(HOUSE, 'GET', `/meal-planning/compositions/picker?${query}`)).status, query).toBe(422);
     }
+  }, CASE_TIMEOUT);
+
+  it('cuisine filter uses catalog metadata, combines with role and search, excludes simple foods and is deterministic', async () => {
+    await h.seedHousehold(HOUSE);
+    const page = async (query: string) => {
+      const response = await h.call(HOUSE, 'GET', `/meal-planning/compositions/picker?${query}`);
+      expect(response.status, `${query} ${JSON.stringify(response.json)}`).toBe(200);
+      return PickerPageDtoSchema.parse(response.json);
+    };
+    expect(ALL_RECIPES.every((recipe) => (PICKER_CUISINES as readonly string[]).includes(recipe.cuisine))).toBe(true);
+    const korean = await page('cuisine=korean&limit=50');
+    expect(korean.total).toBeGreaterThan(0);
+    expect(korean.items.every((item) => item.kind === 'recipe' && item.cuisine === 'korean')).toBe(true);
+    expect(await page('cuisine=korean&limit=50')).toEqual(korean);
+
+    const koreanMains = await page('cuisine=korean&role=main&limit=50');
+    expect(koreanMains.total).toBeGreaterThan(0);
+    expect(koreanMains.total).toBeLessThanOrEqual(korean.total);
+    expect(koreanMains.items.every((item) => item.cuisine === 'korean' && item.roles.includes('main'))).toBe(true);
+
+    const target = korean.items[0];
+    const q = encodeURIComponent(target.title);
+    expect((await page(`cuisine=korean&q=${q}`)).items.map((item) => item.id)).toContain(target.id);
+    expect((await page(`cuisine=japanese&q=${q}`)).items.map((item) => item.id)).not.toContain(target.id);
+    expect((await page(`q=${q}`)).items.map((item) => item.id)).toContain(target.id);
+
+    // Staples such as steamed rice have no cuisine metadata and are never inferred into a cuisine.
+    expect((await page('role=staple&cuisine=vietnamese')).items.some((item) => item.kind === 'simple_food')).toBe(false);
+    expect((await page('role=staple')).items.some((item) => item.kind === 'simple_food')).toBe(true);
+    expect((await page('cuisine=korean&kind=simple_food')).total).toBe(0);
   }, CASE_TIMEOUT);
 });
 

@@ -92,6 +92,19 @@ async function settle(ms = 0) {
 }
 const byLabel = (label: string) => [...document.querySelectorAll<HTMLElement>('button, select, input, a')]
   .find((element) => (element.getAttribute('aria-label') ?? element.textContent?.trim()) === label)!;
+/** Control whose wrapping <label> carries the given (visually hidden) accessible name. */
+const labelled = (name: string) => [...document.querySelectorAll('label > span.sr-only')]
+  .find((span) => span.textContent === name)!.parentElement!;
+const selectNamed = (name: string) => labelled(name).querySelector('select')!;
+const inputNamed = (name: string) => labelled(name).querySelector('input')!;
+async function setValue(element: HTMLInputElement | HTMLSelectElement, value: string) {
+  const proto = element instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(proto, 'value')!.set!.call(element, value);
+    element.dispatchEvent(new Event(element instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }));
+  });
+}
+const debounce = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 250)); });
 
 describe('T20 Meal composer UI', () => {
   it('renders components with accessible role labels and lock state; lock is a server mutation at the current revision', async () => {
@@ -142,6 +155,45 @@ describe('T20 Meal composer UI', () => {
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 250)); });
     await act(async () => byLabel('Choose: Canh chua').click());
     expect(api.add).toHaveBeenCalledWith(planId, slotId, { revision: 4, target: { kind: 'recipe', recipeId: 'canh-chua' }, role: 'soup', locked: true });
+  });
+
+  it('picker cuisine filter is a labelled control combined with search and role on the server query', async () => {
+    const current = plan();
+    api.picker.mockResolvedValue({ schemaVersion: 1, items: [{ kind: 'recipe', id: 'tom-yum', title: 'Tom yum',
+      roles: ['soup'], cuisine: 'thai', cookTimeMinutes: 30, difficulty: 'easy', constraintState: 'none_requested' }], nextCursor: null, total: 1 });
+    await render(<MealComposer plan={current} slotId={slotId} model={model(current) as never} locale="en" />);
+    await act(async () => byLabel('Add dish').click());
+    await debounce();
+    const cuisine = selectNamed('Cuisine');
+    expect(cuisine.value).toBe('');
+    expect([...cuisine.options].map((option) => option.textContent))
+      .toEqual(['All cuisines', 'Vietnamese', 'Korean', 'Japanese', 'Chinese', 'Thai', 'Italian']);
+    await setValue(inputNamed('Search dishes'), 'yum');
+    await setValue(selectNamed('Role'), 'soup');
+    await setValue(cuisine, 'thai');
+    await debounce();
+    expect(api.picker).toHaveBeenLastCalledWith({ role: 'soup', cuisine: 'thai', q: 'yum', cursor: undefined, limit: '20' });
+    expect(document.querySelector('[role="dialog"]')!.textContent).toContain('Tom yum');
+  });
+
+  it('an empty filtered picker result explains the filters and can clear them', async () => {
+    const current = plan();
+    api.picker.mockResolvedValue({ schemaVersion: 1, items: [], nextCursor: null, total: 0 });
+    await render(<MealComposer plan={current} slotId={slotId} model={model(current) as never} locale="en" />);
+    await act(async () => byLabel('Add dish').click());
+    await debounce();
+    const dialog = document.querySelector('[role="dialog"]')!;
+    expect(dialog.textContent).toContain('No matching dishes.');
+    expect(dialog.textContent).not.toContain('Clear filters');
+    await setValue(selectNamed('Cuisine'), 'italian');
+    await debounce();
+    expect(dialog.textContent).toContain('No dishes match the current filters.');
+    await act(async () => byLabel('Clear filters').click());
+    await debounce();
+    expect(selectNamed('Cuisine').value).toBe('');
+    expect(api.picker).toHaveBeenLastCalledWith({ role: undefined, cuisine: undefined, q: undefined, cursor: undefined, limit: '20' });
+    expect(document.activeElement?.getAttribute('type')).toBe('search');
+    expect(api.add).not.toHaveBeenCalled();
   });
 
   it('"Complete this meal" shows an explicit suggestion; nothing changes until Accept', async () => {
