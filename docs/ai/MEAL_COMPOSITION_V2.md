@@ -205,8 +205,9 @@ counts, duration and failure code only. No notes, titles, lists, IDs or tokens.
 
 ## Rollout prerequisites (not performed)
 
-1. Apply `0039` to the target D1 (the schema gate blocks deploys until the ledger
-   matches the repository — merging T20 therefore requires the migration step).
+1. Apply `0039` to the target D1 before deployment (the production schema gate
+   blocks deploys until the ledger matches the repository). This does not block
+   merging; staging must also be migrated before enabling V2 there.
 2. Enable both flags in one reviewed release: `deploy.yml` dispatch input
    `meal_composition_v2_enabled` (default false) is normalized once by
    `release-check.mjs gate` (`'true'` only for an explicit dispatch; pushes and any

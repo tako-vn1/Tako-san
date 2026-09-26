@@ -1,7 +1,11 @@
 # T20 PR #7 — remaining P2 budget items, 2026-09-26 UTC
 
-**Status: `T20_PR7_P2_LOCAL_GREEN_CI_PENDING`.** Reviewed main
-`136cb6ff3d2921eac237c7b106b37ab5ee12a13f`, reviewed head `9b57862` (CI `36210333684` SUCCESS).
+**Status: `T20_PR7_READY_FOR_FINAL_REVIEW` (docs-only CI pending).** Reviewed main
+`136cb6f`; prior head `a337a2b` has hosted `validate` SUCCESS (run
+`36216083854`). The final-pass
+head `0b465d5` removes a stray EOF blank line from the PR diff, with no logic
+change. Full PR diff check now PASS; application-head `validate` SUCCESS (run
+`36216675722`).
 Implementation checkpoints: `e3aef74` (P2-1) and `4f60157` (P2-2).
 
 | Item | Implementation | Proof |
@@ -15,7 +19,17 @@ zero-budget test. `pnpm typecheck`, `git diff --check`: PASS. Full `pnpm check`
 PASS: typecheck, lint, 201 Vitest files / 4,549 tests, migration smoke
 (`migration-smoke=ok`) and build (`✓ built in 6.64s`). Remote schema and
 Week parity skipped locally. Independent focused review: no new P0/P1/P2.
-**Do not mark ready until exact-head hosted CI passes.**
+Final-pass `pnpm typecheck`: PASS; focused `pnpm exec vitest run
+tests/unit/t20-composer-candidates.test.ts tests/unit/t20-meal-composition.test.ts
+tests/integration/t20-meal-composition-http.test.ts`: 3 files / 23 tests PASS;
+`git diff --check origin/main...HEAD`: PASS (initial EOF whitespace warning
+fixed in `0b465d5`). `pnpm check` PASS: typecheck, lint, 201 test files /
+4,549 tests, `migration-smoke=ok`, build (`✓ built in 6.72s`); remote schema
+and Week parity skipped locally. Independent code and release audits:
+no new P0/P1/P2 or merge blockers. Deployment requires 0039 on target D1;
+the paired Worker/UI flag defaults off and needs a release-owner opt-in after
+migration. **Next:** verify hosted `validate` on this docs-only checkpoint, then hand the
+merge decision to the user. No merge/deploy/production D1 mutation authorized.
 No merge, deploy, production migration/data change, flag enablement or T19
 authority change. Next: exact-head CI then independent final review.
 

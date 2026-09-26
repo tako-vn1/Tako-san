@@ -1,10 +1,14 @@
 # T20 PR #7 — final P2 budget remediation, 2026-09-26 UTC
 
-**Status: `T20_PR7_P2_LOCAL_GREEN_CI_PENDING`, not merged or deployed.**
-Reviewed base `136cb6ff3d2921eac237c7b106b37ab5ee12a13f` (main), reviewed PR head `9b57862` (hosted
-`validate` run `36210333684` SUCCESS). Application checkpoints `e3aef74`
-(candidate pool) and `4f60157` (scoring limit) are on
-`feat/t20-meal-composition-v2` (PR #7); exact new-head CI pending.
+**Status: `T20_PR7_READY_FOR_FINAL_REVIEW` (docs-only CI pending); not merged or deployed.**
+Review base: `main` at `136cb6f`; prior head `a337a2b` passed hosted `validate`
+run `36216083854`. Application head `0b465d5` passed hosted `validate` run
+`36216675722` (SUCCESS, MERGEABLE/CLEAN, no review comments). Application
+checkpoints `e3aef74` (candidate pool) and `4f60157` (scoring limit) remain on
+`feat/t20-meal-composition-v2` (PR #7). Final pass commit `0b465d5` removes a
+stray blank line at EOF in `src/worker/services/meal-composition.ts` (the full
+PR diff had failed `git diff --check origin/main...HEAD`); no runtime logic
+changed. The full PR diff now passes that check.
 
 - `prepareComposerCandidates`: T03-rank every role/authority-eligible recipe,
   reserve eligible simple foods inside the same 320 slots, fill per-role quotas
@@ -30,8 +34,20 @@ Reviewed base `136cb6ff3d2921eac237c7b106b37ab5ee12a13f` (main), reviewed PR hea
   no T20 flag enablement, no T19 recipe authority change. Migration 0039 remains
   unapplied by this task.
 
-Next: require exact-head hosted `validate` SUCCESS, then independent final
-review of that SHA before any merge decision.
+Final-pass execution on `0b465d5`: `pnpm typecheck` PASS;
+`pnpm exec vitest run tests/unit/t20-composer-candidates.test.ts
+tests/unit/t20-meal-composition.test.ts tests/integration/t20-meal-composition-http.test.ts`
+PASS (3 files / 23 tests); `git diff --check origin/main...HEAD` PASS after the
+EOF cleanup. `pnpm check` PASS: typecheck, lint, Vitest 201 files / 4,549 tests,
+`migration-smoke=ok`, build (`✓ built in 6.72s`); remote D1 schema and Week
+parity skipped locally. Independent final
+code and release audits found no new P0/P1/P2 or merge blocker. Deployment
+owner must apply 0039 to the target D1 before deployment; release owner must
+enable the paired server/UI T20 flags only after migration (default off).
+
+Next: confirm the documentation checkpoint's exact-head hosted `validate` is
+SUCCESS; then the user may decide whether to merge. No release operation is
+authorized by this handoff.
 
 ---
 
