@@ -326,17 +326,22 @@ export class MealCompositionService {
     };
     let components: MealComponent[];
     try { components = operation(current, context, loaded); } catch (error) { domainError(error); }
-    const before = new Set(current.components.map((item) => targetKey(item)));
-    const added = components.filter((component) => !before.has(targetKey(component)));
-    if (added.length) {
+    const affectedIndex = components.findIndex((component, index) => {
+      const previous = current.components[index];
+      return !previous || previous.id !== component.id || targetKey(previous) !== targetKey(component)
+        || previous.role !== component.role;
+    });
+    const firstAffected = affectedIndex < 0 ? current.components.length : affectedIndex;
+    const affected = components.slice(firstAffected);
+    if (affected.length) {
       const proposed = { ...current, mode, components };
       const projected = this.projection(loaded, this.allCompositions(loaded, proposed), undefined,
-        new Set(added.map((component) => component.id)));
-      for (const component of added) {
+        new Set(affected.map((component) => component.id)));
+      for (const component of affected) {
         const target: ComponentTarget = component.kind === 'recipe' ? { kind: 'recipe', recipeId: component.recipeId! }
           : { kind: 'simple_food', simpleFoodId: component.simpleFoodId! };
         const inventory = projected.inventoryBeforeComponents.get(component.id);
-        if (!inventory) throw new Error('Missing T02 inventory checkpoint for added component');
+        if (!inventory) throw new Error('Missing T02 inventory checkpoint for affected component');
         const reasons = this.restrictionReasons(loaded, slot, target, inventory);
         if (reasons.length) {
           logEvent('composition_hard_restriction_rejected', { mode, reasons: reasons.join(',') });
