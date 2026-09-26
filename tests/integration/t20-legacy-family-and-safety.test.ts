@@ -1,0 +1,157 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MealPlanDtoSchema, PlanShoppingDtoSchema } from '../../packages/domain/src/meal-planning-api';
+import {
+  AutoOptionsDtoSchema,
+  PlanCompositionsDtoSchema,
+  SlotCompositionDtoSchema,
+} from '../../packages/domain/src/meal-composition-api';
+import { generateRecipeCandidates } from '../../packages/recipes/src/candidates';
+import { createRecipeCatalog } from '../../packages/recipes/src/catalog';
+import { RecipeFamilySchema } from '../../packages/recipes/src/foundation';
+import { resetRecipeAuthorityCacheForTests } from '../../src/worker/services/recipe-authority';
+import { resetRoleIndexMemoForTests } from '../../src/worker/services/meal-composition';
+import { quietLogs, T20Harness, T20_INTENT } from '../helpers/t20-composition-harness';
+
+vi.mock('../../src/worker/services/email', () => ({ sendEmail: vi.fn(), buildOtpEmail: vi.fn() }));
+
+/**
+ * T20 review P1 regressions over the real Worker + SQLite ledger: Manual enforces the full T03 hard
+ * contract, and V1 family-variant meals keep V1 controls while staying in composed-plan shopping.
+ */
+const HOUSE = 't20-p1-a';
+const FAMILY_ID = 't20-family-chicken';
+const FAMILY_HOST = 'imp-26a36c69306143bc';
+const CASE_TIMEOUT = 30_000;
+let h: T20Harness;
+let events: Array<Record<string, unknown>>;
+
+const slotPath = (planId: string, slotId: string) => `/meal-planning/plans/${planId}/slots/${encodeURIComponent(slotId)}`;
+async function generate() {
+  const response = await h.call(HOUSE, 'POST', '/meal-planning/plans', T20_INTENT);
+  expect(response.status, JSON.stringify(response.json)).toBe(200);
+  return MealPlanDtoSchema.parse(response.json);
+}
+function preferences(values: Record<string, unknown>) {
+  h.db.seed(`INSERT INTO household_ranking_preferences (household_id, values_json, updated_at)
+    VALUES ('${HOUSE}', '${JSON.stringify({ version: 1, values })}', '2029-01-01T00:00:00.000Z')`);
+}
+
+beforeEach(async () => {
+  h = new T20Harness();
+  await h.seedHousehold(HOUSE);
+  resetRecipeAuthorityCacheForTests();
+  resetRoleIndexMemoForTests();
+  events = quietLogs();
+});
+afterEach(() => {
+  h.close();
+  vi.restoreAllMocks();
+});
+
+describe('T20 Manual enforces the same T03 hard contract as Auto', () => {
+  const cases: Array<[string, Record<string, unknown>, string]> = [
+    ['reviewed dietary tag required (safety unknown)', { requiredDietaryTags: ['vegetarian'] }, 'SAFETY_UNKNOWN'],
+    ['allergen requested (safety unknown)', { allergens: ['peanut'] }, 'SAFETY_UNKNOWN'],
+    ['hard nutrition target without reviewed nutrition', { mealNutritionTargets: [{ nutrient: 'proteinG', max: 80, hard: true }] }, 'NUTRITION_UNKNOWN'],
+  ];
+  it.each(cases)('%s: Auto adds nothing and Manual cannot persist the dish', async (_label, values, reason) => {
+    const plan = await generate();
+    const slotId = plan.result.meals[0].slotId;
+    preferences(values);
+    const auto = await h.call(HOUSE, 'POST', `${slotPath(plan.id, slotId)}/auto`, { revision: plan.revision });
+    expect(auto.status, JSON.stringify(auto.json)).toBe(200);
+    for (const option of AutoOptionsDtoSchema.parse(auto.json).options) {
+      expect(option.components.filter((item) => item.existingComponentId === null)).toEqual([]);
+    }
+    const picker = await h.call(HOUSE, 'GET', '/meal-planning/compositions/picker?role=vegetable&kind=recipe');
+    const recipeId = picker.json.items.find((item: { kind: string }) => item.kind === 'recipe').id as string;
+    for (const target of [{ kind: 'recipe', recipeId }, { kind: 'simple_food', simpleFoodId: 'sf-sliced-cucumber' }]) {
+      const manual = await h.call(HOUSE, 'POST', `${slotPath(plan.id, slotId)}/components`, { revision: plan.revision, target, role: 'vegetable' });
+      expect(manual.status, JSON.stringify(manual.json)).toBe(422);
+      expect(manual.json.code).toBe('HARD_CONSTRAINT_CONFLICT');
+    }
+    const rejected = events.filter((event) => event.event === 'composition_hard_restriction_rejected');
+    expect(rejected.length).toBe(2);
+    expect(String(rejected[0].reasons)).toContain(reason);
+    // Manual save cannot smuggle it in either; nothing was written.
+    const save = await h.call(HOUSE, 'PUT', `${slotPath(plan.id, slotId)}/composition`, { revision: plan.revision, components: [
+      { id: `v1.${slotId}`, target: { kind: 'recipe', recipeId: plan.result.meals[0].source.id }, role: 'main', locked: false },
+      { target: { kind: 'recipe', recipeId }, role: 'vegetable', locked: false }] });
+    expect(save.json.code).toBe('HARD_CONSTRAINT_CONFLICT');
+    expect(MealPlanDtoSchema.parse((await h.call(HOUSE, 'GET', `/meal-planning/plans/${plan.id}`)).json).revision).toBe(plan.revision);
+  }, CASE_TIMEOUT);
+
+  it('hard max time: a dish over (or without) a known total time is rejected; the existing V1 anchor may stay', async () => {
+    const plan = await generate();
+    const slotId = plan.result.meals[0].slotId;
+    preferences({ hardMaxTimeMinutes: 5 });
+    const manual = await h.call(HOUSE, 'POST', `${slotPath(plan.id, slotId)}/components`,
+      { revision: plan.revision, target: { kind: 'simple_food', simpleFoodId: 'sf-steamed-rice' }, role: 'staple' });
+    expect(manual.json.code).toBe('HARD_CONSTRAINT_CONFLICT');
+    // Locking an existing component adds nothing and is not re-judged.
+    const lock = await h.call(HOUSE, 'PATCH', `${slotPath(plan.id, slotId)}/components/${encodeURIComponent(`v1.${slotId}`)}`,
+      { revision: plan.revision, locked: true });
+    expect(lock.status, JSON.stringify(lock.json)).toBe(200);
+  }, CASE_TIMEOUT);
+});
+
+describe('T20 V1 family-variant meals', () => {
+  function seedFamily() {
+    h.db.seed(`INSERT INTO recipe_families (id, slug, name, base_servings, source_type, source_reference)
+        VALUES ('${FAMILY_ID}', '${FAMILY_ID}', 'Gà xào', 2, 'curated', 'test:t20-family');
+      INSERT INTO recipe_family_slots VALUES ('${FAMILY_ID}', 'protein', 1, 1);
+      INSERT INTO recipe_family_options VALUES ('${FAMILY_ID}', 'protein', 'CHICKEN_BREAST', 300, 'g');
+      UPDATE recipes SET family_id = '${FAMILY_ID}' WHERE id = '${FAMILY_HOST}';`);
+  }
+  function variantId() {
+    const family = RecipeFamilySchema.parse({ id: FAMILY_ID, slug: FAMILY_ID, name: 'Gà xào', baseServings: 2,
+      provenance: { sourceType: 'curated', version: 1, sourceReference: 'test:t20-family' },
+      slots: [{ key: 'protein', minSelections: 1, maxSelections: 1, options: [{ ingredientId: 'CHICKEN_BREAST', quantity: 300, unit: 'g' }] }] });
+    const catalog = createRecipeCatalog({ source: 'provided', ingredientIds: ['CHICKEN_BREAST'], recipes: [], families: [family] });
+    return generateRecipeCandidates({ catalog, inventory: [], asOfDate: '2030-01-02', requestedServings: 2, mode: 'shopping_allowed' })
+      .candidates[0].variant!.id;
+  }
+
+  it('keeps V1 swap, refuses composition, and stays in composed-plan shopping (single projection)', async () => {
+    seedFamily();
+    const plan = await generate();
+    const [first, second] = plan.result.meals;
+    const swapped = await h.call(HOUSE, 'POST', `/meal-planning/plans/${plan.id}/swap`,
+      { revision: plan.revision, slotId: second.slotId, replacement: { kind: 'family', id: FAMILY_ID, variantId: variantId() } });
+    expect(swapped.status, JSON.stringify(swapped.json)).toBe(200);
+    const familyPlan = MealPlanDtoSchema.parse(swapped.json);
+    expect(familyPlan.result.meals.find((meal) => meal.slotId === second.slotId)!.source.kind).toBe('family');
+
+    const read = PlanCompositionsDtoSchema.parse((await h.call(HOUSE, 'GET', `/meal-planning/plans/${plan.id}/compositions`)).json);
+    const familySlot = read.compositions.find((entry) => entry.slotId === second.slotId)!;
+    expect(familySlot.source).toBe('v1_projection');
+    expect(familySlot.warnings).toContain('LEGACY_FAMILY_MEAL');
+
+    const path = slotPath(plan.id, second.slotId);
+    for (const [method, suffix, body] of [
+      ['POST', '/components', { revision: familyPlan.revision, target: { kind: 'simple_food', simpleFoodId: 'sf-steamed-rice' }, role: 'staple' }],
+      ['POST', '/assist', { revision: familyPlan.revision, action: 'complete' }],
+      ['POST', '/auto', { revision: familyPlan.revision }],
+    ] as const) {
+      const response = await h.call(HOUSE, method, `${path}${suffix}`, body);
+      expect(response.status, `${suffix} ${JSON.stringify(response.json)}`).toBe(422);
+      expect(response.json.code).toBe('LEGACY_FAMILY_COMPOSITION_UNSUPPORTED');
+    }
+
+    // Compose another slot so shopping takes the composition path; the family slot must still count.
+    const add = await h.call(HOUSE, 'POST', `${slotPath(plan.id, first.slotId)}/components`,
+      { revision: familyPlan.revision, target: { kind: 'simple_food', simpleFoodId: 'sf-steamed-rice' }, role: 'staple' });
+    expect(add.status, JSON.stringify(add.json)).toBe(200);
+    const revision = SlotCompositionDtoSchema.parse(add.json).planRevision;
+    const shopping = await h.call(HOUSE, 'POST', `/meal-planning/plans/${plan.id}/shopping`, { revision, currency: 'VND' });
+    expect(shopping.status, JSON.stringify(shopping.json)).toBe(200);
+    const chicken = PlanShoppingDtoSchema.parse(shopping.json).result.requirements.filter((item) => item.ingredientId === 'CHICKEN_BREAST');
+    expect(chicken).toHaveLength(1);
+    expect(chicken[0].sourceMealSlots.map((entry) => entry.slotId)).toContain(second.slotId);
+
+    // V1 swap remains the edit path for the family slot.
+    const back = await h.call(HOUSE, 'POST', `/meal-planning/plans/${plan.id}/swap`,
+      { revision, slotId: second.slotId, replacement: { kind: 'recipe', id: second.source.id } });
+    expect(back.status, JSON.stringify(back.json)).toBe(200);
+  }, CASE_TIMEOUT * 2);
+});

@@ -12,7 +12,7 @@ default. No production deployment, no production D1 migration. See ADR-031.
 | Recipe authority | T19 `RecipeAuthoritySnapshot` resolved by server composition; planner catalog projected onto it | Consumed as-is: every component, picker item and Auto candidate is fenced to `snapshot.visibleRecipeIds` / `authority.list()` |
 | Inventory | T02 availability + T04 `applyProjectedConsumption` (FEFO witness, branch-local, no real stock writes) | One running projection over every component of every meal |
 | Shopping | T05 `aggregateShoppingDemand` / `optimizeShopping` over per-slot shortages | Composed plans feed the same T05 with composition shortages from the single projection |
-| Personalization / safety | T03 hard eligibility (allergen, dietary, forbidden, never-recommend, time) | Auto/Assisted candidates ranked by T03; Manual rejects hard conflicts |
+| Personalization / safety | T03 hard eligibility (allergen, dietary, forbidden, never-recommend, time, hard nutrition; unknown = excluded) | One definition, `evaluateHardRestrictions`: Auto/Assisted via T03 ranking, Manual via `composition/restrictions.ts` on the same T02 candidate; no manual override |
 | API | `/api/v1/meal-planning/plans…` (cookie auth, tenancy, CSRF, rate limits, 64 KiB body) | New sub-routes under the same middleware plus `MEAL_COMPOSITION_V2_ENABLED` |
 | UI | `/planner` (T06B) behind `VITE_MEAL_PLANNER_ENABLED` | Composer, picker and composed week cards behind `VITE_MEAL_COMPOSITION_V2_ENABLED` |
 
@@ -109,16 +109,41 @@ must be permitted for the dish. Past slots and authority changes are typed 409s.
 Retrying a mutation with the same revision is a 409 and cannot duplicate
 components (partial unique indexes also enforce one dish per meal).
 
+Hard restrictions (review P1 remediation): every component a Manual mutation
+*adds* (add, swap, replace/save, and Assisted/Auto apply) is judged by T03
+`evaluateHardRestrictions` — the same function T03 ranking uses — over the same
+trusted planning context as Auto: the recipe's T02 candidate at this slot's
+projected inventory (planner substitution policy included, so a forbidden
+approved substitute counts), the server evidence provider, and the household +
+member hard policies. Requested allergen/dietary tags without review evidence,
+unknown or exceeded `hardMaxTimeMinutes`, and hard nutrition targets without
+reviewed nutrition all reject with 422 `HARD_CONSTRAINT_CONFLICT` (event
+`composition_hard_restriction_rejected` carries reason codes only). Simple foods
+have no safety/nutrition evidence: any requested allergen/dietary tag or hard
+nutrition target rejects them; their `prepMinutes` is the total time; only the
+tracked portion ingredient is checked for forbidden ingredients. Components that
+already exist (lock, reorder, role, remove) are not re-judged. The picker still
+lists recipes with `constraintState: unknown` when safety is requested (the
+server rejects on save); simple foods the contract rejects are hidden.
+
+V1 family-variant meals: not composable (Manual, Assisted and Auto are 422
+`LEGACY_FAMILY_COMPOSITION_UNSUPPORTED`); the UI keeps the V1 “Swap meal”
+control for those slots and shows no composer. They still take part in the single
+projection as a `legacy_family` projection component (the exact T04 variant:
+family ID, version, variant ID), so composed-plan shopping includes their demand;
+a variant that no longer resolves is 409 `COMPOSITION_REVALIDATION_REQUIRED`.
+
 ## Assisted and Auto
 
 `candidates.ts` + `composer.ts`. Candidates: authority-fenced recipes whose roles
 intersect the roles to fill, evaluated by T02 against the inventory state at that
 slot (after earlier slots' components), ranked by T03 (hard eligibility first);
 unresolved quantities and wrong meal types are excluded as in V1; simple foods are
-excluded when any allergen/dietary policy exists (unknown safety) or a forbidden
-ingredient applies. Search: ≤ 4 anchors (mains), ≤ 6 candidates per role, beam 8,
-≤ 1,200 partial expansions, ≤ 2,400 scoring operations, ≤ 3 options, ≤ 320
-catalog candidates; hard compatibility rules (duplicate, two mains, two soups,
+judged by the same `simpleFoodRestrictions` as Manual. Every role-matching recipe
+is generated and ranked before any cap; the ranked list is then capped at 320 with
+a per-role quota (`floor(320 / rolesToFill)`), so catalog ID order never decides
+which recipes are considered. Search: ≤ 4 anchors (mains), ≤ 6 candidates per role, beam 8,
+≤ 1,200 partial expansions, ≤ 2,400 scoring operations, ≤ 3 options; hard compatibility rules (duplicate, two mains, two soups,
 staple conflict) prune; soft rules (dominant-ingredient repeat, all fried) lower
 `variety`. Score = weighted parts (roleCompleteness .30, inventoryCoverage .20,
 shoppingCostProxy .15, preferenceFit .15, variety .10, ingredientReuse .05,
@@ -140,6 +165,14 @@ witness after each component. Tomato 300 g (soup) + 300 g (salad) vs 500 g stock
 buys 100 g — never `max(0,300−500)+max(0,300−500)`. The per-slot concatenated
 shortages go to the unchanged T05 aggregation (unit normalization, contextual
 units stay unresolved). Planning and shopping never mutate inventory.
+
+The projection's `EvaluationScope` requires the substitution policy
+(`substitutions`, `approvedSubstitutionIds`, `activeConstraints`) and is built by
+`evaluationScope(context)` from the same trusted planning context the planner and
+Auto candidates use, so an approved substitute Auto relied on is also what
+shopping consumes (regression: direct vs substitute competition across
+components and slots, and an unapproved rule is never used). The current
+production context has no reviewed substitution registry (empty lists, as in V1).
 
 ## Picker
 
@@ -170,8 +203,16 @@ counts, duration and failure code only. No notes, titles, lists, IDs or tokens.
 
 1. Apply `0039` to the target D1 (the schema gate blocks deploys until the ledger
    matches the repository — merging T20 therefore requires the migration step).
-2. Enable `MEAL_COMPOSITION_V2_ENABLED` (server) and `VITE_MEAL_COMPOSITION_V2_ENABLED`
-   (build) together, independent of every T19 recipe-authority flag.
+2. Enable both flags in one reviewed release: `deploy.yml` dispatch input
+   `meal_composition_v2_enabled` (default false) is normalized once by
+   `release-check.mjs gate` (`'true'` only for an explicit dispatch; pushes and any
+   other value are `'false'`, recorded in the release manifest). The same output
+   feeds the Build step's `VITE_MEAL_COMPOSITION_V2_ENABLED` and the Worker
+   `--var MEAL_COMPOSITION_V2_ENABLED`; `scripts/composition-flags.mjs verify`
+   fails the job unless server, UI, manifest and the value Vite actually compiled
+   (`dist/composition-flags.json`) are all `true` or all `false`. Wrangler configs
+   default the var to `"false"`. Independent of every T19 recipe-authority flag. A
+   mismatched runtime (UI on, server 404) falls back to the V1 meal controls.
 3. Append the 0039 SHA-256 to `tests/fixtures/migration-sha256.json` after it is
    applied (fixture policy).
 

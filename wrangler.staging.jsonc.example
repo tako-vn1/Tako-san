@@ -70,6 +70,8 @@
     "GLM_FALLBACK_ENABLED": "false",
     "DEEPSEEK_FALLBACK_ENABLED": "false",
     "CLEANUP_RESERVED_SCAN_RETENTION_MINUTES": "60",
+    // T20 is enabled only through the reviewed Deploy dispatch input, never here.
+    "MEAL_COMPOSITION_V2_ENABLED": "false",
     // Cloudflare PUBLISHED Turnstile test keys (always pass). Never use these
     // in production.
     "TURNSTILE_SITE_KEY": "1x00000000000000000000AA"

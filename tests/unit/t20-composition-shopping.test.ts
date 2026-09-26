@@ -26,7 +26,8 @@ const packDish = recipe('pack-dish', TOMATO, 1, {
 });
 
 function scope(recipes: RecipeDefinition[]) {
-  return { catalog: catalog(recipes), householdId: HOUSEHOLD_ID, mode: 'shopping_allowed' as const };
+  return { catalog: catalog(recipes), householdId: HOUSEHOLD_ID, mode: 'shopping_allowed' as const,
+    substitutions: [], approvedSubstitutionIds: [], activeConstraints: [] };
 }
 function tomato(quantity: number, overrides: Partial<InventoryLotSnapshot> = {}) {
   return lot({ id: `lot-tomato-${quantity}-${overrides.expiryDate ?? 'none'}`, ingredientId: TOMATO, quantity, unit: 'g', ...overrides });

@@ -87,6 +87,7 @@
     "DEEPSEEK_FALLBACK_ENABLED": "false",
     "CLEANUP_RESERVED_SCAN_RETENTION_MINUTES": "60",
     "WEEK_SCHEMA_MODE": "dual",
+    "MEAL_COMPOSITION_V2_ENABLED": "false",
     "TURNSTILE_SITE_KEY": "0x4AAAAAAEqYwPIUD6OGmNNQ",
     "GOOGLE_CLIENT_ID": "509963441971-c9sofh0ueaf8nji4r2gd5kahjlerrjdl.apps.googleusercontent.com"
   },

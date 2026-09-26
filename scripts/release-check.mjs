@@ -26,6 +26,12 @@ export const PRODUCTION_WORKER_IDENTITY = Object.freeze({
 export const RELEASE_RECIPE_CATALOG_MODES = ['static', 'shadow', 'canary', 'd1'];
 export const RELEASE_CANARY_PERCENT_OPTIONS = [1, 2, 5, 25];
 export const RELEASE_CANARY_PERCENT_INPUTS = ['0', ...RELEASE_CANARY_PERCENT_OPTIONS.map(String)];
+
+// T20: one normalized value drives both the Worker var and the build-time UI flag.
+// Only an explicit dispatch opt-in enables it; pushes and any other value stay off.
+export function resolveMealCompositionV2Release({ eventName, input }) {
+  return eventName === 'workflow_dispatch' && input === 'true' ? 'true' : 'false';
+}
 const USER_VISIBLE_D1_MODES = ['canary', 'd1'];
 
 export function validateRecipeCatalogMode(value) {
@@ -828,6 +834,10 @@ async function main() {
       mode: process.env.RECIPE_CATALOG_MODE,
       canaryPercent: process.env.RECIPE_CATALOG_D1_CANARY_PERCENT,
     });
+    const mealCompositionV2Enabled = resolveMealCompositionV2Release({
+      eventName: process.env.GITHUB_EVENT_NAME,
+      input: process.env.MEAL_COMPOSITION_V2_ENABLED_INPUT,
+    });
     const hardenedSha =
       process.env.HARDENED_SHA ||
       (environment === 'staging' && process.env.GITHUB_EVENT_NAME === 'workflow_run'
@@ -843,6 +853,7 @@ async function main() {
       recipeCatalogCanaryPercent: rollout.canaryPercent,
       recipeCatalogCutoverEnabled: rollout.cutoverEnabled,
       recipeCatalogRollbackConfirmed: process.env.RECIPE_CATALOG_ROLLBACK_CONFIRMED === 'true',
+      mealCompositionV2Enabled: mealCompositionV2Enabled === 'true',
       ci: await hostedCi(source.sha, repository),
       schema: migrationManifest(process.cwd(), source.sha),
       workflowRunId: process.env.GITHUB_RUN_ID,
@@ -853,12 +864,12 @@ async function main() {
     if (process.env.GITHUB_OUTPUT)
       appendFileSync(
         process.env.GITHUB_OUTPUT,
-        `deploy_sha=${source.sha}\nrecipe_catalog_mode=${rollout.mode}\nrecipe_catalog_d1_canary_percent=${rollout.canaryPercent}\nrecipe_catalog_cutover_enabled=${rollout.cutoverEnabled}\n`,
+        `deploy_sha=${source.sha}\nrecipe_catalog_mode=${rollout.mode}\nrecipe_catalog_d1_canary_percent=${rollout.canaryPercent}\nrecipe_catalog_cutover_enabled=${rollout.cutoverEnabled}\nmeal_composition_v2_enabled=${mealCompositionV2Enabled}\n`,
       );
     if (process.env.GITHUB_STEP_SUMMARY)
       appendFileSync(
         process.env.GITHUB_STEP_SUMMARY,
-        `## Approved release candidate\n\n- SHA: \`${source.sha}\`\n- Main: \`${source.mainSha}\`\n- Hardened ancestor: \`${source.hardenedSha}\`\n- Schema: \`${manifest.schema.version}\` (${manifest.schema.sha256})\n- Exact-head CI: ${manifest.ci.url}\n\nCandidate validation is not proof of deployment; see the deployment receipt artifact.\n`,
+        `## Approved release candidate\n\n- SHA: \`${source.sha}\`\n- Main: \`${source.mainSha}\`\n- Hardened ancestor: \`${source.hardenedSha}\`\n- Schema: \`${manifest.schema.version}\` (${manifest.schema.sha256})\n- Exact-head CI: ${manifest.ci.url}\n- Meal Composition V2 (server + UI): \`${mealCompositionV2Enabled}\`\n\nCandidate validation is not proof of deployment; see the deployment receipt artifact.\n`,
       );
   } else {
     const manifest = JSON.parse(readFileSync(file, 'utf8'));

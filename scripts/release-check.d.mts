@@ -28,6 +28,7 @@ export interface RecipeAuthorityProof {
 
 export const RELEASE_RECIPE_CATALOG_MODES: readonly string[];
 export const RELEASE_CANARY_PERCENT_OPTIONS: readonly number[];
+export function resolveMealCompositionV2Release(input: { eventName: unknown; input: unknown }): 'true' | 'false';
 export function validateRecipeCatalogMode(value: unknown): RecipeCatalogRollout['mode'];
 export function validateRecipeCatalogRollout(input: { mode: unknown; canaryPercent: unknown }): Readonly<RecipeCatalogRollout>;
 export function validateRecipeCatalogManifestPolicy(manifest: unknown): Readonly<RecipeCatalogRollout>;

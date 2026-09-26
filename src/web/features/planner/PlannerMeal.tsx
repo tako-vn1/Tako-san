@@ -40,9 +40,15 @@ export function PlannerMeal({ plan, slotId, model, locale }: {
 
   const composing = isMealCompositionEnabled();
   const compositions = usePlanCompositions(plan, composing);
+  const slotComposition = compositions.data?.compositions.find((entry) => entry.slotId === slotId);
+  // V1 family-variant meals are not composable server-side, so they keep the V1 swap. If the
+  // composition API is unavailable (server flag off / mismatch), the V1 controls stay too.
+  const legacyFamily = meal?.source.kind === 'family' && slotComposition?.source !== 'v2';
+  const editor = composing && compositions.isSuccess && !legacyFamily;
+  const v1Controls = !composing || compositions.isError || legacyFamily;
   // Once a slot is composed, the V1 generation record (title, ingredients, method) no longer describes the meal.
-  const composed = composing && compositions.data?.compositions.find((entry) => entry.slotId === slotId)?.source === 'v2';
-  if (!meal) return composing && plan.intent.slots.some((slot) => `${slot.date}:${slot.mealType}:${slot.sequence}` === slotId)
+  const composed = editor && slotComposition?.source === 'v2';
+  if (!meal) return composing && !compositions.isError && plan.intent.slots.some((slot) => `${slot.date}:${slot.mealType}:${slot.sequence}` === slotId)
     ? <><Link className="inline-flex items-center gap-2 min-h-11 text-sm text-takosan-green-deep font-semibold" to={`/planner/${plan.id}`}><ArrowLeft size={16} />{t.back}</Link>
       <MealComposer plan={plan} slotId={slotId} model={model} locale={locale} /></>
     : <Card><p>{t.mealUnavailable}</p><Link to={`/planner/${plan.id}`} className="underline min-h-11 inline-flex items-center">{t.back}</Link></Card>;
@@ -62,9 +68,9 @@ export function PlannerMeal({ plan, slotId, model, locale }: {
       <p className="text-xs font-bold text-takosan-green-deep uppercase tracking-wide">{t[meal.mealType]} · {meal.date}</p>
       <h2 className="text-2xl font-heading font-bold text-semantic-text-primary mt-2 leading-tight">{composed ? t[meal.mealType] : meal.title}</h2>
       <div className="flex gap-5 text-sm text-semantic-text-secondary mt-4"><span className="inline-flex items-center gap-1"><Users size={16} />{meal.servings} {t.people}</span>{!composed && <span className="inline-flex items-center gap-1"><Clock size={16} />{meal.cookTimeMinutes === null ? t.unknownTime : `${meal.cookTimeMinutes} ${t.minutes}`}</span>}</div>
-      {!composing && <Button className="mt-5" fullWidth variant="secondary" disabled={!!model.busy || plan.freshness.reasons.includes('planning_time_elapsed')} onClick={() => setSwapOpen(true)}><RefreshCw size={16} className="mr-2" />{t.swap}</Button>}
+      {v1Controls && <Button className="mt-5" fullWidth variant="secondary" disabled={!!model.busy || plan.freshness.reasons.includes('planning_time_elapsed')} onClick={() => setSwapOpen(true)}><RefreshCw size={16} className="mr-2" />{t.swap}</Button>}
     </Card>
-    {composing && <MealComposer plan={plan} slotId={slotId} model={model} locale={locale} />}
+    {editor && <MealComposer plan={plan} slotId={slotId} model={model} locale={locale} />}
     {!composed && <><Card><h3 className="font-heading font-bold text-lg">{t.ingredients}</h3>
       <ul className="divide-y divide-semantic-border/70 mt-2">{meal.requirements.map((item, index) => <li key={`${item.ingredientId}:${index}`} className="py-4">
         <div className="flex flex-wrap justify-between gap-2"><span className="font-semibold text-sm">{ingredientLabel(item.ingredientId, locale)}{item.optional && <span className="block text-xs text-semantic-text-muted font-normal">{t.optional}</span>}</span><span className="text-sm font-semibold">{formatQuantity(item.required, locale)}</span></div>

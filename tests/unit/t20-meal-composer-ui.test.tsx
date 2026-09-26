@@ -15,6 +15,7 @@ vi.mock('../../src/web/services/meal-composition', () => ({ mealCompositionApi: 
 vi.mock('../../src/web/services/meal-planning', () => ({ mealPlanningApi: { get: api.get } }));
 
 import { MealComposer } from '../../src/web/features/planner/MealComposer';
+import { PlannerMeal } from '../../src/web/features/planner/PlannerMeal';
 import { PlannerWeek } from '../../src/web/features/planner/PlannerWeek';
 
 const planId = '5b7c8f1e-2a3d-4c5b-8e9f-0a1b2c3d4e5f';
@@ -22,13 +23,16 @@ const date = '2030-01-07';
 const slotId = `${date}:dinner:0`;
 const instant = `${date}T18:00:00.000Z`;
 
-function plan(revision = 4): MealPlanDto {
+const RECIPE_SOURCE = { kind: 'recipe', id: 'pho-bo', version: 1, variantId: null };
+const FAMILY_SOURCE = { kind: 'family', id: 'stir-fry', version: 3, variantId: 'family:stir-fry:v3:[]' };
+
+function plan(revision = 4, source: Record<string, unknown> = RECIPE_SOURCE): MealPlanDto {
   return MealPlanDtoSchema.parse({
     schemaVersion: 1, id: planId, householdId: 'house-ui', revision, createdAt: instant, updatedAt: instant,
     intent: { startDate: date, horizonDays: 1, utcOffsetMinutes: 0, defaultServings: 2, mode: 'shopping_allowed', slots: [{ date, mealType: 'dinner' }] },
     result: { status: 'feasible', conclusion: 'feasible', planningReference: { instant, localDate: date, utcOffsetMinutes: 0 },
       meals: [{ slotId, date, mealType: 'dinner', time: '18:00', instant, servings: 2, candidateId: 'c',
-        source: { kind: 'recipe', id: 'pho-bo', version: 1, variantId: null }, title: 'Phở bò', cuisine: null, prepTimeMinutes: null,
+        source, title: 'Phở bò', cuisine: null, prepTimeMinutes: null,
         cookTimeMinutes: 40, instructions: [], requirements: [], reasons: [], safetyAssessment: 'not_requested', projectedConsumption: [] }],
       unplannedSlots: [], search: { exhaustive: true, plannerExhaustive: true, recipeExhaustive: true, truncated: false, limitReasons: [],
         incompleteReasons: [], rejections: [] }, diagnostics: [] },
@@ -165,5 +169,49 @@ describe('T20 Meal composer UI', () => {
     expect(list.textContent).toContain('Phở bò');
     expect(list.textContent).toContain('Cơm / tinh bột');
     expect(list.querySelectorAll('li')).toHaveLength(2);
+  });
+});
+
+describe('T20 meal page keeps V1 controls where the composer cannot act', () => {
+  const composerVisible = () => container.textContent!.includes('Complete this meal');
+  const swapVisible = () => [...container.querySelectorAll('button')].some((button) => button.textContent?.includes('Swap meal'));
+  function v1Projection(source: 'v1_projection' | 'v2' = 'v1_projection', warnings: string[] = []) {
+    const base = compositions();
+    return PlanCompositionsDtoSchema.parse({ ...base, compositions: [{ ...base.compositions[0], source,
+      mode: source === 'v2' ? 'manual' : null, components: [], missingRoles: ['main'], warnings }] });
+  }
+
+  it('flag on, recipe slot: the composer replaces the V1 swap', async () => {
+    const current = plan();
+    await render(<PlannerMeal plan={current} slotId={slotId} model={model(current) as never} locale="en" />);
+    expect(composerVisible()).toBe(true);
+    expect(swapVisible()).toBe(false);
+  });
+
+  it('flag on, V1 family-variant slot: V1 swap stays and no composer is offered', async () => {
+    api.plan.mockResolvedValue(v1Projection('v1_projection', ['LEGACY_FAMILY_MEAL']));
+    const current = plan(4, FAMILY_SOURCE);
+    await render(<PlannerMeal plan={current} slotId={slotId} model={model(current) as never} locale="en" />);
+    expect(api.plan).toHaveBeenCalled();
+    expect(swapVisible()).toBe(true);
+    expect(composerVisible()).toBe(false);
+  });
+
+  it('mismatch — UI flag on, server flag off (compositions 404): V1 swap stays, no composer', async () => {
+    const { ApiError } = await import('../../src/web/services/http');
+    api.plan.mockRejectedValue(new ApiError('http', 'Not found', 404));
+    const current = plan();
+    await render(<PlannerMeal plan={current} slotId={slotId} model={model(current) as never} locale="en" />);
+    expect(swapVisible()).toBe(true);
+    expect(composerVisible()).toBe(false);
+  });
+
+  it('flag off build: pre-T20 page, the composition API is never called', async () => {
+    vi.stubEnv('VITE_MEAL_COMPOSITION_V2_ENABLED', 'false');
+    const current = plan();
+    await render(<PlannerMeal plan={current} slotId={slotId} model={model(current) as never} locale="en" />);
+    expect(api.plan).not.toHaveBeenCalled();
+    expect(swapVisible()).toBe(true);
+    expect(composerVisible()).toBe(false);
   });
 });

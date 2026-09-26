@@ -50,6 +50,19 @@ through components; the V1 generation record remains for audit/rollback.
 Leftovers, per-component servings, curated role review tooling and whole-week
 Auto are deferred.
 
+**Amendment 2026-09-26 (PR #7 review P1 remediation):**
+- One hard-restriction definition: T03 `evaluateHardRestrictions` (extracted from
+  `evaluateRankingEligibility`, behaviour unchanged) judges Auto/Assisted (via
+  ranking) and every component a Manual mutation adds (via
+  `composition/restrictions.ts`, same T02 candidate and evidence). No manual
+  override model exists.
+- V1 family-variant meals stay V1-edited (swap) and are refused by composition
+  routes; they are projected as `legacy_family` so composed shopping keeps them.
+- Composition shopping requires the planner's substitution policy
+  (`evaluationScope(context)`); it cannot be constructed without one.
+- Flags ship through `deploy.yml` from one normalized release output with a
+  post-build guard; defaults are false everywhere.
+
 ## ADR-030 — One recipe authority for the Meal Planner, stored-plan authority identity, reviewed full-D1 release state and protected release evidence (T19 V2)
 
 **Status:** Accepted 2026-09-22. The immutable original branch is published at
