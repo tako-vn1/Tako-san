@@ -1,9 +1,8 @@
 # T20 — Meal Composition V2
 
-Status: PR #8 merged into `main` at `662a065` (exact-main CI green);
-PR #9 synced/retargeted to `main` at C8 `8814701`, post-sync full local and
-hosted C8 CI green; final docs-head CI/review pending. T20 staging is not
-certified. Default OFF;
+Status: PR #8 and PR #9 merged into `main` at `662a065` and `cb22cfb`;
+exact-main CI green. Staging 0039 remote identity/ledger and flag-on runtime
+certification pending; local Wrangler unauthenticated. Default OFF;
 no production deployment or production D1 migration for this task.
 See ADR-031 and current HANDOFF for blockers.
 

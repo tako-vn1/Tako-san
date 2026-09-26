@@ -1,5 +1,32 @@
 # Task board — T20 release gate
 
+**Latest (2026-09-26):** PR #9 merged at `cb22cfb`; exact-main CI green.
+Staging 0039 remains blocked on remote identity/credential preflight. The
+section below is the live board; older entries are history.
+
+## T20 staging identity and 0039 workflow — live gate, 2026-09-26 UTC
+
+- [x] Main `cb22cfb` exact-head CI `36240577660` validate SUCCESS (202 files /
+  4,574 tests, lint, typecheck, migration smoke, build). Automatic deploy
+  `36240842196` release/staging SUCCESS, production SKIPPED; flag-OFF/static
+  staging deploy is not T20 certification.
+- [x] `git fetch --all --prune`, `git diff --check`, `pnpm check:migrations`
+  PASS. Staging migration tooling contract suites: 3 files / 63 tests PASS;
+  targeted ESLint PASS. Initial test parser/JSONC failures corrected.
+- [ ] Cloudflare staging auth: local Wrangler whoami reports unauthenticated;
+  no local Cloudflare API token/account ID. Operator packet's Section 0 staging
+  D1 ID differs from Phase B/config ID; reviewer must reconcile identity,
+  never guess or mutate production.
+- [ ] Merge reviewed staging-only workflow PR on `main`, rerun exact-main CI;
+  only then dispatch from main using the staging Environment and exact SHA.
+  Do not use the production D1 workflow for staging.
+- [ ] Certify live D1 identity, ledger, bookmark, FK/quick checks, catalog and
+  0039; then D1 500/T20-OFF deploy + smoke, V2-ON deploy + full staging E2E.
+  No remote staging D1 read/write or T20 enablement was done in this task.
+- [ ] T20 production release requires a separately authorized task;
+  `production_migration=NO`, `production_deploy=NO`,
+  `production_enablement=NO` here.
+
 **Latest (2026-09-26):** PR #8 merged at `662a065`, exact-main CI green;
 PR #9 is synced with `main` and docs head `cffd959` passed hosted CI.
 The next section is the live board; older entries are historical.
