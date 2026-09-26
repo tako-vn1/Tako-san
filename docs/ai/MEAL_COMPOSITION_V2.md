@@ -100,7 +100,7 @@ Routes (all under `/api/v1/meal-planning`, cookie auth, tenancy, CSRF, 64 KiB):
 | DELETE | `/plans/:id/slots/:slotId/components/:componentId` | `?revision=N` |
 | POST | `/plans/:id/slots/:slotId/assist` · `/assist/apply` | `{revision, action, variant}` · `+ proposalId` |
 | POST | `/plans/:id/slots/:slotId/auto` · `/auto/apply` | `{revision, variant}` · `+ optionId` |
-| GET | `/compositions/picker` | `role, q, kind, cursor, limit ≤ 24` |
+| GET | `/compositions/picker` | `role, cuisine, q, kind, cursor, limit ≤ 24` |
 
 Requests are strict Zod objects: unknown fields (authority, household, provenance,
 role source, confidence, inventory, prices, weights) are 422. Manual adds are
@@ -180,7 +180,9 @@ production context has no reviewed substitution registry (empty lists, as in V1)
 
 ## Picker
 
-Server-authoritative summary DTOs (no ingredients/steps), role/kind/text filters,
+Server-authoritative summary DTOs (no ingredients/steps), role/cuisine/kind/text
+filters (cuisine matches stored recipe metadata only; simple foods have none and
+are excluded when it is set),
 stable ordering (normalized title, ID), offset cursor, ≤ 24 per page. One
 authority resolution + one ranking-context batch + one role read per request;
 statement count is constant across pages (tested). Static authority lists exactly

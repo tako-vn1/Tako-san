@@ -1,3 +1,41 @@
+# T20 post-merge CI fix + picker cuisine filter, 2026-09-26 UTC
+
+Branch `fix/t20-postmerge-ci-picker-cuisine` from main `bf57451` (PR #7 merge).
+- `87c8e64` (test-only): main CI run `36221190222` failed at
+  `tests/integration/t20-meal-composition-flows.test.ts:177` because the
+  add/remove race can legitimately be won by DELETE (empty composition) while
+  the test assumed `components[0]`. The combined race is split into three
+  independent cases; each asserts exactly one 200 + one typed 409
+  (`PLAN_REVISION_CONFLICT`; auto-apply losing to a save may be the documented
+  `PROPOSAL_STALE`) and a final state matching the winner. DELETE-wins refills
+  at the current revision; lock/regenerate and save/auto-apply start from a
+  deterministic sequential setup. No production logic changed.
+- `65084fc`: T20 picker `cuisine` query (strict enum of existing `CuisineType`
+  values), filtered server-side on stored recipe cuisine together with role/q/
+  kind; simple foods have no cuisine and are excluded when the filter is set.
+  UI: labelled cuisine select and filtered empty state with Clear filters.
+  Candidate authority, hard restrictions, composer, shopping, T19 unchanged.
+
+Executed: focused `vitest run` of t20-meal-composer-ui, t20-roles-picker-shopping,
+t20-meal-composition-flows, t20-meal-composition-http: 4 files / 37 tests PASS;
+flows file 6/6 repeated runs PASS; DELETE-first sequence verified with a
+throwaway sequential test (not committed). `pnpm typecheck`, lint PASS.
+`pnpm check` on `65084fc`: typecheck, lint PASS; vitest 4,552 PASS / 2 FAIL —
+`tests/unit/d1-readonly-query.test.mjs` and
+`tests/unit/production-certify-workflow.test.mjs` hit the 5 s default timeout in
+this sandbox (both PASS with `--testTimeout=60000`, ~6.2 s each; unrelated to
+T20). Because the script stops at tests, `pnpm check:migrations`
+(`migration-smoke=ok`) and `pnpm build` (`✓ built in 10.45s`) were run
+separately: PASS. `git diff --check origin/main...HEAD` PASS. The running-app
+UI check was not performed (the T20 UI flag stays off here). Nothing merged,
+deployed or migrated; production D1 not accessed; no T20 flags enabled.
+
+Next: open a PR from this branch, confirm hosted `validate` is green (it should
+no longer flake at the old line 177), then run a flag-enabled local visual check
+of the picker cuisine select before any T20 release.
+
+---
+
 # T20 PR #7 — final merge-decision audit, 2026-09-26 UTC
 
 PR #7 on `feat/t20-meal-composition-v2` was reviewed at `6882ba3` against
