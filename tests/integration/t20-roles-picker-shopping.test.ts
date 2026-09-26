@@ -142,6 +142,19 @@ describe('T20 picker at 500 recipes', () => {
     expect(koreanMains.total).toBeGreaterThan(0);
     expect(koreanMains.total).toBeLessThanOrEqual(korean.total);
     expect(koreanMains.items.every((item) => item.cuisine === 'korean' && item.roles.includes('main'))).toBe(true);
+    const firstPage = await page('cuisine=korean&role=main&kind=recipe&limit=1');
+    expect(firstPage.total).toBe(koreanMains.total);
+    expect(firstPage.items).toEqual(koreanMains.items.slice(0, 1));
+    if (firstPage.nextCursor) {
+      const nextPage = await page(`cuisine=korean&role=main&kind=recipe&limit=1&cursor=${firstPage.nextCursor}`);
+      expect(nextPage.items).toEqual(koreanMains.items.slice(1, 2));
+    }
+
+    const chosenMain = koreanMains.items[0];
+    const combined = await page(`cuisine=korean&role=main&kind=recipe&q=${encodeURIComponent(chosenMain.title)}`);
+    expect(combined.items.map((item) => item.id)).toContain(chosenMain.id);
+    expect(combined.items.every((item) => item.kind === 'recipe' && item.cuisine === 'korean'
+      && item.roles.includes('main') && item.title === chosenMain.title)).toBe(true);
 
     const target = korean.items[0];
     const q = encodeURIComponent(target.title);

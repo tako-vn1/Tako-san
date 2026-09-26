@@ -1,4 +1,76 @@
-# T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
+# Current state — T20 release gate
+
+**Latest (2026-09-26):** PR #8 merged into `main` at `662a065` with exact-main
+CI green; PR #9 is synced/retargeted to `main` at C8 `8814701`. Its docs head
+`cffd959` passed exact-head hosted CI. The next section is the current checkpoint;
+older entries below are historical.
+
+## T20 PR #9 post-merge sync — 2026-09-26 UTC
+
+PR #8 MERGED at `662a065` (hosted CI `36237334354`, `validate` SUCCESS).
+Deploy run `36237637195`: release and staging SUCCESS, production SKIPPED.
+This is a flag-OFF staging deployment, **not** T20 staging certification;
+no staging D1 migration was performed here. PR #9 remains OPEN, now targeting
+`main` after merging `origin/main` at C8 `8814701`; merge-base is `662a065`.
+The post-sync diff consists solely of PR #9 hardening, related regressions
+and documentation: no PR #8 duplicate runtime code, migration, deploy/CI
+workflow, config, T19 authority or payment/auth change. `git diff --check
+origin/main...HEAD` PASS. Post-sync focused `pnpm exec vitest run` of the five
+T20 integration, two T19 authority integration and three T20 unit suites:
+10 files / 112 tests PASS. `pnpm typecheck`, `pnpm lint` and post-sync
+`pnpm check` PASS (202 files / 4,574 tests, migration smoke and build).
+Hosted PR #9 CI on C8 head `8814701`, run `36238249061` / validate job
+`108393884945`, SUCCESS (202 files / 4,574 tests, migration smoke and build).
+Docs head `cffd959` passed exact-head hosted CI `36239282586` / validate job
+`108396637996`: ESLint, typecheck, Vitest, local SQLite migration smoke and
+web/Worker build all SUCCESS. On that same head, `pnpm exec vitest run
+tests/integration/t20-meal-composition-stale-read.test.ts
+tests/integration/t20-legacy-family-and-safety.test.ts` passed 2 files / 24 tests.
+`git fetch origin main fix/t20-postmerge-ci-picker-cuisine--hardening` and
+`git merge-base --is-ancestor origin/main HEAD` confirmed base ancestry and
+remote head equality; PR #9 was OPEN, MERGEABLE/CLEAN, with zero unresolved
+review threads. This documentation receipt is a further docs-only head; verify
+its own exact-head hosted CI and live review/mergeability before maintainer merge.
+No migration, deployment, flag enablement or production operation was performed
+for this PR #9 sync. Keep both T20 flags OFF; do not merge PR #9 in this task.
+
+## T20 PR #9 C5–C7 checkpoint — 2026-09-26 UTC
+
+`origin/main` remains `bf57451` (CI `36221190222` FAILED). PR #8 is open at
+`16c5aae`, MERGEABLE/CLEAN, zero unresolved review threads; hosted `validate`
+run `36233377483` SUCCESS. PR #9 remains stacked on its branch, now at
+`869f035`; its pull_request CI does not run until its base is `main`. No PR
+was merged or closed by this agent.
+
+The independent P1 inventory-prefix bypass is fixed in PR #9: C5 `ab83d35`
+rechecks the edited slot from its first changed component, `5c6835e` checks
+later meals affected by the same running T02 projection, and `6c68d8d`
+includes V1 family variants through the shared T03 restriction evaluator while
+avoiding unrelated quantity-only rechecks. The P2 slot error precedence is
+fixed by C6 `092d67b` and `869f035`: nonexistent slot 404, existing slot with
+stale revision 409, including slots created during a torn read. Deterministic
+reviewed substitutions were injected **only in tests**; no claim is made that
+production currently configures them. Rejected writes keep the composition
+and revision unchanged; unaffected prefix, safe reorders, V1 family shopping,
+T19 authority and the D1 write fence remain covered.
+
+At C7 code head `869f035`, `pnpm check` PASS: typecheck, lint, 202 Vitest
+files / 4,574 tests, `migration-smoke=ok`, build. Focused `pnpm exec vitest run`
+for the five T20 integration files (stale-read, legacy-family-and-safety,
+HTTP, flows, picker/shopping), two T19 integration files (authority-split,
+planner-authority-persistence), and three T20 unit files (composer UI,
+shopping, safety) PASS: 10 files / 112 tests. `git diff --check
+origin/main...HEAD` PASS. The deliberately failing regressions before the
+follow-up fixes and two superseded full runs interrupted after new findings
+are not final validation. This is branch-local, not hosted/exact-main evidence.
+
+Next: maintainer merges PR #8 through its normal PR flow, verifies exact-main
+CI, then syncs/retargets PR #9 to `main` and requires exact-head hosted CI,
+review clearance and mergeability before its merge and a new exact-main CI.
+Staging identity/ledger remain unverified; no remote 0039 migration, staging
+deploy, production migration/deploy or flag enablement was performed.
+
+## T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
 
 Final merge-readiness pass (2026-09-26 UTC): `origin/main` remains `bf57451`
 (`bf57451e4a1a047eeff7a0938b903d1a37b6f8c9`), whose CI `36221190222` failed in the T20 concurrency test.
@@ -3622,3 +3694,43 @@ Direct comparison is underway; desktop composition/breakpoint and keyboard
 findings are being classified. Status: **T18C_PARTIAL**. Full T17 regression
 and final gates remain pending. VoiceOver/NVDA NOT PERFORMED. No merge,
 deployment, remote migration, or T18D work.
+
+---
+
+# T20 hardening — branch-local code freeze, 2026-09-26 UTC
+
+**Not `T20_PRODUCTION_READY`.** `origin/main` is still PR #7 merge `bf57451`
+(`bf57451e4a1a047eeff7a0938b903d1a37b6f8c9`); its last CI `36221190222` failed on the T20 add/remove race
+test. PR #8 remains open at reviewed head `5b0a6b9` (`5b0a6b995786b338999286023eb2e46de4bc45a7`),
+MERGEABLE/CLEAN, no unresolved threads, hosted `validate` `36226026618`
+SUCCESS. Agents cannot merge PRs in this workspace. `pnpm check` on the exact
+PR #8 head passed locally (201 files / 4,554 tests, migration smoke, build),
+but **main has not gained that fix or an exact-main green CI run**.
+
+The follow-up branch `fix/t20-postmerge-ci-picker-cuisine--hardening` / PR #9 is
+stacked on PR #8. Checkpoints pushed: C2 `762015f` (revision recheck after the
+torn plan/composition read and before Auto/Assisted apply option lookup; six
+deterministic integration tests); C3 `bc92346` (invalidate picker results on
+filter change), `c555443` (four-way filter/pagination assertions); additional
+P2 fix `fb4416e` (Manual safety now uses T02 inventory before each added
+component, including consumption by earlier components in the slot). No known
+unfixed T20 P0/P1/P2 from this audit. Ownership, D1 revision fence, recipe
+authority, V1/family shopping and composer budgets were not weakened.
+
+At `fb4416e`, `pnpm check` PASS: typecheck, lint, 202 Vitest files / 4,562
+tests, `migration-smoke=ok`, build. Focused T19/T20 authority, 500 catalog,
+D1-only detail/cooking/shopping, and authority-change suites: 6 files / 80
+tests PASS. The isolated T20-enabled preview was checked at 390×844, 768×1024,
+1280×800 (Vietnamese/Korean/Japanese, combined filters, empty/clear, 20→40
+load-more, keyboard focus/Escape, no horizontal overflow); production flags
+remain off. PR #9 has no hosted checks while its base is PR #8's branch: CI
+only triggers for pull requests targeting `main`/`master`.
+
+Staging configuration exists, but local staging Cloudflare credentials are
+absent and the GitHub App cannot read staging secret names (403). Target D1
+identity, ledger and rollback bookmark have **not** been verified; 0039 has
+not been remotely applied, and neither staging nor production was deployed.
+Next: maintainer merges PR #8 normally, confirms exact-main CI, retargets
+PR #9 to main, certifies its exact-head CI/review and merges normally. Then
+verify staging identity/ledger with authorized credentials before a reviewed
+migration and paired flag-off/flag-on deploy sequence. Do not touch production.

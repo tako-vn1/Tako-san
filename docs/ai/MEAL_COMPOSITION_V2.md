@@ -1,7 +1,52 @@
 # T20 — Meal Composition V2
 
-Status: code-complete candidate on `feat/t20-meal-composition-v2`, gated off by
-default. No production deployment, no production D1 migration. See ADR-031.
+Status: PR #8 merged into `main` at `662a065` (exact-main CI green);
+PR #9 synced/retargeted to `main` at C8 `8814701`, post-sync full local and
+hosted C8 CI green; final docs-head CI/review pending. T20 staging is not
+certified. Default OFF;
+no production deployment or production D1 migration for this task.
+See ADR-031 and current HANDOFF for blockers.
+
+## Hardening certification boundary (2026-09-26)
+
+- Torn plan/composition reads are revision-checked before component mutations,
+  and Auto/Assisted apply rechecks before resolving an option. A slot that
+  remains absent returns 404; one concurrently added with a stale request
+  returns 409. True current-revision component misses remain 404. One fenced
+  D1 batch remains the sole write. Worker/SQLite races cover the stale cases.
+- Manual changes recheck the edited slot from its first affected component
+  using the same T02 inventory before each component as shopping. Later meals
+  whose T02 safety inputs change are rechecked too, including V1 family
+  variants; unchanged prefix and unrelated later meals stay trusted. The same
+  T03 hard restrictions and T19 authority apply throughout. The forbidden
+  reviewed substitutions in regressions are injected test fixtures, not a
+  statement about production policy.
+- Cuisine picker drops stale responses/pages when filters change, keeping only
+  rows tied to the active filter tuple. API strict cuisine validation, stable
+  ordering and pre-pagination filtering were checked with combined queries;
+  the isolated paired-flag preview was inspected at 390/768/1280px.
+- Local `pnpm check` at `869f035`: 202 files / 4,574 tests, migration smoke and
+  build PASS. PR #8 has since merged; post-sync PR #9 C8 head `8814701`
+  passed the same local and hosted gates. Final docs-head CI remains pending.
+  Staging identity/ledger cannot be
+  verified here without staging credentials; no staging or production mutation
+  occurred. Never infer 0039's remote status from local migration smoke.
+
+Pending production packet (do not dispatch until staging and exact-main are
+certified): pin the merged main SHA; an authorized operator must read the
+actual production ledger and confirm its expected pre-tip before applying
+`0039_meal_composition_v2.sql` via the reviewed
+`production-d1-migrate.yml` workflow (`ref`, `expected_pre_tip`, `migration`,
+`confirm_production_migration`) with required production Environment approval
+and Cloudflare secrets. Record the workflow's Time Travel bookmark, aggregate
+baseline, FK/quick check and catalog identity receipt. For deploy use
+`deploy.yml` with `environment=production`, exact `ref`/`hardened_sha`,
+`confirm_production=true`, existing T19 catalog inputs and
+`meal_composition_v2_enabled=false`; smoke V1/auth/recipe detail/cooking/
+shopping/500 catalog before a separately approved dispatch with that one
+flag `true`. Rollback enablement by redeploying the same certified code with
+flag false; D1 restoration, if required, is an operator-approved Time Travel
+decision. No production inputs are currently authorized for this task.
 
 ## Architecture map (audited current state → T20)
 
@@ -109,8 +154,9 @@ must be permitted for the dish. Past slots and authority changes are typed 409s.
 Retrying a mutation with the same revision is a 409 and cannot duplicate
 components (partial unique indexes also enforce one dish per meal).
 
-Hard restrictions (review P1 remediation): every component a Manual mutation
-*adds* (add, swap, replace/save, and Assisted/Auto apply) is judged by T03
+Hard restrictions (review P1 remediation): every component from the first
+affected position of a Manual mutation (add, swap, reorder, role, remove,
+replace/save, and Assisted/Auto apply) is judged by T03
 `evaluateHardRestrictions` — the same function T03 ranking uses — over the same
 trusted planning context as Auto: the recipe's T02 candidate at this slot's
 projected inventory (planner substitution policy included, so a forbidden
@@ -121,10 +167,13 @@ reviewed nutrition all reject with 422 `HARD_CONSTRAINT_CONFLICT` (event
 `composition_hard_restriction_rejected` carries reason codes only). Simple foods
 have no safety/nutrition evidence: any requested allergen/dietary tag or hard
 nutrition target rejects them; their `prepMinutes` is the total time; only the
-tracked portion ingredient is checked for forbidden ingredients. Components that
-already exist (lock, reorder, role, remove) are not re-judged. The picker still
-lists recipes with `constraintState: unknown` when safety is requested (the
-server rejects on save); simple foods the contract rejects are hidden.
+tracked portion ingredient is checked for forbidden ingredients. A changed
+inventory prefix also rechecks affected later meals, including legacy-family
+variants, through the shared T03 evaluator; stable unchanged prefixes and
+unrelated meals are not re-judged. Lock-only updates need no safety replay.
+The picker still lists recipes with `constraintState: unknown` when safety is
+requested (the server rejects on save); simple foods the contract rejects are
+hidden.
 
 V1 family-variant meals: not composable (Manual, Assisted and Auto are 422
 `LEGACY_FAMILY_COMPOSITION_UNSUPPORTED`); the UI keeps the V1 “Swap meal”

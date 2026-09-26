@@ -11,6 +11,7 @@ import {
 } from '../ranking-eligibility';
 import { createRankingEvidenceSnapshot, nutritionFacts, readRankingEvidenceSnapshot } from '../ranking-evidence';
 import type { SimpleFood } from './simple-foods';
+import type { LegacyFamilyRef } from './projection';
 
 /**
  * T20 component hard restrictions. Every path that can put a component into a meal (Manual add /
@@ -73,4 +74,32 @@ export function recipeRestrictions(input: {
     evidence: undefined, totalMinutes: cook !== undefined && prep !== undefined ? cook + prep : null,
     nutrition: nutritionFacts(undefined),
   }, policies);
+}
+
+/** A V1 family variant downstream of an edit still uses the same T02/T03 hard-restriction path. */
+export function legacyFamilyRestrictions(input: {
+  context: PlanningContext;
+  family: LegacyFamilyRef;
+  slot: { date: string; servings: number };
+  inventory: readonly ProjectedInventoryRow[];
+}): RestrictionVerdict | null {
+  const source = readPlanningContext(input.context);
+  const definition = source.catalog.families.find((entry) => entry.id === input.family.id);
+  if (!definition) return null;
+  const generation = generateRecipeCandidates({
+    catalog: { ...source.catalog, recipes: [], families: [definition] },
+    inventory: input.inventory.map((row) => ({ ...row, freshness: row.freshness ?? undefined })),
+    householdId: source.rankingContext.householdId, asOfDate: input.slot.date, requestedServings: input.slot.servings,
+    mode: 'shopping_allowed', allocationPolicy: 'expiry_first', substitutions: source.substitutions,
+    approvedSubstitutionIds: source.approvedSubstitutionIds, activeConstraints: source.activeConstraints,
+  });
+  const candidate = generation.candidates.find((item) => item.source.kind === 'family'
+    && item.source.sourceId === input.family.id && item.source.version === input.family.version
+    && item.variant?.id === input.family.variantId);
+  if (!candidate) return null;
+  const evidence = source.evidenceProvider
+    ? readRankingEvidenceSnapshot(createRankingEvidenceSnapshot(generation, source.evidenceProvider), generation).get(candidate.id)
+    : undefined;
+  return verdict(candidateRestrictionFacts(candidate, evidence, nutritionFacts(evidence)),
+    resolveRankingPreferences(source.rankingContext).hard);
 }

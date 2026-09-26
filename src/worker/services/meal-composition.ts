@@ -64,11 +64,12 @@ import {
   evaluationScope,
   projectCompositions,
   simpleFoodDefinition,
+  type ComponentEvaluation,
   type CompositionProjection,
   type ProjectionComponent,
   type ProjectionSlot,
 } from '../../../packages/recipes/src/composition/projection';
-import { recipeRestrictions, simpleFoodRestrictions } from '../../../packages/recipes/src/composition/restrictions';
+import { legacyFamilyRestrictions, recipeRestrictions, simpleFoodRestrictions } from '../../../packages/recipes/src/composition/restrictions';
 import { composeMeal, type ComposedOption, type ComposerFixed } from '../../../packages/recipes/src/composition/composer';
 import { evaluationFromCandidate, prepareComposerCandidates } from '../../../packages/recipes/src/composition/candidates';
 import { canonicalJson } from '../../../packages/recipes/src/planner-context';
@@ -123,6 +124,13 @@ function componentItem(component: MealComponent, roles: RoleIndex): ComposableIt
   const profile = component.recipeId ? roles.get(component.recipeId) : undefined;
   return { key: targetKey(component), kind: component.kind, id: (component.recipeId ?? component.simpleFoodId)!,
     role: component.role, traits: profile?.traits ?? [], dominantIngredientId: profile?.dominantIngredientId ?? null };
+}
+
+function safetyProjectionKey(evaluation: ComponentEvaluation, evidenceSensitive: boolean): string {
+  if (evidenceSensitive) return canonicalJson({ status: evaluation.status, requirements: evaluation.requirements });
+  const ingredients = evaluation.requirements.flatMap((line) =>
+    [line.ingredientId, ...(line.substitutions ?? []).map((use) => use.rule.toIngredientId)]);
+  return canonicalJson({ unavailable: evaluation.status === 'unavailable', ingredients: [...new Set(ingredients)].sort() });
 }
 
 export class MealCompositionService {
@@ -193,9 +201,10 @@ export class MealCompositionService {
     });
   }
 
-  private projection(loaded: Loaded, compositions: ReadonlyMap<string, MealComposition>, untilSlotId?: string): CompositionProjection {
+  private projection(loaded: Loaded, compositions: ReadonlyMap<string, MealComposition>, untilSlotId?: string,
+    inventoryCheckpointComponentIds?: ReadonlySet<string>): CompositionProjection {
     return projectCompositions({ scope: loaded.evaluation, referenceDate: loaded.referenceDate, inventory: loaded.snapshot.inventory,
-      slots: this.projectionSlots(loaded, compositions), untilSlotId });
+      slots: this.projectionSlots(loaded, compositions), untilSlotId, inventoryCheckpointComponentIds });
   }
 
   private allCompositions(loaded: Loaded, override?: MealComposition): Map<string, MealComposition> {
@@ -245,6 +254,20 @@ export class MealCompositionService {
   private slotInfo(loaded: Loaded, slotId: string): SlotInfo {
     const slot = loaded.slots.find((entry) => entry.slotId === slotId);
     if (!slot) throw new MealPlanningError('SLOT_NOT_FOUND', 404, 'Meal slot is not part of this plan');
+    return slot;
+  }
+
+  private async checkedSlot(loaded: Loaded, scope: Scope, planId: string, slotId: string, revision: number): Promise<SlotInfo> {
+    const current = await getGeneratedMealPlan(this.db, scope, planId);
+    const slot = loaded.slots.find((entry) => entry.slotId === slotId);
+    if (!slot) {
+      // A slot added between the two plan reads is a stale request, not a permanently missing slot.
+      if (this.slots(this.planner.decode(current)).some((entry) => entry.slotId === slotId)) {
+        this.planner.assertRevision(current, revision);
+      }
+      return this.slotInfo(loaded, slotId);
+    }
+    this.planner.assertRevision(current, revision);
     return slot;
   }
 
@@ -309,8 +332,7 @@ export class MealCompositionService {
     event: string, operation: (composition: MealComposition, context: CompositionContext, loaded: Loaded) => MealComponent[]) {
     const started = Date.now();
     const loaded = await this.load(scope, planId);
-    this.planner.assertRevision(loaded.row, revision);
-    const slot = this.slotInfo(loaded, slotId);
+    const slot = await this.checkedSlot(loaded, scope, planId, slotId, revision);
     this.assertEditable(loaded, slot);
     const current = this.compositionFor(loaded, slotId);
     this.assertComposable(loaded, slotId, current);
@@ -324,14 +346,56 @@ export class MealCompositionService {
     };
     let components: MealComponent[];
     try { components = operation(current, context, loaded); } catch (error) { domainError(error); }
-    const before = new Set(current.components.map((item) => targetKey(item)));
-    const added = components.filter((component) => !before.has(targetKey(component)));
-    if (added.length) {
-      const inventory = this.projection(loaded, this.allCompositions(loaded), slotId).inventoryAtStop;
-      for (const component of added) {
-        const target: ComponentTarget = component.kind === 'recipe' ? { kind: 'recipe', recipeId: component.recipeId! }
-          : { kind: 'simple_food', simpleFoodId: component.simpleFoodId! };
-        const reasons = this.restrictionReasons(loaded, slot, target, inventory);
+    const affectedIndex = components.findIndex((component, index) => {
+      const previous = current.components[index];
+      return !previous || previous.id !== component.id || targetKey(previous) !== targetKey(component)
+        || previous.role !== component.role;
+    });
+    const firstAffected = affectedIndex < 0 ? current.components.length : affectedIndex;
+    const affected = components.slice(firstAffected);
+    const following = loaded.slots.slice(loaded.slots.findIndex((entry) => entry.slotId === slotId) + 1)
+      .flatMap((entry) => {
+        const composition = this.compositionFor(loaded, entry.slotId);
+        const family = this.legacyFamily(loaded, composition);
+        const later: Array<MealComponent | ProjectionComponent> = family ? [family] : composition.components;
+        return later.map((component) => ({ slot: entry, component }));
+      });
+    const changed = affectedIndex >= 0 || current.components.length !== components.length;
+    if (affected.length || (changed && following.length)) {
+      const proposed = { ...current, mode, components };
+      const projected = this.projection(loaded, this.allCompositions(loaded, proposed), undefined,
+        new Set([...affected.map((component) => component.id), ...following.map(({ component }) => component.id)]));
+      const checks: Array<{ slot: SlotInfo; component: MealComponent | ProjectionComponent }> =
+        affected.map((component) => ({ slot, component }));
+      if (changed && following.length) {
+        const previous = this.projection(loaded, this.allCompositions(loaded));
+        const hard = resolveRankingPreferences(loaded.snapshot.rankingContext).hard;
+        const evidenceSensitive = hard.some((policy) => policy.allergens.length > 0 || policy.requiredDietaryTags.length > 0
+          || policy.mealNutritionTargets.some((target) => target.hard));
+        for (const entry of following) {
+          const before = previous.components.get(entry.component.id);
+          const after = projected.components.get(entry.component.id);
+          if (!before || !after) throw new Error('Missing T02 evaluation for later component');
+          // Reviewed safety/nutrition evidence is keyed to the entire T02 witness, including lot allocations.
+          if (safetyProjectionKey(before, evidenceSensitive) !== safetyProjectionKey(after, evidenceSensitive)) {
+            checks.push(entry);
+          }
+        }
+      }
+      for (const { slot: checkedSlot, component } of checks) {
+        const inventory = projected.inventoryBeforeComponents.get(component.id);
+        if (!inventory) throw new Error('Missing T02 inventory checkpoint for affected component');
+        let reasons: string[];
+        if (component.kind === 'legacy_family') {
+          const verdict = component.family && legacyFamilyRestrictions({ context: loaded.context,
+            family: component.family, slot: checkedSlot, inventory });
+          if (!verdict) throw new MealPlanningError('COMPOSITION_REVALIDATION_REQUIRED', 409, 'Family variant is no longer available');
+          reasons = verdict.reasons;
+        } else {
+          const target: ComponentTarget = component.kind === 'recipe' ? { kind: 'recipe', recipeId: component.recipeId! }
+            : { kind: 'simple_food', simpleFoodId: component.simpleFoodId! };
+          reasons = this.restrictionReasons(loaded, checkedSlot, target, inventory);
+        }
         if (reasons.length) {
           logEvent('composition_hard_restriction_rejected', { mode, reasons: reasons.join(',') });
           throw new MealPlanningError('HARD_CONSTRAINT_CONFLICT', 422, 'This dish conflicts with a household restriction');
@@ -438,8 +502,7 @@ export class MealCompositionService {
 
   private async prepareGeneration(scope: Scope, planId: string, slotId: string, revision: number) {
     const loaded = await this.load(scope, planId);
-    this.planner.assertRevision(loaded.row, revision);
-    const slot = this.slotInfo(loaded, slotId);
+    const slot = await this.checkedSlot(loaded, scope, planId, slotId, revision);
     this.assertEditable(loaded, slot);
     this.assertComposable(loaded, slotId, this.compositionFor(loaded, slotId));
     return { loaded, slot };
@@ -484,6 +547,7 @@ export class MealCompositionService {
     // The option is recomputed from current trusted inputs; the client only names which one it accepted.
     const { loaded, slot } = await this.prepareGeneration(scope, planId, slotId, revision);
     const generated = await this.generate(loaded, slot, kind, action, variant);
+    this.planner.assertRevision(await getGeneratedMealPlan(this.db, scope, planId), revision);
     const chosen = generated.options.find((entry) => entry.optionId === optionId);
     if (!chosen) throw new MealPlanningError('PROPOSAL_STALE', 409, 'The suggestion is no longer current; request a new one');
     return this.mutate(scope, planId, slotId, revision, mode, kind === 'auto' ? 'composition_auto_generated' : 'composition_assisted_update',

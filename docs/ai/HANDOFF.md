@@ -1,4 +1,103 @@
-# T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
+# Handoff — T20 release gate
+
+**Latest (2026-09-26):** PR #8 MERGED, exact-main CI green; PR #9 C8 `8814701`
+is synced/retargeted to `main`, and docs head `cffd959` passed hosted CI. The
+next handoff is current; older entries are history.
+
+## T20 C8 sync and C10 certification handoff — 2026-09-26 UTC
+
+### State and checkpoints
+
+`origin/main` `662a065` is PR #8's merge commit; hosted CI `36237334354`
+validate SUCCESS. Deploy `36237637195`: release/staging SUCCESS and
+production SKIPPED, not T20 flag-on staging certification. PR #9 is OPEN,
+head C8 `8814701` (main merged into branch without rewrite), base `main`,
+merge-base `662a065`. Earlier C5 `ab83d35`/`5c6835e`/`6c68d8d`, C6
+`092d67b`/`869f035`, C7 `869f035` and docs `24437e0` remain intact.
+No C9 fix was needed; final docs-only checkpoint follows full C10 local gate.
+
+### Verification and limits
+
+`git diff --check origin/main...HEAD` PASS. Post-sync focused `pnpm exec
+vitest run` over the five T20 integration files, two T19 authority files
+and three T20 unit files listed in the previous handoff: 10 files / 112
+tests PASS. Explicit `pnpm typecheck`, `pnpm lint` and post-sync `pnpm check`
+PASS: 202 files / 4,574 tests, migration smoke and web/Worker build. Hosted
+PR #9 C8 head `8814701` CI run `36238249061`, validate job `108393884945`
+SUCCESS: lint, typecheck, 202 files / 4,574 tests, migration smoke and build.
+The later docs-only checkpoint requires its own exact-head hosted CI; no claim
+of merge readiness until it and review clearance are confirmed. The
+post-sync diff has only PR #9 runtime changes/tests/docs, not migration 0039,
+workflow, secrets, production configuration, recipe authority or recipe count.
+
+Docs head `cffd959` exact-head hosted run `36239282586`, validate job
+`108396637996` SUCCESS (ESLint, typecheck, full Vitest, local SQLite migration
+smoke, web/Worker build). Re-executed `pnpm exec vitest run
+tests/integration/t20-meal-composition-stale-read.test.ts
+tests/integration/t20-legacy-family-and-safety.test.ts` at `cffd959`: 2 files /
+24 tests PASS. `git fetch origin main fix/t20-postmerge-ci-picker-cuisine--hardening`
+and `git merge-base --is-ancestor origin/main HEAD` confirmed remote/base
+ancestry; the hosted run, local HEAD and remote PR head matched. `gh pr view 9`
+and GraphQL review-thread query showed OPEN, MERGEABLE/CLEAN and zero unresolved
+threads. The new documentation receipt is itself a new head, requiring fresh
+exact-head CI; no failures remain in the completed checks listed here.
+
+### Next action / release boundary
+
+Obtain exact-final-head hosted PR #9 CI SUCCESS on this docs-only receipt
+(lint/typecheck/Vitest/migration smoke/build), zero unresolved review threads
+and MERGEABLE/CLEAN before offering PR #9 for maintainer merge. Stop before
+merging PR #9. Staging identity/ledger and a
+reviewed T20 staging migration/deploy remain a separate later gate; keep
+both T20 flags OFF. `staging_migration=NO`, `staging_deploy=NO` for this task;
+`production_migration=NO`, `production_deploy=NO`,
+`production_enablement=NO`.
+
+## T20 C5–C7 hardening handoff — 2026-09-26 UTC
+
+### State and checkpoints
+
+`origin/main` `bf57451` is unchanged, last CI `36221190222` FAILED. PR #8
+OPEN at `16c5aae`, MERGEABLE/CLEAN, no unresolved review threads, hosted
+`validate` `36233377483` SUCCESS. PR #9 remains stacked on #8 at `869f035`;
+the branch does not contain #8's final docs-only head yet. No PR merged or
+closed. Current C5 checkpoints: `ab83d35` (edited-slot affected suffix),
+`5c6835e` (later slots sharing the projection), `6c68d8d` (V1 family and
+evidence-sensitive safety key). C6: `092d67b` (missing-slot precedence),
+`869f035` (concurrent slot creation). C7 code-freeze SHA is `869f035`;
+the documentation checkpoint follows separately. No known unfixed P0/P1/P2
+from the focused audit; production substitution policy was not inferred from
+injected test fixtures.
+
+### Verification and failures
+
+On `869f035`, `pnpm check` PASS: typecheck, lint, 202 files / 4,574 Vitest
+tests, `migration-smoke=ok`, build. `pnpm exec vitest run` of
+`tests/integration/t20-{meal-composition-stale-read,legacy-family-and-safety,meal-composition-http,meal-composition-flows,roles-picker-shopping}.test.ts`,
+`tests/integration/t19-{recipe-authority-split,planner-authority-persistence}.test.ts`,
+and `tests/unit/t20-{meal-composer-ui.test.tsx,composition-shopping.test.ts,composition-safety.test.ts}`:
+10 files / 112 tests PASS. `pnpm typecheck`, `pnpm lint`, and `git diff
+--check origin/main...HEAD` independently PASS. New deterministic tests
+confirmed the cross-slot, V1 family and slot-creation bugs as expected-red
+before their fixes; all are now green. Two earlier `pnpm check` runs were
+interrupted (exit 130) when further findings required changes; neither is
+counted as final evidence. Hosted PR #9 checks remain absent while stacked
+under non-main #8; staging/production were not exercised.
+
+### Release blockers and next action
+
+Maintainer: merge PR #8 through the protected PR flow and confirm exact-main
+SHA/CI. Then fetch and merge the updated main into PR #9 (avoid dropping its
+checkpoints; resolve documentation overlap), retarget #9 to `main`, and require
+exact-head hosted lint/typecheck/Vitest/migration-smoke/build SUCCESS, zero
+unresolved threads and mergeability. Only then may a maintainer merge #9 and
+verify exact-main CI. Staging D1 identity, ledger and rollback bookmark still
+need authorized verification before any staging migration/deploy. Keep both
+T20 flags OFF. `staging_migration=NO`, `staging_deploy=NO`,
+`production_migration=NO`, `production_deploy=NO`,
+`production_enablement=NO`. Do not claim T20 production completion.
+
+## T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
 
 Final PR #8 readiness receipt (2026-09-26 UTC): base `main` `bf57451`
 (`bf57451e4a1a047eeff7a0938b903d1a37b6f8c9`), last main CI `36221190222` failed in the pre-#8 race test;
@@ -3591,3 +3690,49 @@ was changed.
   gaps, run T17 and final gates, then produce separate final evidence.
   Do not reuse pause-tree results for subsequent edits. No human screen-reader
   test, merge, deploy, remote migration or T18D.
+
+---
+
+# T20 hardening handoff — 2026-09-26 UTC
+
+## State and checkpoints
+
+Not production-ready: `main` is PR #7 merge `bf57451` (`bf57451e4a1a047eeff7a0938b903d1a37b6f8c9`), last
+main CI `36221190222` FAIL in the T20 add/remove race test. PR #8 remains
+OPEN, head `5b0a6b9` (`5b0a6b995786b338999286023eb2e46de4bc45a7`), MERGEABLE/CLEAN, no unresolved review
+threads, full hosted `validate` `36226026618` SUCCESS. Local `pnpm check` on
+that exact head passed (201 files / 4,554 tests, migrations, build). Agent
+merge is disallowed; no C1 exact-main green SHA or merge SHA yet.
+
+Follow-up branch `fix/t20-postmerge-ci-picker-cuisine--hardening`, PR #9 base
+PR #8: C2 `762015f` (torn-read 409 semantics); C3 `bc92346` (picker stale-page
+guard) + `c555443` (combined-filter regression); P2 `fb4416e` (same-slot
+T02 prefix inventory for Manual hard restrictions). All pushed. The C4
+application code freeze is `fb4416e`; this documentation receipt follows it.
+No known outstanding in-scope P0/P1/P2; no T19 authority or 500-catalog change.
+
+## Executed checks
+
+- C2: `pnpm exec vitest run tests/integration/t20-meal-composition-stale-read.test.ts tests/integration/t20-meal-composition-flows.test.ts` — 22/22 PASS; `pnpm typecheck`, `pnpm lint`, `git diff --check` PASS. Initial fixture used an invalid slot ID and failed one assertion; corrected to a valid absent ID, then reran green. No sleeps/retries.
+- C3: `pnpm exec vitest run tests/unit/t20-meal-composer-ui.test.tsx tests/integration/t20-roles-picker-shopping.test.ts` — 19/19 PASS; four-way filter/pagination extension rerun 7/7 PASS. A new focus assertion initially clicked an unfocused opener in jsdom; focused it like keyboard use, then reran green. `pnpm typecheck`, `pnpm lint`, `git diff --check` PASS.
+- P2: `pnpm exec vitest run tests/integration/t20-legacy-family-and-safety.test.ts tests/unit/t20-composition-safety.test.ts tests/unit/t20-composition-shopping.test.ts tests/integration/t20-meal-composition-stale-read.test.ts` — 33/33 PASS; `pnpm typecheck`, `git diff --check` PASS.
+- C4 at `fb4416e`: `pnpm check` PASS: typecheck, lint, 202 Vitest files / 4,562 tests, migration smoke (`migration-smoke=ok`), build. `pnpm exec vitest run tests/integration/t19-recipe-authority-split.test.ts tests/integration/t19-recipe-authority-observability.test.ts tests/integration/t19-planner-authority-persistence.test.ts tests/integration/recipe-catalog-growth-authority.test.ts tests/integration/t20-meal-composition-flows.test.ts tests/integration/t20-roles-picker-shopping.test.ts` — 6 files / 80 tests PASS. Remote D1/Week gates skipped by `pnpm check` (no credentials).
+- Real isolated preview with `PREVIEW_MEAL_COMPOSITION_V2=true` (paired Worker/UI, no external fetch): mobile 390×844, tablet 768×1024, desktop 1280×800. Picker Vietnamese/Korean/Japanese, role+cuisine+search, filtered empty/clear, load more 20→40 unique, focus trap, Escape restores opener, no horizontal overflow or browser errors. Screenshots inspected locally. This is NOT staging smoke.
+
+## Release blockers and next action
+
+PR #9 has no hosted CI while based on PR #8's branch; `ci.yml` only triggers PRs
+targeting main/master. Merge PR #8 via normal PR flow, wait for its exact-main
+CI, retarget PR #9 to main, verify exact-head hosted CI, zero unresolved review
+threads and mergeability, then merge PR #9 normally and verify exact-main CI.
+No direct push/force push to main. Staging config exists, but Cloudflare
+credentials are absent here and GitHub environment secrets are unreadable
+(403), so the target identity, pre-ledger, bookmark and aggregate baseline
+cannot be checked. 0039 ledger before/after unknown; staging migration/deploy/
+flag-on smoke NOT performed. After authorized staging access, follow
+`DEPLOYMENT.md`: verify staging target and ledger, use reviewed migration
+mechanism, inspect FK/quick check and 500 catalog, deploy certified main with
+both flags OFF first, then explicitly opt in and run Manual/Assisted/Auto,
+safety, shopping, legacy, T19 and UX smokes. Production authorization was not
+given: `production_migration=NO`, `production_deploy=NO`,
+`production_enablement=NO`.

@@ -55,6 +55,8 @@ export interface ComponentEvaluation {
 }
 export interface CompositionProjection {
   components: Map<string, ComponentEvaluation>;
+  /** Inventory immediately before selected components are evaluated, in the same running projection. */
+  inventoryBeforeComponents: Map<string, readonly ProjectedInventoryRow[]>;
   initialInventory: readonly ProjectedInventoryRow[];
   finalInventory: readonly ProjectedInventoryRow[];
   /** Inventory rows before `untilSlotId` was evaluated (the state Assisted/Auto plan against). */
@@ -148,6 +150,7 @@ export function projectCompositions(input: {
   inventory: readonly InventoryLotSnapshot[];
   slots: readonly ProjectionSlot[];
   untilSlotId?: string;
+  inventoryCheckpointComponentIds?: ReadonlySet<string>;
 }): CompositionProjection {
   const definitions = new Map(input.scope.catalog.recipes.map((recipe) => [recipe.id, recipe]));
   let state: ProjectedInventory = createProjectedInventory(input.inventory, {
@@ -155,6 +158,7 @@ export function projectCompositions(input: {
   });
   const initialInventory = projectInventoryRows(state);
   const components = new Map<string, ComponentEvaluation>();
+  const inventoryBeforeComponents = new Map<string, readonly ProjectedInventoryRow[]>();
   const skippedPastSlots: string[] = [];
   let inventoryAtStop: readonly ProjectedInventoryRow[] | null = null;
   const ordered = [...input.slots].sort((a, b) => compareIds(a.instant, b.instant) || compareIds(a.slotId, b.slotId));
@@ -162,6 +166,9 @@ export function projectCompositions(input: {
     if (slot.slotId === input.untilSlotId) { inventoryAtStop = projectInventoryRows(state); break; }
     if (slot.date < input.referenceDate) { skippedPastSlots.push(slot.slotId); continue; }
     for (const component of slot.components) {
+      if (input.inventoryCheckpointComponentIds?.has(component.id)) {
+        inventoryBeforeComponents.set(component.id, projectInventoryRows(state));
+      }
       const base = { componentId: component.id, slotId: slot.slotId, inventoryLineCount: 0, deltas: [] as ProjectedInventoryDelta[] };
       let candidate: RecipeCandidate | null;
       if (component.kind === 'legacy_family') {
@@ -211,7 +218,7 @@ export function projectCompositions(input: {
       });
     }
   }
-  return { components, initialInventory, finalInventory: projectInventoryRows(state), inventoryAtStop, skippedPastSlots };
+  return { components, inventoryBeforeComponents, initialInventory, finalInventory: projectInventoryRows(state), inventoryAtStop, skippedPastSlots };
 }
 
 /**

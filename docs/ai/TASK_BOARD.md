@@ -1,4 +1,58 @@
-# T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
+# Task board — T20 release gate
+
+**Latest (2026-09-26):** PR #8 merged at `662a065`, exact-main CI green;
+PR #9 is synced with `main` and docs head `cffd959` passed hosted CI.
+The next section is the live board; older entries are historical.
+
+## T20 PR #9 C8–C10 certification — live gate, 2026-09-26 UTC
+
+- [x] PR #8 merged at `662a065`; exact-main hosted CI run `36237334354`
+  validate SUCCESS. Deploy run `36237637195` release/staging SUCCESS,
+  production SKIPPED; this is not T20 staging certification.
+- [x] C8 `8814701`: merge `origin/main` into PR #9 preserving C5/C6/C7;
+  retarget PR #9 to `main`; `merge-base HEAD origin/main = 662a065`.
+  Diff contains only T20 hardening/tests/docs, with no migration, deploy
+  config, auth/payment, T19 authority or PR #8 duplicate runtime changes.
+- [x] Post-sync C9 focused: T20/T19 10 files / 112 tests PASS; no regression
+  fix required. `git diff --check origin/main...HEAD`, `pnpm typecheck`,
+  `pnpm lint` PASS.
+- [x] C10 post-sync `pnpm check` PASS: 202 files / 4,574 tests, typecheck,
+  lint, migration smoke and build. Hosted C8 head `8814701` CI run
+  `36238249061` / job `108393884945` SUCCESS (same 202 / 4,574).
+- [x] Docs checkpoint `cffd959`: exact-head hosted run `36239282586` /
+  validate job `108396637996` SUCCESS (lint, typecheck, Vitest, migration
+  smoke, build). Focused C5/C6 suites on this head: 2 files / 24 tests PASS.
+  PR #9 OPEN, MERGEABLE/CLEAN, zero unresolved review threads at this check.
+- [ ] Maintainer merge of PR #9 only after this further docs-only receipt
+  passes its own exact-head hosted CI and live review/mergeability check;
+  update PR body with final evidence. Do not merge PR #9 in this task.
+- [ ] T20 staging certification still pending; keep paired T20 flags OFF.
+  No staging D1 migration or production mutation in this task.
+
+## T20 PR #8 → #9 chain — live gate, 2026-09-26 UTC
+
+- [x] C5 P1 same-slot prefix safety `ab83d35`; affected later meals `5c6835e`;
+  V1 family/reviewed-evidence precision `6c68d8d`. Injected reviewed
+  substitution tests cover ADD, SWAP, PATCH reorder, PUT save, cross-slot and
+  V1 family; rejected writes keep revision and state, safe/unaffected edits pass.
+- [x] C6 P2 404/409 precedence `092d67b`, concurrent slot-add race
+  `869f035`; stale PATCH and Auto, true missing slot/component, and existing
+  torn-read winner/fence cases pass.
+- [x] C7 code freeze `869f035`: `pnpm check` PASS (202 files / 4,574 tests,
+  typecheck, lint, migration smoke, build); focused T20/T19 10 files / 112
+  tests PASS; `git diff --check origin/main...HEAD` PASS. Expected-red
+  regressions and two interrupted superseded full runs are not release gates.
+- [ ] C1 PR #8 normal merge and exact-main CI: #8 OPEN at `16c5aae`,
+  MERGEABLE/CLEAN, zero unresolved threads, hosted `validate` `36233377483`
+  SUCCESS. `main` `bf57451` last CI `36221190222` FAILED. No agent merge.
+- [ ] PR #9 sync to merged `main`, retarget from #8 branch, then require
+  exact-head hosted CI SUCCESS, zero unresolved reviews, mergeable, normal
+  maintainer merge and exact-main CI SUCCESS. Stacked PR #9 has no hosted CI.
+- [ ] Staging identity/ledger and 0039 migration/deploy certification require
+  separately verified authorized staging access. No staging or production
+  migration/deploy/enablement occurred; both T20 flags remain OFF.
+
+## T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
 
 - [x] Final PR #8 merge-readiness audit: current main `bf57451`, reviewed
   head `5b0a6b9`, hosted `validate` `36226026618` SUCCESS; MERGEABLE/CLEAN,
@@ -2291,3 +2345,29 @@ rolling `qwen3.7-flash` alias is canary-only.
 - [in progress] Direct board comparison and source-led presentation findings;
   full T17 regressions, final fixes/evidence/gates/PR remain pending.
 - **T18C_PARTIAL**; no merge/deploy/T18D. VoiceOver/NVDA NOT PERFORMED.
+
+---
+
+# T20 production-readiness track — 2026-09-26 UTC
+
+- [ ] C1 exact-main green baseline: blocked until open, green PR #8 at
+  `5b0a6b9` is merged by a maintainer; `main` is `bf57451`, CI `36221190222`
+  failed in Vitest. PR #8 local `pnpm check` PASS; not exact-main evidence.
+- [x] C2 concurrency semantics: `762015f` pushed; six deterministic stale-read
+  tests cover PATCH/regenerate, DELETE, swap, save, Auto apply, valid 404,
+  winner state and exactly one revision bump (focused 22/22 PASS).
+- [x] C3 cuisine picker runtime: `bc92346` and `c555443` pushed; picker filters,
+  stale-page guard and 390/768/1280 browser smoke PASS (focused 19/19 PASS).
+- [x] Deep audit P2: `fb4416e` pushed; same-slot substitution safety uses the
+  T02 chronological inventory prefix; regression rejects forbidden substitute
+  without changing revision (focused 33/33 PASS).
+- [x] C4 branch-local code gate: `fb4416e` `pnpm check` PASS (202 files, 4,562
+  tests, migrations, build); T19/T20 focused 80/80 PASS. Documentation receipt
+  follows in a separate checkpoint. No known unfixed in-scope P0/P1/P2.
+- [ ] PR #9 exact-head hosted CI and merge, exact-main CI: PR #9 is stacked on
+  PR #8 and CI's pull_request filter is main/master only. Retarget after #8
+  merges, then certify; do not bypass or direct-push main.
+- [ ] Staging migration 0039 / flag-off deploy / flag-on smoke: STOP SAFE until
+  authorized staging access proves target identity and ledger. Local Cloudflare
+  credentials absent; GitHub staging secrets cannot be listed (403). No remote
+  migration/deploy/enablement occurred. Production mutation not authorized.
