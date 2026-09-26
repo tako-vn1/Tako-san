@@ -1,6 +1,6 @@
 # T20 PR #7 — remaining P2 budget items, 2026-09-26 UTC
 
-**Status: `T20_PR7_P2_FIXES_PENDING_VALIDATION`.** Reviewed main
+**Status: `T20_PR7_P2_LOCAL_GREEN_CI_PENDING`.** Reviewed main
 `136cb6ff3d2921eac237c7b106b37ab5ee12a13f`, reviewed head `9b57862` (CI `36210333684` SUCCESS).
 Implementation checkpoints: `e3aef74` (P2-1) and `4f60157` (P2-2).
 
@@ -12,7 +12,10 @@ Implementation checkpoints: `e3aef74` (P2-1) and `4f60157` (P2-2).
 Focused cross-layer regressions (Manual T03, Assisted/Auto, family shopping,
 substitutions, feature flags, T19): 6 files / 68 tests PASS before the last
 zero-budget test. `pnpm typecheck`, `git diff --check`: PASS. Full `pnpm check`
-running; **do not mark ready until its result and exact-head hosted CI pass**.
+PASS: typecheck, lint, 201 Vitest files / 4,549 tests, migration smoke
+(`migration-smoke=ok`) and build (`✓ built in 6.64s`). Remote schema and
+Week parity skipped locally. Independent focused review: no new P0/P1/P2.
+**Do not mark ready until exact-head hosted CI passes.**
 No merge, deploy, production migration/data change, flag enablement or T19
 authority change. Next: exact-head CI then independent final review.
 
