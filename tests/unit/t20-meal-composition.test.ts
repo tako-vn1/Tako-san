@@ -19,7 +19,7 @@ import {
   classifyRecipeRoles,
   resolveRecipeRoles,
 } from '../../packages/recipes/src/composition/roles';
-import { compatibilityIssues, missingRoles } from '../../packages/recipes/src/composition/profiles';
+import { compatibilityIssues, hasHardIssue, missingRoles } from '../../packages/recipes/src/composition/profiles';
 import {
   composeMeal,
   COMPOSITION_BUDGET,
@@ -183,6 +183,8 @@ describe('T20 bounded composition search', () => {
     expect(result.budget.candidatesConsidered).toBeLessThanOrEqual(COMPOSITION_BUDGET.maxAnchors + 3 * COMPOSITION_BUDGET.maxCandidatesPerRole);
     // 500^4 dinner combinations would be 6.25e10; the beam explores a few hundred partials.
     expect(result.budget.partialsExplored).toBeLessThan(400);
+    expect(result.budget.partialsExplored).toBeLessThanOrEqual(COMPOSITION_BUDGET.maxPartials);
+    expect(result.budget.scoringOperations).toBeLessThanOrEqual(COMPOSITION_BUDGET.maxScoringOperations);
     expect(result.budget.scoringOperations).toBeLessThan(400);
     for (const option of result.options) {
       const roles = option.items.map((item) => item.role);
@@ -217,6 +219,67 @@ describe('T20 bounded composition search', () => {
     expect(result.budget.exhausted).toBe(true);
     expect(result.budget.partialsExplored).toBeLessThanOrEqual(5);
     expect(result.options.length).toBeGreaterThan(0);
+  });
+
+  it('enforces the scoring hard cap across many candidates and roles and returns deterministic compatible results', () => {
+    const input = { mealType: 'dinner' as const, fixed: [], rolesToFill: ['main', 'staple', 'vegetable', 'soup'] as MealRole[],
+      candidates: pool, variant: 0, maxOptions: 3, budget: { maxScoringOperations: 3 } };
+    const result = composeMeal(input);
+    expect(result.budget.exhausted).toBe(true);
+    expect(result.budget.scoringOperations).toBe(3);
+    expect(result.budget.scoringOperations).toBeLessThanOrEqual(3);
+    expect(result.budget.partialsExplored).toBeLessThanOrEqual(COMPOSITION_BUDGET.maxPartials);
+    expect(result.options.length).toBeGreaterThan(0);
+    for (const option of result.options) {
+      const issues = compatibilityIssues(option.items.map(({ role, fixed, candidate: added }) => {
+        const source = fixed ?? added!;
+        return { key: source.key, kind: source.kind, id: source.id, role, traits: source.traits,
+          dominantIngredientId: source.dominantIngredientId };
+      }));
+      expect(hasHardIssue(issues)).toBe(false);
+    }
+    expect(result).toEqual(composeMeal({ ...input, candidates: [...pool].reverse() }));
+  });
+
+  it('stops before a second score at a one-operation limit without throwing', () => {
+    const result = composeMeal({ mealType: 'dinner', fixed: [], rolesToFill: ['main', 'staple', 'vegetable', 'soup'], candidates: pool,
+      variant: 0, maxOptions: 3, budget: { maxScoringOperations: 1 } });
+    expect(result.budget.exhausted).toBe(true);
+    expect(result.budget.scoringOperations).toBe(1);
+    expect(result.options.length).toBeGreaterThan(0);
+    expect(result.budget.partialsExplored).toBeLessThanOrEqual(COMPOSITION_BUDGET.maxPartials);
+  });
+
+  it('preserves locked components when the scoring budget is exhausted', () => {
+    const result = composeMeal({ mealType: 'dinner', fixed: [lockedMain], rolesToFill: ['staple', 'vegetable', 'soup'], candidates: pool,
+      variant: 0, maxOptions: 3, budget: { maxScoringOperations: 1 } });
+    expect(result.budget.exhausted).toBe(true);
+    expect(result.budget.scoringOperations).toBe(1);
+    expect(result.options.length).toBeGreaterThan(0);
+    for (const option of result.options) {
+      expect(option.items.some((item) => item.fixed === lockedMain)).toBe(true);
+      expect(hasHardIssue(compatibilityIssues(option.items.map(({ role, fixed, candidate: added }) => {
+        const source = fixed ?? added!;
+        return { key: source.key, kind: source.kind, id: source.id, role, traits: source.traits,
+          dominantIngredientId: source.dominantIngredientId };
+      })))).toBe(false);
+    }
+  });
+
+  it('scores an empty-role composition once without crashing', () => {
+    const result = composeMeal({ mealType: 'dinner', fixed: [], rolesToFill: [], candidates: [], variant: 0, maxOptions: 3 });
+    expect(result.options).toHaveLength(1);
+    expect(result.options[0].items).toEqual([]);
+    expect(result.budget.scoringOperations).toBe(1);
+    expect(result.budget.exhausted).toBe(false);
+  });
+
+  it('does not score output when the scoring budget is zero', () => {
+    const result = composeMeal({ mealType: 'dinner', fixed: [], rolesToFill: [], candidates: [], variant: 0, maxOptions: 3,
+      budget: { maxScoringOperations: 0 } });
+    expect(result.options).toEqual([]);
+    expect(result.budget.scoringOperations).toBe(0);
+    expect(result.budget.exhausted).toBe(true);
   });
 
   it('scores are decomposable and bounded; one-dish mains imply staple/soup coverage', () => {

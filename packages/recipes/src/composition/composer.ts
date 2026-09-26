@@ -24,6 +24,7 @@ export const COMPOSITION_BUDGET = Object.freeze({
   maxPartials: 1200,
   maxScoringOperations: 2400,
   maxOptions: 3,
+  // Total recipe + simple-food input cap; keep the legacy name to avoid churn.
   maxCatalogCandidates: 320,
 });
 export type CompositionBudgetLimits = { [Key in keyof typeof COMPOSITION_BUDGET]: number };
@@ -149,6 +150,9 @@ function rotate<T>(items: readonly T[], variant: number): T[] {
 
 export function composeMeal(input: ComposeInput): ComposeResult {
   const limits = { ...COMPOSITION_BUDGET, ...input.budget };
+  const maxScoringOperations = Number.isFinite(limits.maxScoringOperations)
+    ? Math.max(0, Math.floor(limits.maxScoringOperations))
+    : COMPOSITION_BUDGET.maxScoringOperations;
   const budget = { anchorsConsidered: 0, candidatesConsidered: 0, partialsExplored: 0, scoringOperations: 0, exhausted: false };
   const fixedKeys = new Set(input.fixed.map((item) => item.key));
   const maxComponents = MEAL_PROFILES[input.mealType].maxComponents;
@@ -164,15 +168,33 @@ export function composeMeal(input: ComposeInput): ComposeResult {
     budget.candidatesConsidered += pool.length;
     pools.set(role, pool);
   }
-  type Partial = { items: ComposedItem[]; unfilled: MealRole[] };
+  type Partial = { items: ComposedItem[]; unfilled: MealRole[]; score?: CompositionScore };
+  type ScoredPartial = Partial & { score: CompositionScore };
   const base: ComposedItem[] = input.fixed.map((fixed) => ({ role: fixed.role, fixed, candidate: null }));
-  const scoreOf = (partial: Partial) => {
+  const scoreOf = (partial: Partial): CompositionScore | undefined => {
+    if (partial.score) return partial.score;
+    if (budget.scoringOperations >= maxScoringOperations) {
+      budget.exhausted = true;
+      return undefined;
+    }
     budget.scoringOperations++;
-    if (budget.scoringOperations > limits.maxScoringOperations) budget.exhausted = true;
-    return scoreComposition(input.mealType, partial.items).total;
+    partial.score = scoreComposition(input.mealType, partial.items);
+    return partial.score;
+  };
+  const partialKey = (partial: Partial) => partial.items.map(itemKey).sort().join('|');
+  const rank = (partials: ScoredPartial[]): ScoredPartial[] => {
+    const seen = new Set<string>();
+    return partials.sort((a, b) => b.score.total - a.score.total || compareIds(partialKey(a), partialKey(b)))
+      .filter((partial) => (seen.has(partialKey(partial)) ? false : (seen.add(partialKey(partial)), true)))
+      .slice(0, limits.beamWidth);
+  };
+  const markUnfilled = (partial: ScoredPartial, roles: readonly MealRole[]): ScoredPartial => {
+    const covered = coveredRoles(partial.items.map(composable));
+    return { ...partial, unfilled: [...partial.unfilled, ...roles.filter((role) => !covered.has(role))] };
   };
   let frontier: Partial[] = [{ items: base, unfilled: [] }];
-  for (const role of roleOrder) {
+  for (let roleIndex = 0; roleIndex < roleOrder.length; roleIndex++) {
+    const role = roleOrder[roleIndex];
     if (budget.exhausted) break;
     const next: Partial[] = [];
     for (const partial of frontier) {
@@ -188,20 +210,32 @@ export function composeMeal(input: ComposeInput): ComposeResult {
         next.push({ items, unfilled: partial.unfilled });
         extended = true;
       }
-      if (!extended) next.push({ items: partial.items, unfilled: [...partial.unfilled, role] });
+      if (!extended) next.push({ ...partial, unfilled: [...partial.unfilled, role] });
       if (budget.exhausted) break;
     }
-    const scored = next.map((partial) => ({ partial, key: partial.items.map(itemKey).sort().join('|'), score: scoreOf(partial) }));
-    const seen = new Set<string>();
-    frontier = scored.sort((a, b) => b.score - a.score || compareIds(a.key, b.key))
-      .filter((entry) => (seen.has(entry.key) ? false : (seen.add(entry.key), true)))
-      .slice(0, limits.beamWidth).map((entry) => entry.partial);
+    const scored: ScoredPartial[] = [];
+    for (const partial of next) {
+      const score = scoreOf(partial);
+      if (!score) break;
+      scored.push({ ...partial, score });
+    }
+    if (budget.exhausted) {
+      const laterRoles = roleOrder.slice(roleIndex + 1);
+      const scoredCurrent = scored.map((partial) => markUnfilled(partial, laterRoles));
+      const scoredPrevious = frontier.filter((partial): partial is ScoredPartial => partial.score !== undefined)
+        .map((partial) => markUnfilled(partial, [role, ...laterRoles]));
+      frontier = rank([...scoredCurrent, ...scoredPrevious]);
+      break;
+    }
+    if (scored.length) frontier = rank(scored);
+    else frontier = frontier.filter((partial): partial is ScoredPartial => partial.score !== undefined);
   }
-  const options = frontier.map((partial) => ({ partial, score: scoreComposition(input.mealType, partial.items),
-    key: partial.items.map(itemKey).sort().join('|') }))
-    .sort((a, b) => b.score.total - a.score.total || compareIds(a.key, b.key))
+  if (!roleOrder.length && frontier.length && !scoreOf(frontier[0])) frontier = [];
+  const scoredFrontier = frontier.filter((partial): partial is ScoredPartial => partial.score !== undefined);
+  const options = scoredFrontier
+    .sort((a, b) => b.score.total - a.score.total || compareIds(partialKey(a), partialKey(b)))
     .slice(0, Math.min(limits.maxOptions, input.maxOptions))
-    .map(({ partial, score }) => ({ items: partial.items, unfilledRoles: [...new Set(partial.unfilled)], score,
+    .map((partial) => ({ items: partial.items, unfilledRoles: [...new Set(partial.unfilled)], score: partial.score,
       explanations: explain(partial.items, [...new Set(partial.unfilled)]) }));
   return { options, budget };
 }
