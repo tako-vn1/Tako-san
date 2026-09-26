@@ -133,7 +133,7 @@ describe('T20 Meal composer UI', () => {
       roles: ['vegetable', 'side', 'simple_food'], cuisine: null, cookTimeMinutes: 5, difficulty: null, constraintState: 'none_requested' }],
     nextCursor: null, total: 1 });
     await render(<MealComposer plan={current} slotId={slotId} model={model(current) as never} locale="en" />);
-    await act(async () => byLabel('Add dish').click());
+    await act(async () => { byLabel('Add dish').focus(); byLabel('Add dish').click(); });
     const dialog = document.querySelector('[role="dialog"]')!;
     expect(dialog.getAttribute('aria-modal')).toBe('true');
     expect(document.activeElement?.getAttribute('type')).toBe('search');
@@ -142,7 +142,41 @@ describe('T20 Meal composer UI', () => {
     expect(dialog.textContent).toContain('Sliced cucumber');
     await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
     expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(byLabel('Add dish'));
     expect(api.add).not.toHaveBeenCalled();
+  });
+
+  it('never exposes stale rows from a previous filter or a late load-more response', async () => {
+    const replies: Array<(page: unknown) => void> = [];
+    api.picker.mockImplementation(() => new Promise((resolve) => { replies.push(resolve); }));
+    const page = (id: string, title: string, cuisine: string, nextCursor: string | null = null) => ({
+      schemaVersion: 1, items: [{ kind: 'recipe', id, title, roles: ['main'], cuisine,
+        cookTimeMinutes: 20, difficulty: 'easy', constraintState: 'none_requested' }], nextCursor, total: nextCursor ? 21 : 1,
+    });
+    const dialog = () => document.querySelector('[role="dialog"]')!;
+    await render(<MealComposer plan={plan()} slotId={slotId} model={model(plan()) as never} locale="en" />);
+    await act(async () => byLabel('Add dish').click());
+    await debounce();
+    expect(replies).toHaveLength(1);
+    await act(async () => replies.shift()!(page('pho-bo', 'Pho bo', 'vietnamese', '20')));
+    expect(dialog().textContent).toContain('Pho bo');
+    await act(async () => byLabel('Load more').click());
+    expect(replies).toHaveLength(1);
+    await setValue(selectNamed('Cuisine'), 'korean');
+    expect(dialog().textContent).not.toContain('Pho bo');
+    expect(byLabel('Choose: Pho bo')).toBeUndefined();
+    expect(byLabel('Load more')).toBeUndefined();
+    await act(async () => replies.shift()!(page('old-page', 'Old page', 'vietnamese')));
+    await debounce();
+    expect(replies).toHaveLength(1);
+    await setValue(selectNamed('Cuisine'), 'japanese');
+    await debounce();
+    expect(replies).toHaveLength(2);
+    await act(async () => replies.shift()!(page('korean', 'Korean dish', 'korean')));
+    expect(dialog().textContent).not.toContain('Korean dish');
+    await act(async () => replies.shift()!(page('japanese', 'Japanese dish', 'japanese')));
+    expect(dialog().textContent).toContain('Japanese dish');
+    expect(dialog().textContent).not.toContain('Old page');
   });
 
   it('choosing in the picker adds a locked component at the current revision', async () => {

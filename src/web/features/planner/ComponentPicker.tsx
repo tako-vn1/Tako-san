@@ -24,28 +24,35 @@ export function ComponentPicker({ locale, initialRole, busy, onChoose, onClose }
   const [role, setRole] = useState<MealRole | ''>(initialRole ?? '');
   const [cuisine, setCuisine] = useState<PickerCuisine | ''>('');
   const [query, setQuery] = useState('');
-  const [items, setItems] = useState<PickerItemDto[]>([]);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
+  const filterKey = JSON.stringify([role, cuisine, query.trim()]);
+  const requestId = useRef(0);
+  const [results, setResults] = useState<{ key: string; items: PickerItemDto[]; cursor: string | null; total: number }>(
+    { key: '', items: [], cursor: null, total: 0 });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<unknown>(null);
+  const [error, setError] = useState<{ key: string; failure: unknown } | null>(null);
+  const current = results.key === filterKey;
+  const items = current ? results.items : [];
+  const cursor = current ? results.cursor : null;
+  const pending = loading || !current;
+  const currentError = error?.key === filterKey ? error.failure : null;
   useModalFocus(true, panel, () => { if (!busy) onClose(); }, searchRef);
 
   async function load(reset: boolean, from: string | null) {
+    const id = ++requestId.current;
     setLoading(true); setError(null);
     try {
       const page = await mealCompositionApi.picker({ role: role || undefined, cuisine: cuisine || undefined,
         q: query.trim() || undefined, cursor: reset ? undefined : from ?? undefined, limit: '20' });
-      setItems((prior) => (reset ? page.items : [...prior, ...page.items]));
-      setCursor(page.nextCursor);
-      setTotal(page.total);
-    } catch (failure) { setError(failure); }
-    finally { setLoading(false); }
+      if (id !== requestId.current) return;
+      setResults((prior) => ({ key: filterKey, items: reset || prior.key !== filterKey ? page.items : [...prior.items, ...page.items],
+        cursor: page.nextCursor, total: page.total }));
+    } catch (failure) { if (id === requestId.current) setError({ key: filterKey, failure }); }
+    finally { if (id === requestId.current) setLoading(false); }
   }
   // Debounced server search; each filter change restarts from the first page.
   useEffect(() => {
     const timer = window.setTimeout(() => void load(true, null), 200);
-    return () => window.clearTimeout(timer);
+    return () => { window.clearTimeout(timer); requestId.current++; };
   }, [role, cuisine, query]);
   const filtered = !!(role || cuisine || query.trim());
   function clearFilters() {
@@ -89,9 +96,9 @@ export function ComponentPicker({ locale, initialRole, busy, onChoose, onClose }
         </div>
       </div>
       <div className="overflow-y-auto p-4 sm:p-5 flex-1">
-        {!!error && <PlannerError error={error} locale={locale} onRetry={() => void load(true, null)} />}
-        <p role="status" className="sr-only">{loading ? '…' : `${total}`}</p>
-        {!loading && !error && items.length === 0 && (filtered
+        {!!currentError && <PlannerError error={currentError} locale={locale} onRetry={() => void load(true, null)} />}
+        <p role="status" className="sr-only">{pending ? '…' : `${results.total}`}</p>
+        {!pending && !currentError && items.length === 0 && (filtered
           ? <div className="space-y-2">
             <p className="text-sm text-semantic-text-secondary">{c.noFilteredResults}</p>
             <Button size="sm" variant="outline" onClick={clearFilters}>{c.clearFilters}</Button>
@@ -113,7 +120,7 @@ export function ComponentPicker({ locale, initialRole, busy, onChoose, onClose }
             </li>;
           })}
         </ul>
-        {cursor && <Button variant="outline" fullWidth className="mt-3" disabled={loading} onClick={() => void load(false, cursor)}>{c.loadMore}</Button>}
+        {cursor && <Button variant="outline" fullWidth className="mt-3" disabled={pending} onClick={() => void load(false, cursor)}>{c.loadMore}</Button>}
       </div>
     </div>
   </div>;
