@@ -140,10 +140,14 @@ intersect the roles to fill, evaluated by T02 against the inventory state at tha
 slot (after earlier slots' components), ranked by T03 (hard eligibility first);
 unresolved quantities and wrong meal types are excluded as in V1; simple foods are
 judged by the same `simpleFoodRestrictions` as Manual. Every role-matching recipe
-is generated and ranked before any cap; the ranked list is then capped at 320 with
-a per-role quota (`floor(320 / rolesToFill)`), so catalog ID order never decides
-which recipes are considered. Search: ≤ 4 anchors (mains), ≤ 6 candidates per role, beam 8,
-≤ 1,200 partial expansions, ≤ 2,400 scoring operations, ≤ 3 options; hard compatibility rules (duplicate, two mains, two soups,
+is generated and ranked before selection; eligible simple foods reserve slots
+inside the same **absolute 320-candidate total cap**. A fair per-role selection
+uses the T03-ranked recipes to cover scarce roles (multi-role recipes count toward
+each role but take just one slot); remaining slots are backfilled by global rank.
+The result is independent of catalog input order. Search: ≤ 4 anchors (mains),
+≤ 6 candidates per role, beam 8, ≤ 1,200 partial expansions, ≤ 2,400 *executed*
+scoring operations, ≤ 3 options; when scoring budget is exhausted, no further
+scoring runs and already-scored partials are returned. Hard compatibility rules (duplicate, two mains, two soups,
 staple conflict) prune; soft rules (dominant-ingredient repeat, all fried) lower
 `variety`. Score = weighted parts (roleCompleteness .30, inventoryCoverage .20,
 shoppingCostProxy .15, preferenceFit .15, variety .10, ingredientReuse .05,

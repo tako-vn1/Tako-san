@@ -1,3 +1,37 @@
+# T20 PR #7 — final P2 budget remediation, 2026-09-26 UTC
+
+**Status: `T20_PR7_P2_FIXES_PENDING_VALIDATION`, not merged or deployed.**
+Reviewed base `136cb6ff3d2921eac237c7b106b37ab5ee12a13f` (main), reviewed PR head `9b57862` (hosted
+`validate` run `36210333684` SUCCESS). Application checkpoints `e3aef74`
+(candidate pool) and `4f60157` (scoring limit) are on
+`feat/t20-meal-composition-v2` (PR #7); exact new-head CI pending.
+
+- `prepareComposerCandidates`: T03-rank every role/authority-eligible recipe,
+  reserve eligible simple foods inside the same 320 slots, fill per-role quotas
+  with multi-role candidates counted once as a candidate, then backfill free
+  slots in rank order. The *returned* recipe + simple-food pool never exceeds
+  `COMPOSITION_BUDGET.maxCatalogCandidates` (320). No client cap input.
+- `composeMeal`: score only after checking `maxScoringOperations`; cache each
+  scored partial, stop before an extra operation, reuse the cached score for
+  returned options. When exhausted, return already-scored compatible partials
+  without touching locks. Default 2400; test overrides 1, 3 and 0.
+- Focused `pnpm exec vitest run tests/unit/t20-meal-composition.test.ts
+  tests/unit/t20-composer-candidates.test.ts tests/unit/t20-composition-safety.test.ts
+  tests/unit/composition-flags.test.mjs tests/integration/t20-meal-composition-flows.test.ts
+  tests/integration/t20-legacy-family-and-safety.test.ts`: **6 files / 68 tests
+  PASS** before the additional zero-budget case; then
+  `pnpm exec vitest run tests/unit/t20-meal-composition.test.ts`: **17 PASS**.
+  `pnpm typecheck` and `git diff --check`: PASS. Full `pnpm check` running;
+  record its exact result before changing status or claiming readiness.
+- Boundaries: no merge, no deploy, no production D1 migration or data mutation,
+  no T20 flag enablement, no T19 recipe authority change. Migration 0039 remains
+  unapplied by this task.
+
+Next: finish full local gates, push, require exact-head hosted `validate` SUCCESS,
+then independent final review of that SHA before any merge decision.
+
+---
+
 # Tako-san T20 PR #7 review remediation (4 × P1 + candidate-cap P2) - 2026-09-26 UTC
 
 **Status: `T20_REVIEW_P1_REMEDIATED` — local `pnpm check` PASS (200 files /

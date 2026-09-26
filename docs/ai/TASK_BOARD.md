@@ -1,3 +1,23 @@
+# T20 PR #7 — remaining P2 budget items, 2026-09-26 UTC
+
+**Status: `T20_PR7_P2_FIXES_PENDING_VALIDATION`.** Reviewed main
+`136cb6ff3d2921eac237c7b106b37ab5ee12a13f`, reviewed head `9b57862` (CI `36210333684` SUCCESS).
+Implementation checkpoints: `e3aef74` (P2-1) and `4f60157` (P2-2).
+
+| Item | Implementation | Proof |
+| --- | --- | --- |
+| P2-1 total candidate pool ≤ 320 | Ranked recipes; eligible simple foods reserve slots in the same cap; multi-role fair quota then global-rank backfill | `t20-composer-candidates.test.ts`: 3 PASS; 320 recipes + foods, rare roles, deep favorite, reverse catalog, hard filters, determinism |
+| P2-2 scoring operations ≤ budget | Check before `scoreComposition`, stop/cached frontier on exhaustion, no hidden output scoring | `t20-meal-composition.test.ts`: 17 PASS; 1/3/0 limits, locks and hard compatibility |
+
+Focused cross-layer regressions (Manual T03, Assisted/Auto, family shopping,
+substitutions, feature flags, T19): 6 files / 68 tests PASS before the last
+zero-budget test. `pnpm typecheck`, `git diff --check`: PASS. Full `pnpm check`
+running; **do not mark ready until its result and exact-head hosted CI pass**.
+No merge, deploy, production migration/data change, flag enablement or T19
+authority change. Next: exact-head CI then independent final review.
+
+---
+
 # Tako-san T20 PR #7 review remediation (4 × P1 + candidate-cap P2) - 2026-09-26 UTC
 
 **Status: `T20_REVIEW_P1_REMEDIATED` — local `pnpm check` PASS (200 files /

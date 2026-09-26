@@ -1,3 +1,27 @@
+# T20 PR #7 — final P2 handoff, 2026-09-26 UTC
+
+**Status `T20_PR7_P2_FIXES_PENDING_VALIDATION`; no production operation or merge.**
+Reviewed main `136cb6ff3d2921eac237c7b106b37ab5ee12a13f`, head `9b57862`, CI run `36210333684`
+SUCCESS on that *previous* head; new CI pending. App checkpoints `e3aef74`
+(total candidate pool cap 320 including eligible simple foods, fair multi-role
+selection and ranked backfill) + `4f60157` (pre-score operation gate, cached
+scores and best already-scored partials on exhaustion). No T19 authority change.
+
+Executed: `pnpm typecheck` PASS, `git diff --check` PASS; focused
+`pnpm exec vitest run tests/unit/t20-meal-composition.test.ts
+tests/unit/t20-composer-candidates.test.ts tests/unit/t20-composition-safety.test.ts
+tests/unit/composition-flags.test.mjs tests/integration/t20-meal-composition-flows.test.ts
+tests/integration/t20-legacy-family-and-safety.test.ts`: 6 files / 68 tests PASS
+before the zero-budget test; composer-only rerun: 17 PASS. `pnpm check` running;
+result still to be recorded. No migration (0039 remains unapplied here), deploy,
+production data mutation, flag enablement or merge.
+
+**Next:** finish full check; record the exact stages/results, push the existing
+branch, wait for exact-new-head hosted `validate` SUCCESS and request independent
+final review before merge. Do not claim `T20_COMPLETE`.
+
+---
+
 # Tako-san T20 PR #7 review remediation (4 × P1 + candidate-cap P2) - 2026-09-26 UTC
 
 **Status: `T20_REVIEW_P1_REMEDIATED` — local `pnpm check` PASS (200 files /
