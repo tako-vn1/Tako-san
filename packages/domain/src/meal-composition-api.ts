@@ -88,8 +88,13 @@ export const AutoApplySchema = z.object({
   variant: z.number().int().min(0).max(MAX_COMPOSITION_VARIANT).default(0),
   optionId: HexId,
 }).strict();
+/** Catalog cuisine values (mirrors `CuisineType`); the picker filters on existing recipe metadata only. */
+export const PICKER_CUISINES = ['vietnamese', 'korean', 'japanese', 'chinese', 'thai', 'italian'] as const;
+export const PickerCuisineSchema = z.enum(PICKER_CUISINES);
+export type PickerCuisine = z.infer<typeof PickerCuisineSchema>;
 export const PickerQuerySchema = z.object({
   role: MealRoleSchema.optional(),
+  cuisine: PickerCuisineSchema.optional(),
   q: z.string().trim().max(80).optional(),
   cursor: z.string().regex(/^[0-9]{1,4}$/).optional(),
   limit: z.string().regex(/^[1-9][0-9]?$/).optional(),

@@ -1,11 +1,11 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Search, X } from 'lucide-react';
-import type { MealRole, PickerItemDto } from '../../../../packages/domain/src/meal-composition-api';
-import { MEAL_ROLES } from '../../../../packages/domain/src/meal-composition-api';
+import type { MealRole, PickerCuisine, PickerItemDto } from '../../../../packages/domain/src/meal-composition-api';
+import { MEAL_ROLES, PICKER_CUISINES } from '../../../../packages/domain/src/meal-composition-api';
 import { Button } from '../../components/common/Button';
 import { useModalFocus } from '../../design-system/use-modal-focus';
 import { mealCompositionApi } from '../../services/meal-composition';
-import { compositionCopy, componentTitle, roleLabel } from './composition';
+import { compositionCopy, componentTitle, cuisineLabel, roleLabel } from './composition';
 import type { PlannerLocale } from './copy';
 import { PlannerError } from './PlannerShell';
 
@@ -22,6 +22,7 @@ export function ComponentPicker({ locale, initialRole, busy, onChoose, onClose }
   const panel = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const [role, setRole] = useState<MealRole | ''>(initialRole ?? '');
+  const [cuisine, setCuisine] = useState<PickerCuisine | ''>('');
   const [query, setQuery] = useState('');
   const [items, setItems] = useState<PickerItemDto[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -33,8 +34,8 @@ export function ComponentPicker({ locale, initialRole, busy, onChoose, onClose }
   async function load(reset: boolean, from: string | null) {
     setLoading(true); setError(null);
     try {
-      const page = await mealCompositionApi.picker({ role: role || undefined, q: query.trim() || undefined,
-        cursor: reset ? undefined : from ?? undefined, limit: '20' });
+      const page = await mealCompositionApi.picker({ role: role || undefined, cuisine: cuisine || undefined,
+        q: query.trim() || undefined, cursor: reset ? undefined : from ?? undefined, limit: '20' });
       setItems((prior) => (reset ? page.items : [...prior, ...page.items]));
       setCursor(page.nextCursor);
       setTotal(page.total);
@@ -45,7 +46,12 @@ export function ComponentPicker({ locale, initialRole, busy, onChoose, onClose }
   useEffect(() => {
     const timer = window.setTimeout(() => void load(true, null), 200);
     return () => window.clearTimeout(timer);
-  }, [role, query]);
+  }, [role, cuisine, query]);
+  const filtered = !!(role || cuisine || query.trim());
+  function clearFilters() {
+    setRole(''); setCuisine(''); setQuery('');
+    searchRef.current?.focus();
+  }
 
   return <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-semantic-overlay/50">
     <div ref={panel} role="dialog" aria-modal="true" aria-labelledby={titleId}
@@ -55,27 +61,42 @@ export function ComponentPicker({ locale, initialRole, busy, onChoose, onClose }
           <h2 id={titleId} className="font-heading font-bold text-lg">{c.pickerTitle}</h2>
           <Button variant="ghost" aria-label={c.close} disabled={busy} onClick={onClose}><X size={18} /></Button>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <label className="relative flex-1">
+        <div className="space-y-2">
+          <label className="relative block">
             <span className="sr-only">{c.search}</span>
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-semantic-text-muted" aria-hidden="true" />
             <input ref={searchRef} type="search" value={query} maxLength={80} onChange={(event) => setQuery(event.target.value)}
               placeholder={c.search} className="w-full min-h-11 rounded-xl border border-semantic-border pl-9 pr-3 text-sm" />
           </label>
-          <label className="sm:w-44">
-            <span className="sr-only">{c.role}</span>
-            <select value={role} onChange={(event) => setRole(event.target.value as MealRole | '')}
-              className="w-full min-h-11 rounded-xl border border-semantic-border px-3 text-sm bg-white">
-              <option value="">{c.allRoles}</option>
-              {MEAL_ROLES.map((value) => <option key={value} value={value}>{roleLabel(value, locale)}</option>)}
-            </select>
-          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <label>
+              <span className="sr-only">{c.role}</span>
+              <select value={role} onChange={(event) => setRole(event.target.value as MealRole | '')}
+                className="w-full min-h-11 rounded-xl border border-semantic-border px-3 text-sm bg-white">
+                <option value="">{c.allRoles}</option>
+                {MEAL_ROLES.map((value) => <option key={value} value={value}>{roleLabel(value, locale)}</option>)}
+              </select>
+            </label>
+            <label>
+              <span className="sr-only">{c.cuisine}</span>
+              <select value={cuisine} onChange={(event) => setCuisine(event.target.value as PickerCuisine | '')}
+                className="w-full min-h-11 rounded-xl border border-semantic-border px-3 text-sm bg-white">
+                <option value="">{c.allCuisines}</option>
+                {PICKER_CUISINES.map((value) => <option key={value} value={value}>{cuisineLabel(value, locale)}</option>)}
+              </select>
+            </label>
+          </div>
         </div>
       </div>
       <div className="overflow-y-auto p-4 sm:p-5 flex-1">
         {!!error && <PlannerError error={error} locale={locale} onRetry={() => void load(true, null)} />}
         <p role="status" className="sr-only">{loading ? '…' : `${total}`}</p>
-        {!loading && !error && items.length === 0 && <p className="text-sm text-semantic-text-secondary">{c.noResults}</p>}
+        {!loading && !error && items.length === 0 && (filtered
+          ? <div className="space-y-2">
+            <p className="text-sm text-semantic-text-secondary">{c.noFilteredResults}</p>
+            <Button size="sm" variant="outline" onClick={clearFilters}>{c.clearFilters}</Button>
+          </div>
+          : <p className="text-sm text-semantic-text-secondary">{c.noResults}</p>)}
         <ul className="space-y-2">
           {items.map((item) => {
             const chosenRole = role && item.roles.includes(role) ? role : item.roles[0];

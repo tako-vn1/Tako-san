@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { MealRole } from '../../../../packages/domain/src/meal-composition-api';
+import type { MealRole, PickerCuisine } from '../../../../packages/domain/src/meal-composition-api';
 import type { MealPlanDto } from '../../../../packages/domain/src/meal-planning-api';
 import { queryKeys } from '../../lib/queryKeys';
 import { mealCompositionApi } from '../../services/meal-composition';
@@ -23,6 +23,12 @@ const ROLE_LABELS: Record<PlannerLocale, Record<MealRole, string>> = {
 };
 export const roleLabel = (role: MealRole, locale: PlannerLocale) => ROLE_LABELS[locale][role];
 
+const CUISINE_LABELS: Record<PlannerLocale, Record<PickerCuisine, string>> = {
+  vi: { vietnamese: 'Việt Nam', korean: 'Hàn Quốc', japanese: 'Nhật Bản', chinese: 'Trung Hoa', thai: 'Thái Lan', italian: 'Ý' },
+  en: { vietnamese: 'Vietnamese', korean: 'Korean', japanese: 'Japanese', chinese: 'Chinese', thai: 'Thai', italian: 'Italian' },
+};
+export const cuisineLabel = (cuisine: PickerCuisine, locale: PlannerLocale) => CUISINE_LABELS[locale][cuisine];
+
 const SIMPLE_FOOD_EN: Record<string, string> = {
   'sf-steamed-rice': 'Steamed rice', 'sf-boiled-egg': 'Boiled egg', 'sf-sliced-cucumber': 'Sliced cucumber',
   'sf-boiled-water-spinach': 'Boiled water spinach', 'sf-steamed-broccoli': 'Steamed broccoli', 'sf-fresh-milk': 'Fresh milk',
@@ -44,6 +50,8 @@ export const compositionCopy = {
     options: 'Phương án bữa ăn', option: 'Phương án', kept: 'Giữ nguyên', added: 'Thêm', removedLabel: 'Sẽ bỏ các món chưa khoá',
     pickerTitle: 'Chọn món', search: 'Tìm món', allRoles: 'Mọi vai trò', loadMore: 'Xem thêm', choose: 'Chọn', close: 'Đóng',
     noResults: 'Không có món phù hợp.', safetyUnknown: 'Chưa xác minh an toàn với hạn chế đã yêu cầu',
+    cuisine: 'Ẩm thực', allCuisines: 'Mọi nền ẩm thực', noFilteredResults: 'Không có món nào khớp với bộ lọc hiện tại.',
+    clearFilters: 'Xoá bộ lọc',
     cook: 'Nấu món này', detail: 'Xem công thức', noCooking: 'Món đơn giản — không có hướng dẫn nấu.', unavailable: 'Món này không còn trong danh mục hiện tại.',
     covered: 'Đủ nguyên liệu trong tủ', needsShopping: 'Cần mua thêm', unresolved: 'Cần kiểm tra số lượng', notTracked: 'Không theo dõi tồn kho',
     changed: 'Đã cập nhật bữa ăn.', proposalReady: 'Đã có gợi ý. Xem bên dưới.', more: (count: number) => `+${count} món`,
@@ -64,6 +72,8 @@ export const compositionCopy = {
     options: 'Meal options', option: 'Option', kept: 'Kept', added: 'Added', removedLabel: 'Unlocked dishes will be replaced',
     pickerTitle: 'Choose a dish', search: 'Search dishes', allRoles: 'All roles', loadMore: 'Load more', choose: 'Choose', close: 'Close',
     noResults: 'No matching dishes.', safetyUnknown: 'Safety not verified for your requested restrictions',
+    cuisine: 'Cuisine', allCuisines: 'All cuisines', noFilteredResults: 'No dishes match the current filters.',
+    clearFilters: 'Clear filters',
     cook: 'Cook this dish', detail: 'View recipe', noCooking: 'Simple food — no cooking steps.', unavailable: 'This dish is no longer in the current catalog.',
     covered: 'Covered by your fridge', needsShopping: 'Needs shopping', unresolved: 'Quantity needs review', notTracked: 'Not tracked in inventory',
     changed: 'Meal updated.', proposalReady: 'A suggestion is ready below.', more: (count: number) => `+${count} more`,

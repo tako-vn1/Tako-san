@@ -506,7 +506,8 @@ export class MealCompositionService {
   }
 
   // ------------------------------------------------------------------------ picker
-  async picker(scope: Scope, query: { role?: MealRole; q?: string; cursor?: string; limit?: string; kind?: 'recipe' | 'simple_food' }) {
+  async picker(scope: Scope, query: { role?: MealRole; cuisine?: string; q?: string; cursor?: string; limit?: string;
+    kind?: 'recipe' | 'simple_food' }) {
     const authority = await this.recipeAuthority(scope);
     const context = await loadRankingContext(this.db, scope, this.planner.nowIso());
     const roles = roleIndexFor(authority, await persistedRoles(this.db, authority));
@@ -520,13 +521,15 @@ export class MealCompositionService {
       for (const recipe of authority.list()) {
         const profile = roles.get(recipe.id);
         if (!profile || (query.role && !profile.roles.includes(query.role)) || !matches(recipe.title)) continue;
+        if (query.cuisine && recipe.cuisine !== query.cuisine) continue;
         if (hard.some((policy) => policy.neverRecommendRecipeIds.includes(recipe.id)
           || policy.forbiddenIngredientIds.some((id) => recipe.ingredients.some((line) => line.ingredientId === id)))) continue;
         items.push({ kind: 'recipe', id: recipe.id, title: recipe.title, roles: profile.roles, cuisine: recipe.cuisine,
           cookTimeMinutes: recipe.cookTimeMinutes, difficulty: recipe.difficulty, constraintState });
       }
     }
-    if (query.kind !== 'recipe') {
+    // Simple foods carry no cuisine metadata, so a cuisine filter excludes them rather than guessing one.
+    if (query.kind !== 'recipe' && !query.cuisine) {
       for (const food of SIMPLE_FOODS) {
         if ((query.role && !food.roles.includes(query.role)) || !(matches(food.title.vi) || matches(food.title.en))) continue;
         if (!simpleFoodRestrictions(food, hard).allowed) continue;
