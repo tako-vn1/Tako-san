@@ -1,3 +1,20 @@
+# T20 PR #7 — final merge audit, 2026-09-26 UTC
+
+**No code change needed.** Reviewed head `6882ba3` / main `136cb6f`:
+hosted `validate` run `36217584128` SUCCESS, MERGEABLE/CLEAN and no review
+comments; PR diff check PASS. Focused `pnpm exec vitest run
+tests/unit/composition-flags.test.mjs tests/integration/d1-schema-gate.test.ts
+tests/unit/t20-composer-candidates.test.ts tests/unit/t20-meal-composition.test.ts`
+PASS (4 files / 46 tests). Previously `pnpm check` on application head
+`0b465d5` PASS (201 files / 4,549 tests, migration smoke, build); reviewed
+head differs only in docs. No remote D1 checks or production mutations run here.
+
+Next: verify exact-head CI for this docs-only receipt; user decides merge.
+D1 operator applies 0039 before deployment; release owner enables the paired
+default-off flags only after migration. These are deployment-only follow-ups.
+
+---
+
 # T20 PR #7 — remaining P2 budget items, 2026-09-26 UTC
 
 **Status: `T20_PR7_READY_FOR_FINAL_REVIEW`.** Reviewed main

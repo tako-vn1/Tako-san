@@ -1,3 +1,23 @@
+# T20 PR #7 — final merge-readiness handoff, 2026-09-26 UTC
+
+No implementation changes remained after review of `6882ba3` against main
+`136cb6f`. PR #7 was MERGEABLE/CLEAN, with no review comments; exact-head
+hosted `validate` run `36217584128` SUCCESS. `git diff --check
+origin/main...HEAD` PASS. `pnpm exec vitest run
+tests/unit/composition-flags.test.mjs tests/integration/d1-schema-gate.test.ts
+tests/unit/t20-composer-candidates.test.ts tests/unit/t20-meal-composition.test.ts`
+PASS (4 files / 46 tests). Previously the application head `0b465d5` passed
+`pnpm check` (typecheck, lint, 201 files / 4,549 tests, migration smoke, build);
+subsequent commits changed docs only. Remote D1 not accessed; no migration,
+deploy, flag enablement, merge or T19 authority change.
+
+Next: check hosted CI on this docs-only handoff head, then hand the merge
+decision to the user. The database operator applies 0039 before deployment;
+the release owner opts into paired server/UI flags only after the target D1 is
+migrated. Neither action blocks merging.
+
+---
+
 # T20 PR #7 — final P2 handoff, 2026-09-26 UTC
 
 **Status `T20_PR7_READY_FOR_FINAL_REVIEW`; no production operation or merge.**

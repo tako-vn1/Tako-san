@@ -1,3 +1,24 @@
+# T20 PR #7 — final merge-decision audit, 2026-09-26 UTC
+
+PR #7 on `feat/t20-meal-composition-v2` was reviewed at `6882ba3` against
+`main` `136cb6f`: hosted `validate` run `36217584128` SUCCESS, MERGEABLE/CLEAN,
+no review comments and clean worktree. No implementation or release configuration
+change was needed. `git diff --check origin/main...HEAD` PASS;
+`pnpm exec vitest run tests/unit/composition-flags.test.mjs
+tests/integration/d1-schema-gate.test.ts tests/unit/t20-composer-candidates.test.ts
+tests/unit/t20-meal-composition.test.ts` PASS (4 files / 46 tests). Full
+`pnpm check` on application head `0b465d5` previously PASS (201 files / 4,549
+tests, migration smoke, build); the latest head is documentation-only and its
+hosted full validation passed. Production D1 was not accessed or migrated.
+
+Next: check CI on this documentation-only handoff head and obtain the user's
+merge decision. Separately, the D1 operator must apply 0039 before deployment;
+the release owner must opt in to the default-off paired Worker/UI flags only
+after the target database is migrated. Neither is a merge blocker. No merge,
+deploy, production mutation, T20 enablement or T19 authority change here.
+
+---
+
 # T20 PR #7 — final P2 budget remediation, 2026-09-26 UTC
 
 **Status: `T20_PR7_READY_FOR_FINAL_REVIEW`; no merge or deployment.**
