@@ -1,3 +1,25 @@
+# T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
+
+PR #8 hosted `validate` run `36225377465` failed 1/4554:
+`competing lock/regenerate` got `[200, 404]`. Regenerate won; the losing PATCH
+targeted the unlocked legacy component, which the winning regenerate replaced.
+Test-only fix (`754fb2e`): the race
+now targets the locked rice component, which regenerate preserves by ID, so the
+loser always reaches the revision fence (409 `PLAN_REVISION_CONFLICT`); final
+state asserted for both winners. Executed: flows file 5/5 runs PASS (16 tests);
+throwaway sequential regenerate-then-stale-PATCH check PASS (409, rice still
+locked; not committed); `pnpm typecheck` PASS; eslint on the file PASS.
+
+Follow-up finding (production code NOT changed, per scope): `MealCompositionService.load`
+reads the plan row and `readPlanCompositions` in separate awaits. A stale
+component edit can pass `assertRevision` on the old row, then read a newer
+composition and fail with 404 `COMPONENT_NOT_FOUND` before the fenced write.
+Writes remain revision-fenced (no data loss); only the error classification is
+wrong. Next: reclassify to `PLAN_REVISION_CONFLICT` when the plan revision
+moved (or read row + compositions in one batch), with a regression test.
+
+---
+
 # T20 post-merge CI fix + picker cuisine filter, 2026-09-26 UTC
 
 Branch `fix/t20-postmerge-ci-picker-cuisine` from main `bf57451` (PR #7 merge).
