@@ -3,7 +3,7 @@
 **Latest (2026-09-26):** PR #9 merged into `main` at `cb22cfb` and exact-main
 CI passed. Staging certification is blocked before remote D1 preflight: local
 Wrangler is unauthenticated and the staging D1 IDs in the operator packet
-disagree. A staging-only migration workflow is in a follow-up PR for review;
+disagree. A staging-only migration workflow is in PR #10 for review;
 no staging schema mutation or T20 flag enablement was performed. The next
 section is current; later entries are historical.
 
@@ -32,7 +32,14 @@ tests/integration/d1-schema-gate.test.ts` PASS (3 files / 63 tests);
 `pnpm exec eslint scripts/staging-d1-migration-check.mjs
 tests/unit/staging-d1-migration-check.test.mjs` PASS. Initial test attempts
 failed for a test syntax typo and parsing JSONC with `JSON.parse`; both were
-corrected and the full focused rerun passed.
+corrected and the full focused rerun passed. On implementation checkpoint
+`9635ad6`, local `pnpm check` PASS (203 files / 4,580 tests, lint, typecheck,
+migration smoke, build); hosted PR #10 `validate` run `36241921150` SUCCESS.
+Independent review found two P2 test/certification gaps in the new workflow
+(FK cascade assertions and preflight SQL allowlist); both were fixed on the
+follow-up branch and the same 3 files / 63 tests plus targeted ESLint passed.
+This later docs/review-fix head still needs its own hosted CI before PR #10
+can be reviewed for merge.
 
 Next: reviewer resolves staging D1 ID discrepancy against the real account,
 reviews/merges the staging-only workflow PR through normal flow, then uses

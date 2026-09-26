@@ -68,6 +68,11 @@ describe('manual staging-only D1 migration gate', () => {
     expect(() => verifySchema(result(actual.slice(1)))).toThrow(/Missing T20/);
     const invalidOrdinal = actual.map((row) => ({ ...row, sql: row.sql.replace('BETWEEN 0 AND 7', 'BETWEEN 0 AND 99') }));
     expect(() => verifySchema(result(invalidOrdinal))).toThrow(/schema constraints/);
+    const missingCascade = actual.map((row) => ({ ...row, sql: row.sql.replaceAll('ON DELETE CASCADE', '') }));
+    expect(() => verifySchema(result(missingCascade))).toThrow(/schema constraints/);
+    const incorrectIndex = actual.map((row) => ({ ...row, sql: row.name === 'idx_generated_meal_plan_components_simple_food'
+      ? row.sql.replace('(plan_id, slot_id, simple_food_id)', '(plan_id, slot_id, recipe_id)') : row.sql }));
+    expect(() => verifySchema(result(incorrectIndex))).toThrow(/partial unique index/);
     expect(() => verifySchemaGate(result([{ issue: 'missing_migration', detail: TIP }]))).toThrow(/drift/);
   });
 
@@ -113,6 +118,14 @@ describe('manual staging-only D1 migration gate', () => {
     expect(read).toBeGreaterThan(0);
     expect(apply).toBeGreaterThan(read);
     expect(steps[apply - 1].name).toMatch(/Recheck current main/);
+    const preflight = steps.slice(0, apply).map((s) => s.run || '').join('\n');
+    expect(preflight).not.toMatch(/wrangler d1 migrations apply|wrangler deploy|--file\s/);
+    for (const line of preflight.split('\n').filter((line) => /wrangler d1 execute/.test(line))) {
+      expect(line).toMatch(/--command ("SELECT name FROM d1_migrations ORDER BY name"|"\$1") --json/);
+    }
+    for (const line of preflight.split('\n').filter((line) => /^\s*d1 "/.test(line))) {
+      expect(line).toMatch(/^\s*d1 "(PRAGMA (foreign_key_check|quick_check)|\$\(node scripts\/staging-d1-migration-check\.mjs query baseline\))" > staging-pre-[a-z-]+\.json$/);
+    }
     const d1Commands = steps.flatMap((s) => (s.run || '').split('\n').filter((line) => /wrangler d1 /.test(line)));
     expect(d1Commands.length).toBeGreaterThan(7);
     for (const command of d1Commands) {

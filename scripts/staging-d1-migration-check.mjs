@@ -72,23 +72,25 @@ export function verifySchema(statements) {
   const component = sql(TABLES[1]);
   const roles = sql(TABLES[2]);
   if (!/PRIMARY KEY\s*\(plan_id, slot_id\)/i.test(composition) ||
-      !/FOREIGN KEY\s*\(plan_id, household_id, creator_user_id\)/i.test(composition) ||
+      !/FOREIGN KEY\s*\(plan_id, household_id, creator_user_id\)\s*REFERENCES\s+generated_meal_plans\(id, household_id, creator_user_id\)\s*ON DELETE CASCADE/i.test(composition) ||
       !/CHECK\s*\(mode IN\s*\('manual', 'assisted', 'auto'\)\)/i.test(composition) ||
       !/PRIMARY KEY\s*\(plan_id, id\)/i.test(component) ||
       !/UNIQUE\s*\(plan_id, slot_id, ordinal\)/i.test(component) ||
-      !/FOREIGN KEY\s*\(plan_id, slot_id\)/i.test(component) ||
+      !/FOREIGN KEY\s*\(plan_id, slot_id\)\s*REFERENCES\s+generated_meal_plan_compositions\(plan_id, slot_id\)\s*ON DELETE CASCADE/i.test(component) ||
       !/ordinal BETWEEN 0 AND 7/i.test(component) ||
       !/kind = 'recipe' AND recipe_id IS NOT NULL AND simple_food_id IS NULL/i.test(component) ||
       !/role IN\s*\('main', 'side', 'vegetable', 'soup', 'staple', 'dessert', 'simple_food'\)/i.test(component) ||
       !/provenance IN\s*\('legacy_v1', 'manual', 'assisted', 'auto'\)/i.test(component) ||
       /REFERENCES\s+recipes\b/i.test(component) ||
       !/PRIMARY KEY\s*\(recipe_id, role, source\)/i.test(roles) ||
-      !/REFERENCES recipes\(id\)/i.test(roles) ||
+      !/REFERENCES recipes\(id\)\s+ON DELETE CASCADE/i.test(roles) ||
       !/source = 'ai'/i.test(roles) || !/source <> 'reviewed'/i.test(roles)) {
     throw new Error('T20 schema constraints do not match the reviewed 0039 contract');
   }
   for (const name of INDEXES) {
-    if (!/CREATE UNIQUE INDEX/i.test(sql(name)) || !/WHERE (recipe_id|simple_food_id) IS NOT NULL/i.test(sql(name))) {
+    const column = name.endsWith('_recipe') ? 'recipe_id' : 'simple_food_id';
+    if (!/CREATE UNIQUE INDEX/i.test(sql(name)) ||
+        !new RegExp(`\\(plan_id, slot_id, ${column}\\)\\s+WHERE ${column} IS NOT NULL`, 'i').test(sql(name))) {
       throw new Error(`T20 partial unique index ${name} is invalid`);
     }
   }

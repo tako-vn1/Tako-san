@@ -36,13 +36,22 @@ tests/integration/d1-schema-gate.test.ts`: 3 files / 63 tests PASS;
 `pnpm exec eslint scripts/staging-d1-migration-check.mjs
 tests/unit/staging-d1-migration-check.test.mjs` PASS. The first targeted run
 failed parsing a typo in the new test; the next failed because a test parsed
-JSONC as JSON. Both issues were corrected and the final focused rerun passed.
-No hosted CI has run on this follow-up until it is pushed.
+JSONC as JSON. Both issues were corrected and the final focused rerun passed. On initial
+workflow checkpoint `9635ad6`, local `pnpm check` PASS (203 files / 4,580
+tests, lint, typecheck, migration smoke, build); hosted PR #10 CI run
+`36241921150` validate SUCCESS. Independent review found two P2 gaps in
+this new workflow: schema checks did not require FK cascades, and the tests
+did not lock preflight D1 commands to read-only SQL. The follow-up now checks
+exact FK targets/cascades and unique index columns; tests fail on removed
+cascades/changed index and constrain pre-apply SQL. Re-executed the same 3
+files / 63 tests PASS and targeted ESLint PASS. This later review-fix/docs
+checkpoint needs its own hosted CI. All checks above are local/hosted tests,
+not remote staging D1 evidence.
 
 ### Next action / release boundary
 
 Have a reviewer reconcile the staging D1 ID against the real staging account,
-review and merge the new workflow PR; verify exact-main CI on the merged
+review and merge PR #10 only after its exact-head CI; verify exact-main CI on the merged
 workflow SHA. Dispatch the workflow only on current main with staged credentials
 and confirmation; it must certify identity and 0039 before any T20 deploy.
 If auth/identity/ledger fails, stop without ad-hoc SQL. Subsequently run the

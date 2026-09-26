@@ -13,11 +13,17 @@ section below is the live board; older entries are history.
 - [x] `git fetch --all --prune`, `git diff --check`, `pnpm check:migrations`
   PASS. Staging migration tooling contract suites: 3 files / 63 tests PASS;
   targeted ESLint PASS. Initial test parser/JSONC failures corrected.
+  `pnpm check` PASS (203 files / 4,580 tests, lint, typecheck, migration smoke,
+  build) on `9635ad6`; hosted PR #10 `36241921150` validate SUCCESS.
+- [x] Independent review P2 gaps in staging workflow FK cascade check and
+  preflight SQL allowlist fixed; 3 files / 63 tests plus targeted ESLint PASS
+  after fix. Require exact-head hosted CI on follow-up docs/review-fix commit.
 - [ ] Cloudflare staging auth: local Wrangler whoami reports unauthenticated;
   no local Cloudflare API token/account ID. Operator packet's Section 0 staging
   D1 ID differs from Phase B/config ID; reviewer must reconcile identity,
   never guess or mutate production.
-- [ ] Merge reviewed staging-only workflow PR on `main`, rerun exact-main CI;
+- [ ] Review PR #10 staging-only workflow, merge via maintainer on `main`,
+  rerun exact-main CI;
   only then dispatch from main using the staging Environment and exact SHA.
   Do not use the production D1 workflow for staging.
 - [ ] Certify live D1 identity, ledger, bookmark, FK/quick checks, catalog and
