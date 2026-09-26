@@ -1,10 +1,30 @@
 # Handoff — T20 release gate
 
 **Latest (2026-09-26):** PR #9 MERGED at `cb22cfb`, exact-main CI green;
-staging D1 identity remains unverified. The next handoff is current; later
+local OAuth and read-only live staging D1 identity now match reviewed config,
+not the operator packet's Section 0 ID. The next handoff is current; later
 entries are historical.
 
 ## T20 staging D1 migration preflight handoff — 2026-09-26 UTC
+
+### Owner-approved Cloudflare login and read-only identity receipt
+
+`pnpm dlx wrangler@4.119.0 login --device --browser=false --scopes
+account:read user:read d1:write` succeeded after owner approval (Wrangler
+4.119.0 was disposable, not added to repository dependencies). Both this
+version and the repository Wrangler 3.114.17 report authenticated via
+`CI=true pnpm exec wrangler whoami`; before login, the repository command
+exited 0 but actually printed "You are not authenticated". Read-only
+`CI=true pnpm exec wrangler d1 list --json` and `CI=true pnpm exec wrangler
+d1 info frigo-db-staging-v3 --config wrangler.staging.jsonc --json` PASS:
+one matching staging name, with remote ID equal to `wrangler.staging.jsonc`
+and packet Phase B, but unequal to packet Section 0. The identity discrepancy
+is resolved for local read-only staging identification, not by guessing from
+the packet. No staging ledger/schema/bookmark/row query, migration, deploy or
+flag enablement occurred; production was untouched. Next: review PR #10 and
+its exact-head CI, then verify the GitHub staging Environment credential and
+run reviewed read-only gates on merged exact-main before applying 0039.
+Local OAuth does not certify GitHub staging Environment access.
 
 ### State and checkpoints
 

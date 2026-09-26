@@ -1,7 +1,8 @@
 # Task board — T20 release gate
 
 **Latest (2026-09-26):** PR #9 merged at `cb22cfb`; exact-main CI green.
-Staging 0039 remains blocked on remote identity/credential preflight. The
+Local Cloudflare login and read-only staging D1 name/ID match are now verified;
+staging 0039 still awaits the reviewed workflow and its remote gates. The
 section below is the live board; older entries are history.
 
 ## T20 staging identity and 0039 workflow — live gate, 2026-09-26 UTC
@@ -18,10 +19,16 @@ section below is the live board; older entries are history.
 - [x] Independent review P2 gaps in staging workflow FK cascade check and
   preflight SQL allowlist fixed; 3 files / 63 tests plus targeted ESLint PASS
   after fix. Require exact-head hosted CI on follow-up docs/review-fix commit.
-- [ ] Cloudflare staging auth: local Wrangler whoami reports unauthenticated;
-  no local Cloudflare API token/account ID. Operator packet's Section 0 staging
-  D1 ID differs from Phase B/config ID; reviewer must reconcile identity,
-  never guess or mutate production.
+- [x] Owner-approved device OAuth (`pnpm dlx wrangler@4.119.0 login --device
+  --browser=false --scopes account:read user:read d1:write`) succeeded without
+  changing repo dependencies. `CI=true pnpm exec wrangler whoami` authenticated;
+  read-only `wrangler d1 list --json` and `d1 info frigo-db-staging-v3
+  --config wrangler.staging.jsonc --json` match the unique live staging name/ID
+  to config and packet Phase B; packet Section 0 ID is different and must not
+  be used. No ledger/schema read or remote writes were performed.
+- [ ] Confirm the staging Environment credential and identity independently
+  within PR #10's reviewed, exact-main read-only preflight. Local OAuth does
+  not prove GitHub staging Environment access or authorize production changes.
 - [ ] Review PR #10 staging-only workflow, merge via maintainer on `main`,
   rerun exact-main CI;
   only then dispatch from main using the staging Environment and exact SHA.

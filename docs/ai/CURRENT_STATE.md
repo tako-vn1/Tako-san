@@ -1,13 +1,30 @@
 # Current state — T20 release gate
 
 **Latest (2026-09-26):** PR #9 merged into `main` at `cb22cfb` and exact-main
-CI passed. Staging certification is blocked before remote D1 preflight: local
-Wrangler is unauthenticated and the staging D1 IDs in the operator packet
-disagree. A staging-only migration workflow is in PR #10 for review;
-no staging schema mutation or T20 flag enablement was performed. The next
-section is current; later entries are historical.
+CI passed. Cloudflare login now works locally, and read-only D1 list/info
+match the staging ID in `wrangler.staging.jsonc`; the operator packet's
+Section 0 ID still disagrees. A staging-only migration workflow is in PR #10
+for review; no staging schema mutation or T20 flag enablement was performed.
+The next section is current; later entries are historical.
 
 ## T20 staging migration tooling preflight — 2026-09-26 UTC
+
+Cloudflare staging login follow-up: `pnpm dlx wrangler@4.119.0 login --device
+--browser=false --scopes account:read user:read d1:write` completed after owner
+approval; this disposable CLI did not change repository dependencies. The
+repository's Wrangler 3.114.17 `CI=true pnpm exec wrangler whoami` now reports
+authenticated (its earlier zero exit had printed "You are not authenticated").
+Read-only `CI=true pnpm exec wrangler d1 list --json` finds exactly one
+`frigo-db-staging-v3`, with the ID from `wrangler.staging.jsonc`;
+`CI=true pnpm exec wrangler d1 info frigo-db-staging-v3 --config
+wrangler.staging.jsonc --json` independently matches both name and ID. The
+operator packet's Phase B ID matches these; its Section 0 ID does not. Treat
+the live list/info and reviewed config as identity evidence, not as permission
+to use the conflicting packet ID. No ledger, schema, bookmark or row query was
+run; no staging or production D1 mutation/deploy was performed. Next: PR #10
+review and exact-head CI, then verify GitHub staging Environment identity and
+run its read-only gates on merged exact-main before any 0039 apply. Do not
+infer CI credential access from this local OAuth session.
 
 `git fetch --all --prune` confirmed `origin/main` `cb22cfb` (merged PR #9).
 Hosted exact-main CI `36240577660` / validate `108400172569` SUCCESS (202
