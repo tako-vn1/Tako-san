@@ -2,12 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MealPlanDtoSchema, PlanShoppingDtoSchema } from '../../packages/domain/src/meal-planning-api';
 import {
   AutoOptionsDtoSchema,
+  PickerPageDtoSchema,
   PlanCompositionsDtoSchema,
   SlotCompositionDtoSchema,
 } from '../../packages/domain/src/meal-composition-api';
 import { generateRecipeCandidates } from '../../packages/recipes/src/candidates';
 import { createRecipeCatalog } from '../../packages/recipes/src/catalog';
 import { RecipeFamilySchema } from '../../packages/recipes/src/foundation';
+import { createPlanningContext } from '../../packages/recipes/src/planner-context';
+import { SubstitutionRuleSchema } from '../../packages/recipes/src/substitutions';
+import { MealPlanningApplicationService } from '../../src/worker/services/meal-planning';
 import { resetRecipeAuthorityCacheForTests } from '../../src/worker/services/recipe-authority';
 import { resetRoleIndexMemoForTests } from '../../src/worker/services/meal-composition';
 import { quietLogs, T20Harness, T20_INTENT } from '../helpers/t20-composition-harness';
@@ -79,6 +83,46 @@ describe('T20 Manual enforces the same T03 hard contract as Auto', () => {
       { target: { kind: 'recipe', recipeId }, role: 'vegetable', locked: false }] });
     expect(save.json.code).toBe('HARD_CONSTRAINT_CONFLICT');
     expect(MealPlanDtoSchema.parse((await h.call(HOUSE, 'GET', `/meal-planning/plans/${plan.id}`)).json).revision).toBe(plan.revision);
+  }, CASE_TIMEOUT);
+
+  it('rejects a substitution that becomes forbidden after an earlier component consumes direct stock', async () => {
+    const plan = await generate();
+    const first = plan.result.meals[0];
+    expect(first.source.kind).toBe('recipe');
+
+    const picker = await h.call(HOUSE, 'GET', '/meal-planning/compositions/picker?role=vegetable&kind=recipe');
+    expect(picker.status, JSON.stringify(picker.json)).toBe(200);
+    const candidate = PickerPageDtoSchema.parse(picker.json).items.find((item) => item.id !== first.source.id);
+    expect(candidate).toBeDefined();
+    expect(candidate!.roles).toContain('vegetable');
+
+    preferences({ forbiddenIngredientIds: ['SHRIMP'] });
+    const substitution = SubstitutionRuleSchema.parse({
+      id: 't20-tofu-for-shrimp', scopeType: 'recipe', scopeId: candidate!.id, scopeVersion: 1,
+      fromIngredientId: 'TOFU', toIngredientId: 'SHRIMP', fromUnit: 'piece', toUnit: 'g', quantityRatio: 1,
+      reason: 'Reviewed test adaptation', sourceReference: 'test:t20-prefix-safety', verificationState: 'reviewed', compatibleWith: [],
+    });
+    vi.spyOn(MealPlanningApplicationService.prototype, 'planningContext').mockImplementation((snapshot, referenceInstant) =>
+      createPlanningContext(() => ({
+        snapshotId: crypto.randomUUID(), referenceInstant, inventory: snapshot.inventory,
+        catalog: { ...snapshot.catalog, recipes: snapshot.catalog.recipes.map((recipe) =>
+          recipe.id === first.source.id || recipe.id === candidate!.id
+            ? { ...recipe, servings: first.servings, ingredients: [{ ingredientId: 'TOFU', name: 'Tofu',
+              requiredQuantity: 10, unit: 'piece', isOptional: false }] }
+            : recipe) },
+        rankingContext: snapshot.rankingContext, evidenceProvider: snapshot.evidenceProvider,
+        substitutions: [substitution], approvedSubstitutionIds: [substitution.id],
+      })));
+
+    const manual = await h.call(HOUSE, 'POST', `${slotPath(plan.id, first.slotId)}/components`, {
+      revision: plan.revision, target: { kind: 'recipe', recipeId: candidate!.id }, role: 'vegetable',
+    });
+    expect(manual.status, JSON.stringify(manual.json)).toBe(422);
+    expect(manual.json.code).toBe('HARD_CONSTRAINT_CONFLICT');
+    expect(events.some((event) => event.event === 'composition_hard_restriction_rejected'
+      && String(event.reasons).includes('FORBIDDEN_INGREDIENT'))).toBe(true);
+    const latest = await h.call(HOUSE, 'GET', `/meal-planning/plans/${plan.id}`);
+    expect(MealPlanDtoSchema.parse(latest.json).revision).toBe(plan.revision);
   }, CASE_TIMEOUT);
 
   it('hard max time: a dish over (or without) a known total time is rejected; the existing V1 anchor may stay', async () => {

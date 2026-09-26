@@ -193,9 +193,10 @@ export class MealCompositionService {
     });
   }
 
-  private projection(loaded: Loaded, compositions: ReadonlyMap<string, MealComposition>, untilSlotId?: string): CompositionProjection {
+  private projection(loaded: Loaded, compositions: ReadonlyMap<string, MealComposition>, untilSlotId?: string,
+    inventoryCheckpointComponentIds?: ReadonlySet<string>): CompositionProjection {
     return projectCompositions({ scope: loaded.evaluation, referenceDate: loaded.referenceDate, inventory: loaded.snapshot.inventory,
-      slots: this.projectionSlots(loaded, compositions), untilSlotId });
+      slots: this.projectionSlots(loaded, compositions), untilSlotId, inventoryCheckpointComponentIds });
   }
 
   private allCompositions(loaded: Loaded, override?: MealComposition): Map<string, MealComposition> {
@@ -328,10 +329,14 @@ export class MealCompositionService {
     const before = new Set(current.components.map((item) => targetKey(item)));
     const added = components.filter((component) => !before.has(targetKey(component)));
     if (added.length) {
-      const inventory = this.projection(loaded, this.allCompositions(loaded), slotId).inventoryAtStop;
+      const proposed = { ...current, mode, components };
+      const projected = this.projection(loaded, this.allCompositions(loaded, proposed), undefined,
+        new Set(added.map((component) => component.id)));
       for (const component of added) {
         const target: ComponentTarget = component.kind === 'recipe' ? { kind: 'recipe', recipeId: component.recipeId! }
           : { kind: 'simple_food', simpleFoodId: component.simpleFoodId! };
+        const inventory = projected.inventoryBeforeComponents.get(component.id);
+        if (!inventory) throw new Error('Missing T02 inventory checkpoint for added component');
         const reasons = this.restrictionReasons(loaded, slot, target, inventory);
         if (reasons.length) {
           logEvent('composition_hard_restriction_rejected', { mode, reasons: reasons.join(',') });
