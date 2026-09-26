@@ -163,35 +163,88 @@ describe('T20 optimistic concurrency and idempotency', () => {
     expect(swaps.map((entry) => entry.status).sort()).toEqual([200, 409]);
   }, CASE_TIMEOUT);
 
-  it('competing add/remove, lock/regenerate and manual-save/auto-apply never lose the winner or apply the loser', async () => {
+  // Either racer may win; each case asserts exactly one 200 + one typed 409 and that the final state is the winner's.
+  // `loserCodes[i]` lists the typed conflicts racer i may return when it loses.
+  function winnerOf(results: Array<{ status: number; json: Record<string, unknown> }>,
+    loserCodes: string[][] = results.map(() => ['PLAN_REVISION_CONFLICT'])) {
+    expect(results.map((entry) => entry.status).sort()).toEqual([200, 409]);
+    const loser = results.findIndex((entry) => entry.status === 409);
+    expect(loserCodes[loser]).toContain(results[loser].json.code);
+    return results.findIndex((entry) => entry.status === 200);
+  }
+  const addRice = (planId: string, slotId: string, revision: number) => h.call(HOUSE, 'POST', `${slotPath(planId, slotId)}/components`,
+    { revision, target: { kind: 'simple_food', simpleFoodId: 'sf-steamed-rice' }, role: 'staple' });
+
+  it('competing add/remove: either winner is valid and the final composition reflects only the winner', async () => {
     const plan = await generate();
     const slotId = plan.result.meals[0].slotId;
-    const addRemove = await Promise.all([
-      h.call(HOUSE, 'POST', `${slotPath(plan.id, slotId)}/components`,
-        { revision: plan.revision, target: { kind: 'simple_food', simpleFoodId: 'sf-steamed-rice' }, role: 'staple' }),
-      h.call(HOUSE, 'DELETE', `${slotPath(plan.id, slotId)}/components/${encodeURIComponent(`v1.${slotId}`)}?revision=${plan.revision}`),
-    ]);
-    expect(addRemove.map((entry) => entry.status).sort()).toEqual([200, 409]);
-
+    const legacyId = `v1.${slotId}`;
+    const winner = winnerOf(await Promise.all([
+      addRice(plan.id, slotId, plan.revision),
+      h.call(HOUSE, 'DELETE', `${slotPath(plan.id, slotId)}/components/${encodeURIComponent(legacyId)}?revision=${plan.revision}`),
+    ]));
     const latest = await composition(plan.id, slotId);
-    const target = latest.composition.components[0].id;
-    const race = await Promise.all([
-      h.call(HOUSE, 'PATCH', `${slotPath(plan.id, slotId)}/components/${encodeURIComponent(target)}`, { revision: latest.planRevision, locked: false }),
-      h.call(HOUSE, 'POST', `/meal-planning/plans/${plan.id}/regenerate`, { revision: latest.planRevision }),
-    ]);
-    expect(race.map((entry) => entry.status).sort()).toEqual([200, 409]);
+    expect(latest.planRevision).toBe(plan.revision + 1);
+    const ids = latest.composition.components.map((item) => item.id);
+    const rice = latest.composition.components.filter((item) => item.simpleFoodId === 'sf-steamed-rice');
+    if (winner === 0) {
+      expect(ids).toContain(legacyId);
+      expect(rice).toHaveLength(1);
+      expect(latest.composition.components).toHaveLength(2);
+    } else {
+      expect(latest.composition.components).toEqual([]);
+      // An emptied slot remains editable at the current revision.
+      const refill = await addRice(plan.id, slotId, latest.planRevision);
+      expect(refill.status, JSON.stringify(refill.json)).toBe(200);
+      const refilled = await composition(plan.id, slotId);
+      expect(refilled.composition.components.map((item) => item.simpleFoodId)).toEqual(['sf-steamed-rice']);
+    }
+  }, CASE_TIMEOUT);
 
+  it('competing lock/regenerate on a composed slot: the loser is a typed conflict and is not applied', async () => {
+    const plan = await generate();
+    const slotId = plan.result.meals[0].slotId;
+    const legacyId = `v1.${slotId}`;
+    expect((await addRice(plan.id, slotId, plan.revision)).status).toBe(200);
+    const latest = await composition(plan.id, slotId);
+    const before = latest.composition.components.find((item) => item.id === legacyId)!;
+    expect(before).toBeDefined();
+    const winner = winnerOf(await Promise.all([
+      h.call(HOUSE, 'PATCH', `${slotPath(plan.id, slotId)}/components/${encodeURIComponent(legacyId)}`, { revision: latest.planRevision, locked: false }),
+      h.call(HOUSE, 'POST', `/meal-planning/plans/${plan.id}/regenerate`, { revision: latest.planRevision }),
+    ]));
+    const now = await composition(plan.id, slotId);
+    expect(now.planRevision).toBe(latest.planRevision + 1);
+    const after = now.composition.components.find((item) => item.id === legacyId);
+    if (winner === 0) {
+      expect(after).toMatchObject({ locked: false });
+    } else if (after) {
+      expect(after.locked).toBe(before.locked);
+    }
+  }, CASE_TIMEOUT);
+
+  it('competing manual-save/auto-apply: the final composition is exactly the winner\'s', async () => {
+    const plan = await generate();
+    const slotId = plan.result.meals[0].slotId;
+    expect((await addRice(plan.id, slotId, plan.revision)).status).toBe(200);
     const now = await composition(plan.id, slotId);
     const auto = AutoOptionsDtoSchema.parse((await h.call(HOUSE, 'POST', `${slotPath(plan.id, slotId)}/auto`, { revision: now.planRevision })).json);
     expect(auto.options.length).toBeGreaterThan(0);
-    const saveVsAuto = await Promise.all([
+    const option = auto.options[0];
+    const winner = winnerOf(await Promise.all([
       h.call(HOUSE, 'PUT', `${slotPath(plan.id, slotId)}/composition`, { revision: now.planRevision, components: [] }),
-      h.call(HOUSE, 'POST', `${slotPath(plan.id, slotId)}/auto/apply`, { revision: now.planRevision, optionId: auto.options[0].optionId }),
-    ]);
-    expect(saveVsAuto.map((entry) => entry.status).sort()).toEqual([200, 409]);
+      h.call(HOUSE, 'POST', `${slotPath(plan.id, slotId)}/auto/apply`, { revision: now.planRevision, optionId: option.optionId }),
+    // Auto-apply recomputes its options from current state, so losing to a save may surface as PROPOSAL_STALE.
+    ]), [['PLAN_REVISION_CONFLICT'], ['PLAN_REVISION_CONFLICT', 'PROPOSAL_STALE']]);
     const final = await composition(plan.id, slotId);
     expect(final.planRevision).toBe(now.planRevision + 1);
-  }, CASE_TIMEOUT * 2);
+    if (winner === 0) {
+      expect(final.composition.components).toEqual([]);
+    } else {
+      expect(final.composition.components.map((item) => item.role).sort())
+        .toEqual(option.components.map((item) => item.role).sort());
+    }
+  }, CASE_TIMEOUT);
 
   it('a retried add (same revision) never duplicates a component', async () => {
     const plan = await generate();
