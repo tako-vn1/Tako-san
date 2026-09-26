@@ -7,9 +7,14 @@ import { seedT13ReconciliationEvidence } from './t13-reconciliation-fixtures.mjs
 // Isolated preview only: no Cloudflare bindings, provider credentials, or external requests.
 const port = Number(process.env.PORT || 3000);
 const apiPort = Number(process.env.PREVIEW_API_PORT || 8787);
+// T20: opt-in Meal Composition V2 (UI build flag + server flag together); default keeps the T06B suite's V1 UI.
+const compositionV2 = process.env.PREVIEW_MEAL_COMPOSITION_V2 === 'true' ? 'true' : 'false';
+// Preview-only mismatch drill (UI on, server off); defaults to the UI value.
+const compositionV2Server = process.env.PREVIEW_MEAL_COMPOSITION_V2_SERVER === 'false' ? 'false' : compositionV2;
 const vite = await createViteServer({
   define: {
     'import.meta.env.VITE_MEAL_PLANNER_ENABLED': JSON.stringify('true'),
+    'import.meta.env.VITE_MEAL_COMPOSITION_V2_ENABLED': JSON.stringify(compositionV2),
   },
   plugins: [{ name: 'isolated-offline-html', transformIndexHtml: isolatedPreviewHtml },
   { name: 'isolated-email', enforce: 'pre',
@@ -31,7 +36,7 @@ seedPlannerPreview(db);
 const env = { DB: db, CACHE: createPreviewCache(), ENVIRONMENT: 'development', APP_URL: process.env.PREVIEW_APP_URL || `http://127.0.0.1:${port}`,
   JWT_SECRET: 'isolated-local-preview-jwt-secret-no-production-use',
   OTP_HASH_SECRET: 'isolated-local-preview-otp-secret-no-production-use',
-  AI_MOCK_MODE: 'true', SCAN_QUEUE_MODE: 'sync', MEAL_PLANNER_ENABLED: 'true' };
+  AI_MOCK_MODE: 'true', SCAN_QUEUE_MODE: 'sync', MEAL_PLANNER_ENABLED: 'true', MEAL_COMPOSITION_V2_ENABLED: compositionV2Server };
 // T13R-B browser case B: while armed, authoritative inventory GET reads fail
 // with a synthetic 500 (no private detail); mutations stay real and reads are
 // restored by control or reset.

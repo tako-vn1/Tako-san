@@ -1,4 +1,246 @@
-# Tako-san T19 same-SHA promotion convergence handoff - 2026-09-25 UTC
+# T20 PR #7 — final merge-readiness handoff, 2026-09-26 UTC
+
+No implementation changes remained after review of `6882ba3` against main
+`136cb6f`. PR #7 was MERGEABLE/CLEAN, with no review comments; exact-head
+hosted `validate` run `36217584128` SUCCESS. `git diff --check
+origin/main...HEAD` PASS. `pnpm exec vitest run
+tests/unit/composition-flags.test.mjs tests/integration/d1-schema-gate.test.ts
+tests/unit/t20-composer-candidates.test.ts tests/unit/t20-meal-composition.test.ts`
+PASS (4 files / 46 tests). Previously the application head `0b465d5` passed
+`pnpm check` (typecheck, lint, 201 files / 4,549 tests, migration smoke, build);
+subsequent commits changed docs only. Remote D1 not accessed; no migration,
+deploy, flag enablement, merge or T19 authority change.
+
+Next: check hosted CI on this docs-only handoff head, then hand the merge
+decision to the user. The database operator applies 0039 before deployment;
+the release owner opts into paired server/UI flags only after the target D1 is
+migrated. Neither action blocks merging.
+
+---
+
+# T20 PR #7 — final P2 handoff, 2026-09-26 UTC
+
+**Status `T20_PR7_READY_FOR_FINAL_REVIEW`; no production operation or merge.**
+Reviewed main `136cb6f`, prior head `a337a2b`: hosted CI `validate` run
+`36216083854` SUCCESS. Application head `0b465d5`: hosted `validate` run
+`36216675722` SUCCESS (MERGEABLE/CLEAN, no review comments). Final pass
+`0b465d5` removes the stray EOF blank line in
+`src/worker/services/meal-composition.ts` so the full PR diff check passes;
+no logic changed. Handoff head `d7aef32`: hosted `validate` run `36217199489`
+SUCCESS (MERGEABLE/CLEAN, no review comments). App checkpoints `e3aef74`
+(total candidate pool cap 320 including eligible simple foods, fair multi-role
+selection and ranked backfill) + `4f60157` (pre-score operation gate, cached
+scores and best already-scored partials on exhaustion). No T19 authority change.
+
+Executed: `pnpm typecheck` PASS, `git diff --check` PASS; focused
+`pnpm exec vitest run tests/unit/t20-meal-composition.test.ts
+tests/unit/t20-composer-candidates.test.ts tests/unit/t20-composition-safety.test.ts
+tests/unit/composition-flags.test.mjs tests/integration/t20-meal-composition-flows.test.ts
+tests/integration/t20-legacy-family-and-safety.test.ts`: 6 files / 68 tests PASS
+before the zero-budget test; composer-only rerun: 17 PASS. `pnpm check` PASS:
+typecheck, lint, 201 test files / 4,549 tests, `pnpm check:migrations`
+(`migration-smoke=ok`), build (`✓ built in 6.64s`). `git diff --check` PASS.
+Remote D1 schema and Week parity checks skipped locally. Independent focused
+review: no actionable P0/P1/P2. No migration (0039 remains unapplied here), deploy,
+production data mutation, flag enablement or merge.
+
+Final-pass `pnpm typecheck`: PASS; focused `pnpm exec vitest run
+tests/unit/t20-composer-candidates.test.ts tests/unit/t20-meal-composition.test.ts
+tests/integration/t20-meal-composition-http.test.ts`: 3 files / 23 tests PASS;
+`git diff --check origin/main...HEAD`: PASS after initial EOF warning was fixed.
+Full `pnpm check` PASS: typecheck, lint, 201 test files / 4,549 tests,
+`migration-smoke=ok`, build (`✓ built in 6.72s`); remote D1 schema and Week
+parity skipped locally. Independent code/release audits found no new
+P0/P1/P2 or merge blocker. Migration 0039 is deployment-only (target D1 owner),
+and enabling the paired default-off Worker/UI flag is a release-owner decision.
+
+Final narrow check: `pnpm exec vitest run tests/unit/composition-flags.test.mjs
+tests/integration/d1-schema-gate.test.ts tests/unit/t20-composer-candidates.test.ts
+tests/unit/t20-meal-composition.test.ts` PASS (4 files / 46 tests);
+`git diff --check origin/main...HEAD` PASS. No runtime, migration or workflow
+changes; no new merge blocker. Production/staging migration and release flag
+activation remain separate operator decisions, not merge blockers.
+
+**Next:** verify exact-head CI immediately before handing PR #7 to the user for
+the merge decision; do not merge, deploy or claim `T20_COMPLETE` here.
+
+---
+
+# Tako-san T20 PR #7 review remediation (4 × P1 + candidate-cap P2) - 2026-09-26 UTC
+
+**Status: `T20_REVIEW_P1_REMEDIATED` — local `pnpm check` PASS (200 files /
+4,541 tests); PR #7 hosted `validate` run `36210020774` SUCCESS on head
+`424be56` (MERGEABLE, CLEAN; this docs-only commit gets its own run). Production untouched: no
+deploy, no D1 migration, T19 authority unchanged (d1/0/cutover=true, 500).**
+
+`branch=feat/t20-meal-composition-v2` (PR #7), review base head `febeb1f`; implementation commit `2e4f878`.
+
+Fixed (review findings on PR #7; the earlier "P1 = 0" claim was wrong):
+- P1 Manual hard safety: T03 `evaluateHardRestrictions` extracted from
+  `evaluateRankingEligibility` (behaviour unchanged) is the single definition.
+  New `packages/recipes/src/composition/restrictions.ts` judges every component a
+  Manual mutation adds (add/swap/replace, and Assisted/Auto apply) on the same
+  T02 candidate (slot inventory, planner substitution policy, server evidence
+  provider) that Auto ranks: dietary/allergen unknown, time unknown/over, hard
+  nutrition unknown/conflict, forbidden (incl. used substitutes), never-recommend
+  → 422 `HARD_CONSTRAINT_CONFLICT`. Simple foods use the same function in Auto,
+  Manual and picker (Auto previously ignored time/nutrition for simple foods).
+  No manual override model.
+- P1 V1 family meals: composition routes (Manual/Assist/Auto) return 422
+  `LEGACY_FAMILY_COMPOSITION_UNSUPPORTED` up front; the UI keeps V1 "Swap meal"
+  and shows no composer for family slots. Family slots are now projected
+  (`legacy_family`, exact T04 variant identity), so composed-plan shopping no
+  longer drops their demand (it silently did before); an unresolvable variant is
+  409 `COMPOSITION_REVALIDATION_REQUIRED`.
+- P1 shopping substitution authority: `EvaluationScope` requires
+  `substitutions/approvedSubstitutionIds/activeConstraints`, built by
+  `evaluationScope(context)` from the same planning context as the planner and
+  Auto. (The production context still supplies empty lists — no reviewed registry.)
+- P1 flags: `deploy.yml` input `meal_composition_v2_enabled` (default false) →
+  `release-check.mjs gate` normalizes once (manifest `mealCompositionV2Enabled`)
+  → Build `VITE_MEAL_COMPOSITION_V2_ENABLED` + Worker `--var
+  MEAL_COMPOSITION_V2_ENABLED` in staging and production; `scripts/composition-flags.mjs
+  verify` fails unless server/UI/manifest/compiled value (`dist/composition-flags.json`,
+  written by a Vite build plugin outside `dist/client`) agree. Wrangler configs
+  default `"false"`. Production build moved to its own step after local gates.
+  UI falls back to V1 controls when the composition API 404s (mismatch).
+- P2 candidate bias: all role-matching recipes are generated and ranked; the 320
+  cap applies after ranking with a per-role quota (no catalog-order truncation).
+- Preview: `PREVIEW_MEAL_COMPOSITION_V2_SERVER=false` drills the UI-on/server-off
+  mismatch in the isolated preview.
+
+Checks executed (local, Node 24.19):
+- `pnpm check` PASS: typecheck (app + worker), lint, Vitest **200 files / 4,541
+  tests** (612.9 s), `migration-smoke=ok`, build.
+- New suites: `tests/unit/t20-composition-safety.test.ts` (13),
+  `tests/integration/t20-legacy-family-and-safety.test.ts` (5),
+  `tests/unit/composition-flags.test.mjs` (17), +4 UI cases in
+  `tests/unit/t20-meal-composer-ui.test.tsx`. Verified to fail on the old code:
+  all 5 integration cases and the 2 UI family/mismatch cases.
+- Browser (isolated preview, synthetic data, agent-browser, 390×844): flags on →
+  composer shown, V1 swap hidden, Manual add of rice persisted; UI on/server off →
+  compositions 404, V1 "Đổi món" shown, no composer. Family slot not browser-tested
+  (static preview catalog has no families; covered by jsdom + HTTP tests).
+- `deploy.yml` not executed on GitHub Actions (only parsed and unit-tested).
+
+Remaining debt (not blocking): picker still lists recipes with
+`constraintState: unknown` when safety is requested (server rejects on save);
+role heuristics (staple 0 / dessert 0 in catalog); per-component servings.
+
+Next: operator merge decision on PR #7 (not merged by the agent). After merge,
+production Deploy fails closed until 0039 is applied through *Production D1
+migration* (`expected_pre_tip=0038_auth_onboarding_completion.sql`,
+`migration=0039_meal_composition_v2.sql`); staging D1 needs 0039 before its flag
+is enabled. Automatic staging deploys ship the flag off. Then dispatch Deploy with
+`meal_composition_v2_enabled=true` (see `DEPLOYMENT.md`).
+
+---
+
+# Tako-san T20 Meal Composition V2 - 2026-09-25 UTC
+
+**Status: `T20_CODE_COMPLETE` — local gates PASS; PR #7 hosted CI `validate`
+run `36197958265` SUCCESS on implementation head `0db541da8619fdf03f21bc4fb93d081fa335a0d5` (MERGEABLE,
+CLEAN; this docs-only commit gets its own PR-head run). T19: `T19_COMPLETE_OPERATOR_ACCEPTED`. Production
+untouched: recipe authority d1/0/cutover=true, 500 recipes; no T20 deploy; no
+production D1 migration.**
+
+`canonical_repository=tako-vn1/Tako-san`
+`canonical_repository_id=1385308553`
+`starting_main=136cb6ff3d2921eac237c7b106b37ab5ee12a13f`
+`branch=feat/t20-meal-composition-v2`
+
+Implemented (ADR-031, `MEAL_COMPOSITION_V2.md`):
+- T20A: additive migration `0039_meal_composition_v2.sql`
+  (`generated_meal_plan_compositions`, `generated_meal_plan_components`,
+  `recipe_role_assignments`; partial unique indexes for one dish per meal);
+  domain model, closed role enum, deterministic role rules with provenance,
+  nine bounded simple foods, flexible meal profiles, V1 read-time projection.
+- T20B: server-authoritative Manual builder API (add/remove/swap/lock/role/
+  reorder/replace) sharing the plan `revision` behind a batch fence; picker
+  (summary DTOs, role/kind/text filters, stable offset cursor, ≤ 24/page).
+- T20C/D: Assisted (complete / regenerate unlocked) and Auto (top ≤ 3) on one
+  bounded, deterministic beam search; suggestions never write; apply recomputes
+  and requires the same option ID; locks are domain-enforced.
+- T20E: all components of all meals projected against one running T04
+  inventory projection, then unchanged T05 aggregation (single subtraction).
+- T20F: composed week cards, meal composer, picker bottom sheet/dialog,
+  suggestion panels; vi/en; lock `aria-pressed`, one polite live region, focus
+  restoration, Escape cancels without mutation.
+- V1: unedited slots read as `main / legacy_v1`; V1 schemas unchanged; V1 swap
+  on a composed slot is 409 `COMPOSITION_MANAGED_SLOT`; V1 regenerate keeps
+  locked components; V1 shopping projects components. Flag off = pre-T20.
+- Flags: `MEAL_COMPOSITION_V2_ENABLED` (server) and
+  `VITE_MEAL_COMPOSITION_V2_ENABLED` (UI), both default off, independent of T19.
+- Preview: `PREVIEW_MEAL_COMPOSITION_V2=true node scripts/security-preview.mjs`
+  opts the isolated preview into V2 (default off keeps the T06B browser suite).
+
+Role distribution on the 500-recipe D1 release (pinned test): main 362, side
+87, soup 70, vegetable 37, simple_food 7, staple 0, dessert 0; unclassified 0,
+invalid 0, duplicates 0, contradictions 0, review-required 0.
+
+Checks executed (local, Node 24.19, sqlite3):
+- `pnpm check` PASS: typecheck, lint, Vitest **197 files / 4,502 tests**
+  (725.9 s), `migration-smoke=ok`, build. T20 suites: 6 files / 48 tests; T19
+  authority suites (split 11, persistence 18, observability 19) PASS;
+  d1-schema-gate 9 PASS.
+- Earlier full run: 4,496/4,497 with one unrelated 5 s timeout in
+  `production-certify-workflow.test.mjs` under parallel load; that file passed
+  48/48 in isolation and in the final `pnpm check`.
+- Browser (isolated preview, synthetic data, agent-browser): 375×812, 390×844,
+  768×1024, 1280×900 — plan generation, V1 cards, composer, Auto options and
+  accept, picker keyboard focus/Escape return, no horizontal overflow, no
+  unnamed controls.
+
+Not done / deferred: leftovers (T20B/T21), per-component servings, role review
+tooling and AI-assisted offline role proposals, picker ingredient/cuisine
+filters, whole-week Auto, price-aware scoring. `tests/fixtures/migration-sha256.json`
+gets the 0039 hash only after the migration is applied (fixture policy).
+
+Next: independent review of PR #7 (not merged by the agent); require exact-head
+hosted `validate` on the final head.
+Rollout (separately authorized): apply 0039 to staging then production D1 (the
+schema gate fails closed on a 0038 ledger), then enable both flags. Do not change
+T19 recipe authority.
+
+---
+
+# Historical T19 operator closure / T20 unlocked - 2026-09-25 UTC
+
+**Status: `T19_COMPLETE_OPERATOR_ACCEPTED`. T20: `UNLOCKED`.**
+
+`canonical_repository=tako-vn1/Tako-san`
+`canonical_repository_id=1385308553`
+`main_baseline=136cb6ff3d2921eac237c7b106b37ab5ee12a13f` (PR #6 merge)
+
+T19 closure was accepted by the operator based on the successful final D1
+deployment, the rollback proof, the final restoration, exact-main CI, the
+existing production read-only certification and runtime release evidence.
+The evidence below is operator-reported for runs on the same main SHA; this
+agent did not re-run or re-read those production runs in this task.
+
+- Exact-main CI `36149295615` SUCCESS; current-main staging `36149849086`
+  SUCCESS.
+- Production sequence: shadow `36150427552`, canary-1 `36151130515`,
+  canary-5 `36152198646`, canary-25 `36153116467`, first d1 `36153948951`
+  (all SUCCESS).
+- Rollback proof `36154980456` SUCCESS (d1 → shadow): PASS.
+- Final restore: canary-1 `36167843671`, canary-5 `36176092421`, canary-25
+  `36176824421`, final d1 `36183890785` (all SUCCESS): PASS.
+- Final production authority: `mode=d1`, `percent=0`, `cutover=true`,
+  `source=d1`, served recipes `500`, release `rel-bd00a4f53fcaeee4`,
+  `fallback=null`, runtime fingerprint `f8cf8c7ff59df9fe29e246b9e3c9aad0fd155fa8df35bf671ac4d03fa2b5ab37`.
+
+**The final post-rollout read-only recertification was waived by the
+operator. No post-final-D1 certification run occurred; do not invent a PASS
+receipt for it.**
+
+T20 (Meal Composition V2) is unlocked and implemented on
+`feat/t20-meal-composition-v2`; see the T20 section above this one once it is
+recorded. T20 must not change production recipe authority (d1/0/true, 500).
+
+---
+
+# Historical T19 same-SHA promotion convergence handoff - 2026-09-25 UTC
 
 **Status: `TAKOSAN_D1_PROMOTION_CONVERGENCE_FIX_IN_REVIEW`. Production
 stable at `canary-25` (`a3e1614`). T19 incomplete; T20 blocked.**

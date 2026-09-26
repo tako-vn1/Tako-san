@@ -39,6 +39,10 @@ on:
         description: Confirm an intentional authority downgrade to shadow/static (never needed for promotion)
         type: boolean
         default: false
+      meal_composition_v2_enabled:
+        description: 'T20 Meal Composition V2: sets BOTH the Worker MEAL_COMPOSITION_V2_ENABLED var and the build-time VITE_MEAL_COMPOSITION_V2_ENABLED UI flag together (requires migration 0039; false rolls back)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -66,6 +70,7 @@ jobs:
       recipe_catalog_mode: ${{ steps.gate.outputs.recipe_catalog_mode }}
       recipe_catalog_d1_canary_percent: ${{ steps.gate.outputs.recipe_catalog_d1_canary_percent }}
       recipe_catalog_cutover_enabled: ${{ steps.gate.outputs.recipe_catalog_cutover_enabled }}
+      meal_composition_v2_enabled: ${{ steps.gate.outputs.meal_composition_v2_enabled }}
     steps:
       - name: Checkout trusted main release policy and full ancestry
         uses: actions/checkout@v4
@@ -88,6 +93,7 @@ jobs:
           RECIPE_CATALOG_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.recipe_catalog_mode || 'static' }}
           RECIPE_CATALOG_D1_CANARY_PERCENT: ${{ github.event_name == 'workflow_dispatch' && inputs.recipe_catalog_d1_canary_percent || '0' }}
           RECIPE_CATALOG_ROLLBACK_CONFIRMED: ${{ github.event_name == 'workflow_dispatch' && inputs.confirm_recipe_catalog_rollback || false }}
+          MEAL_COMPOSITION_V2_ENABLED_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.meal_composition_v2_enabled || false }}
         run: node scripts/release-check.mjs gate
 
       - name: Save immutable candidate manifest
@@ -158,7 +164,15 @@ jobs:
         if: env.STAGING_UNCONFIGURED != 'true'
         env:
           GIT_COMMIT: ${{ needs.release.outputs.deploy_sha }}
+          VITE_MEAL_COMPOSITION_V2_ENABLED: ${{ needs.release.outputs.meal_composition_v2_enabled }}
         run: pnpm build
+
+      - name: Require matching Meal Composition V2 server and UI flags
+        if: env.STAGING_UNCONFIGURED != 'true'
+        env:
+          MEAL_COMPOSITION_V2_ENABLED: ${{ needs.release.outputs.meal_composition_v2_enabled }}
+          VITE_MEAL_COMPOSITION_V2_ENABLED: ${{ needs.release.outputs.meal_composition_v2_enabled }}
+        run: node scripts/composition-flags.mjs verify release-manifest.json dist/composition-flags.json
 
       - name: Recheck exact-head CI after environment approval
         if: env.STAGING_UNCONFIGURED != 'true'
@@ -172,7 +186,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --config wrangler.staging.jsonc --var GIT_COMMIT:${{ needs.release.outputs.deploy_sha }} --var RECIPE_CATALOG_MODE:${{ needs.release.outputs.recipe_catalog_mode }} --var RECIPE_CATALOG_D1_CANARY_PERCENT:${{ needs.release.outputs.recipe_catalog_d1_canary_percent }} --var RECIPE_CATALOG_CUTOVER_ENABLED:${{ needs.release.outputs.recipe_catalog_cutover_enabled }}
+          command: deploy --config wrangler.staging.jsonc --var GIT_COMMIT:${{ needs.release.outputs.deploy_sha }} --var RECIPE_CATALOG_MODE:${{ needs.release.outputs.recipe_catalog_mode }} --var RECIPE_CATALOG_D1_CANARY_PERCENT:${{ needs.release.outputs.recipe_catalog_d1_canary_percent }} --var RECIPE_CATALOG_CUTOVER_ENABLED:${{ needs.release.outputs.recipe_catalog_cutover_enabled }} --var MEAL_COMPOSITION_V2_ENABLED:${{ needs.release.outputs.meal_composition_v2_enabled }}
 
       # Exact-SHA proof polls readiness within a bounded deadline: the edge may briefly serve the
       # previous Worker version after upload. Only that propagation case is retried; nothing redeploys.
@@ -244,7 +258,18 @@ jobs:
           pnpm typecheck
           pnpm test
           pnpm check:migrations
-          pnpm build
+
+      - name: Build
+        env:
+          GIT_COMMIT: ${{ needs.release.outputs.deploy_sha }}
+          VITE_MEAL_COMPOSITION_V2_ENABLED: ${{ needs.release.outputs.meal_composition_v2_enabled }}
+        run: pnpm build
+
+      - name: Require matching Meal Composition V2 server and UI flags
+        env:
+          MEAL_COMPOSITION_V2_ENABLED: ${{ needs.release.outputs.meal_composition_v2_enabled }}
+          VITE_MEAL_COMPOSITION_V2_ENABLED: ${{ needs.release.outputs.meal_composition_v2_enabled }}
+        run: node scripts/composition-flags.mjs verify release-manifest.json dist/composition-flags.json
 
       - name: Recheck exact-head CI after approval and local gates
         env:
@@ -327,7 +352,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --var GIT_COMMIT:${{ needs.release.outputs.deploy_sha }} --var RECIPE_CATALOG_MODE:${{ needs.release.outputs.recipe_catalog_mode }} --var RECIPE_CATALOG_D1_CANARY_PERCENT:${{ needs.release.outputs.recipe_catalog_d1_canary_percent }} --var RECIPE_CATALOG_CUTOVER_ENABLED:${{ needs.release.outputs.recipe_catalog_cutover_enabled }}
+          command: deploy --var GIT_COMMIT:${{ needs.release.outputs.deploy_sha }} --var RECIPE_CATALOG_MODE:${{ needs.release.outputs.recipe_catalog_mode }} --var RECIPE_CATALOG_D1_CANARY_PERCENT:${{ needs.release.outputs.recipe_catalog_d1_canary_percent }} --var RECIPE_CATALOG_CUTOVER_ENABLED:${{ needs.release.outputs.recipe_catalog_cutover_enabled }} --var MEAL_COMPOSITION_V2_ENABLED:${{ needs.release.outputs.meal_composition_v2_enabled }}
 
       # T19D: the deployment is not successful until the Worker proves, through the protected
       # recipe-authority evidence, that it serves exactly the approved authority state (mode,

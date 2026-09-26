@@ -44,6 +44,8 @@ export interface Env {
   AI_MOCK_MODE?: string;
   MEAL_PLANNER_ENABLED?: string;
   MEAL_PLANNER_AI_ENABLED?: string;
+  // T20: Meal Composition V2 API gate; requires MEAL_PLANNER_ENABLED and migration 0039.
+  MEAL_COMPOSITION_V2_ENABLED?: string;
   // Deploy traceability: injected by the deploy workflow as a Wrangler var.
   GIT_COMMIT?: string;
   // Best-effort (default) degrades to isolate-local counters when KV fails;

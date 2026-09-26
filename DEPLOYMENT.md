@@ -95,6 +95,28 @@ The production job re-runs lint/typecheck/tests/migration-smoke/build, then:
 3. **Smoke:** `scripts/post-deploy-smoke.sh` — landing page, liveness, and
    readiness (must not be `unhealthy`, database must answer).
 
+### Meal Composition V2 (T20) flags
+
+T20 has two flags that must always ship together: the Worker var
+`MEAL_COMPOSITION_V2_ENABLED` (server authority) and the compile-time UI flag
+`VITE_MEAL_COMPOSITION_V2_ENABLED`. Both default to `false` (`wrangler*.jsonc`); never
+enable either by editing Wrangler config or setting a Worker var by hand — a Worker var
+cannot enable an already-built UI.
+
+- **Prerequisite:** migration `0039_meal_composition_v2.sql` is applied to the target D1
+  (production: through the Production D1 migration workflow).
+- **Enable:** dispatch *Actions → Deploy* with the usual inputs plus
+  `meal_composition_v2_enabled: true`. `release-check.mjs gate` normalizes it to one
+  output (`'true'` only for an explicit dispatch opt-in; pushes and anything else are
+  `'false'`) and records `mealCompositionV2Enabled` in `release-manifest.json`. That
+  single output feeds both `VITE_MEAL_COMPOSITION_V2_ENABLED` for `pnpm build` and
+  `--var MEAL_COMPOSITION_V2_ENABLED` for `wrangler deploy`.
+- **Guard:** after the build and before deploy, `scripts/composition-flags.mjs verify`
+  fails unless the server value, UI value, release manifest, and the value Vite actually
+  compiled (`dist/composition-flags.json`) are all exactly `true` or all exactly `false`.
+- **Rollback:** redeploy with `meal_composition_v2_enabled: false` (the default). Automatic
+  staging deploys after CI always ship it off. T19 recipe catalog inputs are unaffected.
+
 ## Migrations
 
 - Apply migrations once through Wrangler's migration ledger. The smoke test

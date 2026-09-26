@@ -56,6 +56,12 @@ import {
   type PlanExplanationRequest,
 } from '../../../packages/domain/src/meal-planning-presentation';
 import { explainMealReasons, type ExplanationTransport } from './meal-planning-explanation';
+import {
+  planHasCompositions,
+  readPlanCompositions,
+  writePlanCompositions,
+} from '../../../packages/db/src/meal-composition';
+import { MealCompositionService } from './meal-composition';
 
 type Scope = { householdId: string; userId: string };
 type Snapshot = Awaited<ReturnType<typeof loadMealPlanningSnapshot>>;
@@ -116,6 +122,11 @@ export interface MealPlanningServiceOptions {
    * The planner universe is exactly this snapshot, so Recipe API, Planner, Shopping and Cooking agree.
    */
   recipeAuthority: (scope: Scope) => Promise<RecipeAuthoritySnapshot>;
+  /**
+   * T20 (ADR-031): server flag `MEAL_COMPOSITION_V2_ENABLED`. When false every V1 operation is
+   * byte-for-byte the pre-T20 behaviour and no composition table is read.
+   */
+  compositionV2Enabled?: boolean;
 }
 
 export class MealPlanningApplicationService {
@@ -127,25 +138,36 @@ export class MealPlanningApplicationService {
       throw new Error('Meal planning requires a server-owned recipe authority resolver');
   }
 
+  /** @internal */
+  compositions() {
+    return new MealCompositionService(this.db, this, this.options.recipeAuthority);
+  }
+
   private now() {
     return (this.options.now?.() ?? new Date()).toISOString();
   }
 
   private async snapshot(scope: Scope, referenceTime: string) {
-    return loadMealPlanningSnapshot(
-      this.db,
-      scope,
-      referenceTime,
-      await this.options.recipeAuthority(scope),
-    );
+    return (await this.snapshotWithAuthority(scope, referenceTime)).snapshot;
+  }
+
+  /** @internal T20: one authority resolution shared by the planner snapshot and role enrichment. */
+  async snapshotWithAuthority(scope: Scope, referenceTime: string) {
+    const authority = await this.options.recipeAuthority(scope);
+    return {
+      authority,
+      snapshot: await loadMealPlanningSnapshot(this.db, scope, referenceTime, authority),
+    };
   }
 
   /** Persisted source identity: planner fingerprints + the recipe authority the plan was fenced to. */
-  private sourceIdentity(snapshot: Snapshot) {
+  /** @internal */
+  sourceIdentity(snapshot: Snapshot) {
     return { ...snapshot.fingerprint.parts, authority: snapshot.authority };
   }
 
-  private authorityChanged(
+  /** @internal */
+  authorityChanged(
     stored: {
       fingerprints: { authority?: { source: string; fingerprint: string; recipeCount: number } };
     },
@@ -160,7 +182,8 @@ export class MealPlanningApplicationService {
     );
   }
 
-  private decode(row: GeneratedMealPlanRecord) {
+  /** @internal */
+  decode(row: GeneratedMealPlanRecord) {
     const intent = envelope(StoredIntentSchema).parse(JSON.parse(row.intentJson)).data;
     const result = envelope(StoredResultSchema).parse(JSON.parse(row.resultJson)).data;
     const fingerprints = envelope(FingerprintsSchema).parse(JSON.parse(row.sourceJson)).data;
@@ -173,7 +196,8 @@ export class MealPlanningApplicationService {
     return { ...intent, ...result, fingerprints };
   }
 
-  private async freshness(row: GeneratedMealPlanRecord, snapshot?: Snapshot) {
+  /** @internal */
+  async freshness(row: GeneratedMealPlanRecord, snapshot?: Snapshot) {
     const stored = this.decode(row);
     const checkedAt = this.now();
     const current =
@@ -215,7 +239,8 @@ export class MealPlanningApplicationService {
     });
   }
 
-  private assertRevision(row: GeneratedMealPlanRecord, revision: number) {
+  /** @internal */
+  assertRevision(row: GeneratedMealPlanRecord, revision: number) {
     if (row.revision !== revision)
       throw new MealPlanningError(
         'PLAN_REVISION_CONFLICT',
@@ -224,13 +249,34 @@ export class MealPlanningApplicationService {
       );
   }
 
-  private reference(now: string, offset: number) {
+  /** @internal */
+  nowIso() {
+    return this.now();
+  }
+
+  /** @internal */
+  reference(now: string, offset: number) {
     const local = new Date(Date.parse(now) + offset * 60_000).toISOString().slice(0, -1);
     const suffix = `${offset < 0 ? '-' : '+'}${String(Math.floor(Math.abs(offset) / 60)).padStart(2, '0')}:${String(Math.abs(offset) % 60).padStart(2, '0')}`;
     return `${local}${suffix}`;
   }
 
-  private run(
+  /** @internal T20: the same trusted T04 context the V1 planner builds, for Assisted/Auto candidates. */
+  planningContext(snapshot: Snapshot, referenceInstant: string) {
+    return createPlanningContext(() => ({
+      snapshotId: crypto.randomUUID(),
+      referenceInstant,
+      catalog: snapshot.catalog,
+      inventory: snapshot.inventory,
+      rankingContext: snapshot.rankingContext,
+      evidenceProvider: snapshot.evidenceProvider,
+      substitutions: [],
+      approvedSubstitutionIds: [],
+    }));
+  }
+
+  /** @internal */
+  run(
     scope: Scope,
     id: string,
     intent: MealPlanningIntent,
@@ -264,16 +310,7 @@ export class MealPlanningApplicationService {
         'Slots must be unique, future and inside the planning horizon',
       );
     }
-    const context = createPlanningContext(() => ({
-      snapshotId: crypto.randomUUID(),
-      referenceInstant,
-      catalog: snapshot.catalog,
-      inventory: snapshot.inventory,
-      rankingContext: snapshot.rankingContext,
-      evidenceProvider: snapshot.evidenceProvider,
-      substitutions: [],
-      approvedSubstitutionIds: [],
-    }));
+    const context = this.planningContext(snapshot, referenceInstant);
     const plan = { ...planWeeklyMeals({ context, request: input }), id };
     if (plan.householdId !== scope.householdId || plan.userId !== scope.userId)
       throw new Error('Generated scope mismatch');
@@ -405,6 +442,23 @@ export class MealPlanningApplicationService {
         (entry) =>
           currentVersions.get(`${entry.lock.kind}:${entry.lock.id}`) === entry.lock.version,
       );
+    if (this.options.compositionV2Enabled && (await planHasCompositions(this.db, scope, id))) {
+      const composed = await this.compositions().regenerateComposed(scope, { row, intent, locks, snapshot, now });
+      return this.dto(
+        await writePlanCompositions(this.db, scope, {
+          planId: id,
+          expectedRevision: input.revision,
+          planUpdate: {
+            intentJson: serialize({ intent, locks: composed.locks }),
+            resultJson: serialize(composed.result),
+            sourceJson: serialize(this.sourceIdentity(snapshot)),
+          },
+          slots: composed.writes,
+          deleteSlotIds: composed.deleted,
+        }),
+        snapshot,
+      );
+    }
     const result = this.run(scope, id, intent, locks, snapshot, now);
     return this.dto(
       await updateGeneratedMealPlan(this.db, scope, {
@@ -425,6 +479,16 @@ export class MealPlanningApplicationService {
     const original = stored.result.meals.find((meal) => meal.slotId === input.slotId);
     if (!original)
       throw new MealPlanningError('SLOT_NOT_FOUND', 422, 'Swap requires a selected meal slot');
+    if (
+      this.options.compositionV2Enabled &&
+      (await readPlanCompositions(this.db, scope, id)).has(input.slotId)
+    ) {
+      throw new MealPlanningError(
+        'COMPOSITION_MANAGED_SLOT',
+        409,
+        'This meal is edited as a composition; change its dishes through the meal editor',
+      );
+    }
     const now = this.now();
     const snapshot = await this.snapshot(scope, now);
     if (this.authorityChanged(stored, snapshot)) {
@@ -520,10 +584,16 @@ export class MealPlanningApplicationService {
           amountMinor: Number(input.budget.money.minorAmount),
         }
       : null;
+    // T20: a plan with canonical composed slots is projected over every component, then handed to
+    // the unchanged T05 optimizer; plans without compositions keep the stored V1 projection.
+    const mealPlan =
+      this.options.compositionV2Enabled && (await planHasCompositions(this.db, scope, id))
+        ? await this.compositions().shoppingPlanFor(scope, row)
+        : stored.shoppingPlan;
     const context = createShoppingContext(() => ({
       ...scope,
       currency: input.currency,
-      mealPlan: stored.shoppingPlan,
+      mealPlan,
       budget,
       catalog: { snapshotId: catalog.snapshotId, asOf, options: catalog.options },
     }));

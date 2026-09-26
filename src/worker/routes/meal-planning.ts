@@ -15,6 +15,11 @@ import { MealPlanningError } from '../services/meal-planning-error';
 import { PlanAlternativesQuerySchema, PlanExplanationRequestSchema } from '../../../packages/domain/src/meal-planning-presentation';
 import { createExplanationTransport } from '../services/meal-planning-explanation';
 import { backgroundExecutorOf, resolveRecipeAuthority } from '../services/recipe-authority';
+import {
+  AddComponentSchema, AssistApplySchema, AssistRequestSchema, AutoApplySchema, AutoRequestSchema, ComponentIdSchema,
+  CompositionSlotIdSchema, PickerQuerySchema, RemoveComponentQuerySchema, ReplaceCompositionSchema, SwapComponentSchema,
+  UpdateComponentSchema,
+} from '../../../packages/domain/src/meal-composition-api';
 
 type App = { Bindings: Env; Variables: { auth: AuthContext } };
 type Ctx = Context<App>;
@@ -75,6 +80,8 @@ export function createMealPlanningRoutes(options: Partial<MealPlanningServiceOpt
     // T19 (ADR-026): the same deployment-config + deterministic household-canary decision the recipe routes make.
     recipeAuthority: options.recipeAuthority ?? (async (scope) =>
       (await resolveRecipeAuthority(c.env, { tenantKey: scope.householdId, backgroundExecutor: backgroundExecutorOf(c) })).snapshot),
+    // T20: independent of every T19 recipe-authority flag.
+    compositionV2Enabled: c.env.MEAL_COMPOSITION_V2_ENABLED === 'true',
   });
   const scope = (c: Ctx) => ({ householdId: c.get('auth').householdId, userId: c.get('auth').userId });
   const planId = (c: Ctx) => {
@@ -102,6 +109,64 @@ export function createMealPlanningRoutes(options: Partial<MealPlanningServiceOpt
     service(c).swap(scope(c), planId(c), await body(c, SwapMealSchema))));
   routes.post('/meal-planning/plans/:id/shopping', compute, expensive, (c) => respond(c, async () =>
     service(c).shopping(scope(c), planId(c), await body(c, OptimizePlanShoppingSchema))));
+  // ---------------------------------------------------------------- T20 Meal Composition V2 (ADR-031)
+  const compositionGate = async (c: Ctx, next: () => Promise<void>) => {
+    if (c.env.MEAL_COMPOSITION_V2_ENABLED !== 'true') {
+      return c.json({ code: 'MEAL_COMPOSITION_DISABLED', error: 'Meal composition is not enabled' }, 404);
+    }
+    await next();
+  };
+  routes.use('/meal-planning/plans/:id/compositions', compositionGate);
+  routes.use('/meal-planning/plans/:id/slots/*', compositionGate);
+  routes.use('/meal-planning/compositions/*', compositionGate);
+  const compositionWrites = rateLimiter({ maxRequests: 60, windowSeconds: 60, prefix: 'meal-composition-write' });
+  const compositions = (c: Ctx) => service(c).compositions();
+  const slotId = (c: Ctx) => {
+    const parsed = CompositionSlotIdSchema.safeParse(c.req.param('slotId'));
+    if (!parsed.success) throw new MealPlanningError('INVALID_SLOT_ID', 422, 'Invalid meal slot ID');
+    return parsed.data;
+  };
+  const componentId = (c: Ctx) => {
+    const parsed = ComponentIdSchema.safeParse(c.req.param('componentId'));
+    if (!parsed.success) throw new MealPlanningError('INVALID_COMPONENT_ID', 422, 'Invalid component ID');
+    return parsed.data;
+  };
+  const slotPath = '/meal-planning/plans/:id/slots/:slotId';
+  routes.get('/meal-planning/plans/:id/compositions', reads, (c) => respond(c, () =>
+    compositions(c).compositions(scope(c), planId(c))));
+  routes.get(`${slotPath}/composition`, reads, (c) => respond(c, () =>
+    compositions(c).composition(scope(c), planId(c), slotId(c))));
+  routes.put(`${slotPath}/composition`, compositionWrites, (c) => respond(c, async () =>
+    compositions(c).replace(scope(c), planId(c), slotId(c), await body(c, ReplaceCompositionSchema))));
+  routes.post(`${slotPath}/components`, compositionWrites, (c) => respond(c, async () =>
+    compositions(c).add(scope(c), planId(c), slotId(c), await body(c, AddComponentSchema))));
+  routes.post(`${slotPath}/components/:componentId/swap`, compositionWrites, (c) => respond(c, async () =>
+    compositions(c).swap(scope(c), planId(c), slotId(c), componentId(c), await body(c, SwapComponentSchema))));
+  routes.patch(`${slotPath}/components/:componentId`, compositionWrites, (c) => respond(c, async () =>
+    compositions(c).update(scope(c), planId(c), slotId(c), componentId(c), await body(c, UpdateComponentSchema))));
+  routes.delete(`${slotPath}/components/:componentId`, compositionWrites, (c) => respond(c, () => {
+    const parsed = RemoveComponentQuerySchema.safeParse(c.req.query());
+    if (!parsed.success || Object.values(c.req.queries()).some((values) => values.length !== 1)) {
+      throw new MealPlanningError('INVALID_REQUEST', 422, 'A single positive plan revision is required');
+    }
+    return compositions(c).remove(scope(c), planId(c), slotId(c), componentId(c), Number(parsed.data.revision));
+  }));
+  routes.post(`${slotPath}/assist`, compute, expensive, (c) => respond(c, async () =>
+    compositions(c).assist(scope(c), planId(c), slotId(c), await body(c, AssistRequestSchema))));
+  routes.post(`${slotPath}/assist/apply`, compute, expensive, (c) => respond(c, async () =>
+    compositions(c).assistApply(scope(c), planId(c), slotId(c), await body(c, AssistApplySchema))));
+  routes.post(`${slotPath}/auto`, compute, expensive, (c) => respond(c, async () =>
+    compositions(c).auto(scope(c), planId(c), slotId(c), await body(c, AutoRequestSchema))));
+  routes.post(`${slotPath}/auto/apply`, compute, expensive, (c) => respond(c, async () =>
+    compositions(c).autoApply(scope(c), planId(c), slotId(c), await body(c, AutoApplySchema))));
+  routes.get('/meal-planning/compositions/picker', reads, (c) => respond(c, () => {
+    const parsed = PickerQuerySchema.safeParse(c.req.query());
+    if (!parsed.success || Object.values(c.req.queries()).some((values) => values.length !== 1)) {
+      throw new MealPlanningError('INVALID_REQUEST', 422, 'Picker query does not match the contract');
+    }
+    return compositions(c).picker(scope(c), parsed.data);
+  }));
+
   routes.post('/meal-planning/plans/:id/feedback', feedbackLimit, (c) => respond(c, async () =>
     service(c).feedback(scope(c), planId(c), await body(c, PlanFeedbackSchema), key(c))));
   return routes;

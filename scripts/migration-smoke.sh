@@ -500,5 +500,38 @@ INSERT INTO assert_zero SELECT COUNT(*) FROM pragma_integrity_check WHERE integr
 INSERT INTO assert_one SELECT COUNT(*) = 500 FROM recipes;
 INSERT INTO assert_one SELECT COUNT(*) = 500 FROM recipe_runtime_fields;
 
+-- T20 (0039): additive meal-composition tables. Seed a realistic V1 generated plan
+-- first; the migration must leave it byte-identical and create no composition rows.
+INSERT INTO generated_meal_plans (id, household_id, creator_user_id, request_key, request_fingerprint, revision, intent_json, result_json, source_json)
+VALUES ('00000000-0000-4000-8000-00000000t20a', 'demo_household_01', 'demo_user_01', 'smoke-t20-v1', '0000000000000000000000000000000000000000000000000000000000000000', 3,
+        '{"version":1,"data":{"intent":{"startDate":"2030-01-02"},"locks":[]}}',
+        '{"version":1,"data":{"schemaVersion":1,"result":{"meals":[{"slotId":"2030-01-02:dinner:0","source":{"kind":"recipe","id":"vn-canh-01"}}]}}}',
+        '{"version":1,"data":{"catalog":"c"}}');
+CREATE TEMP TABLE smoke_pre_t20_plans AS SELECT * FROM generated_meal_plans;
+
+.read migrations/0039_meal_composition_v2.sql
+
+INSERT INTO assert_one SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'generated_meal_plan_compositions';
+INSERT INTO assert_one SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'generated_meal_plan_components';
+INSERT INTO assert_one SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'recipe_role_assignments';
+INSERT INTO assert_one SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_generated_meal_plan_components_recipe';
+INSERT INTO assert_zero SELECT COUNT(*) FROM generated_meal_plan_compositions;
+INSERT INTO assert_zero SELECT COUNT(*) FROM generated_meal_plan_components;
+INSERT INTO assert_zero SELECT COUNT(*) FROM recipe_role_assignments;
+INSERT INTO assert_zero SELECT COUNT(*) FROM (SELECT * FROM smoke_pre_t20_plans EXCEPT SELECT * FROM generated_meal_plans);
+INSERT INTO assert_zero SELECT COUNT(*) FROM (SELECT * FROM generated_meal_plans EXCEPT SELECT * FROM smoke_pre_t20_plans);
+-- A composition attaches to the existing V1 plan ID/slot and cascades with it.
+INSERT INTO generated_meal_plan_compositions (plan_id, household_id, creator_user_id, slot_id, mode, created_revision, updated_revision)
+VALUES ('00000000-0000-4000-8000-00000000t20a', 'demo_household_01', 'demo_user_01', '2030-01-02:dinner:0', 'manual', 4, 4);
+INSERT INTO generated_meal_plan_components (plan_id, id, slot_id, ordinal, kind, role, recipe_id, simple_food_id, locked, provenance, created_revision, updated_revision)
+VALUES ('00000000-0000-4000-8000-00000000t20a', 'v1.2030-01-02:dinner:0', '2030-01-02:dinner:0', 0, 'recipe', 'main', 'vn-canh-01', NULL, 1, 'legacy_v1', 4, 4),
+       ('00000000-0000-4000-8000-00000000t20a', 'c-rice', '2030-01-02:dinner:0', 1, 'simple_food', 'staple', NULL, 'sf-steamed-rice', 0, 'manual', 4, 4);
+INSERT INTO assert_zero SELECT COUNT(*) FROM pragma_foreign_key_check;
+DELETE FROM generated_meal_plans WHERE id = '00000000-0000-4000-8000-00000000t20a';
+INSERT INTO assert_zero SELECT COUNT(*) FROM generated_meal_plan_compositions;
+INSERT INTO assert_zero SELECT COUNT(*) FROM generated_meal_plan_components;
+INSERT INTO assert_zero SELECT COUNT(*) FROM pragma_integrity_check WHERE integrity_check <> 'ok';
+INSERT INTO assert_one SELECT COUNT(*) = 500 FROM recipes;
+
 SELECT 'migration-smoke=ok';
 SQL

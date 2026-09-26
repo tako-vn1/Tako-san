@@ -1,5 +1,12 @@
 # Architecture — T01 foundation through T05 shopping optimization
 
+T20 adds `packages/recipes/src/composition/*` (roles, simple foods, profiles, pure
+composition model, single-subtraction projection, bounded composer), additive
+migration 0039 with `packages/db/src/meal-composition.ts`, and
+`src/worker/services/meal-composition.ts` under the existing meal-planning routes,
+gated by `MEAL_COMPOSITION_V2_ENABLED`. T19 authority, T02–T05 arithmetic and V1
+contracts are consumed unchanged. See ADR-031 and `MEAL_COMPOSITION_V2.md`.
+
 T07 adds an aggregate authenticated-account budget to expensive new-planner
 routes, retaining their per-path limits. KV and isolate-local fallback remain
 best-effort abuse controls, not atomic quotas; see ADR-019 and `T07_H2_ABUSE.md`.

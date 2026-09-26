@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import type { Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -23,9 +24,28 @@ function injectServiceWorkerBuildId() {
   };
 }
 
+// Records the value Vite actually compiled into the UI (outside the served assets directory)
+// so the release guard can prove it matches the Worker var.
+function recordCompositionFlag(): Plugin {
+  let compiled: string | null = null;
+  return {
+    name: 'record-composition-flag',
+    apply: 'build',
+    configResolved(config) {
+      compiled = config.env.VITE_MEAL_COMPOSITION_V2_ENABLED ?? null;
+    },
+    closeBundle() {
+      writeFileSync(
+        path.resolve(__dirname, 'dist/composition-flags.json'),
+        `${JSON.stringify({ VITE_MEAL_COMPOSITION_V2_ENABLED: compiled })}\n`,
+      );
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), injectServiceWorkerBuildId()],
+  plugins: [react(), injectServiceWorkerBuildId(), recordCompositionFlag()],
   define: {
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),
     'import.meta.env.VITE_GIT_COMMIT': JSON.stringify(buildCommit),

@@ -1,5 +1,68 @@
 # Architecture Decisions
 
+## ADR-031 — Meal Composition V2: one composition per slot, additive storage, shared revision, single-subtraction projection (T20)
+
+**Status:** Accepted 2026-09-25 for T20 implementation. Gated off by default; no
+production migration or deployment. Details: `MEAL_COMPOSITION_V2.md`.
+
+**Context:** The Meal Planner (ADR-017/030) persists one T04-selected recipe per
+slot inside versioned JSON. T20 needs meals of several ordered, lockable
+components (recipes and simple foods), Manual/Assisted/Auto building, and correct
+shopping — without a second recipe authority, without rewriting stored V1 plans,
+and without breaking V1 clients whose schemas are `.strict()`.
+
+**Decision:**
+1. Additive migration 0039: `generated_meal_plan_compositions` (slot-level
+   MealComposition, FK to the existing plan) and `generated_meal_plan_components`
+   (ordered components; `recipe_id` XOR `simple_food_id`; one dish per meal via
+   partial unique indexes; no FK to `recipes`). `recipe_role_assignments` stores
+   non-rule role provenance with SQL-enforced confidence/review invariants.
+2. Read-time V1 compatibility: a slot without a composition row is the
+   one-component projection `main / legacy_v1`. The first V2 mutation
+   materialises it; rows are then canonical for that slot. `result_json` is never
+   rewritten. V1 endpoint schemas are unchanged; V2 uses new sub-routes.
+3. One optimistic-concurrency authority: V2 writes bump
+   `generated_meal_plans.revision` in the same D1 batch behind a fence insert that
+   aborts the batch on a stale revision. V1 swap on a composed slot is a typed
+   409; V1 regenerate preserves locked components and follows the new anchor for
+   unlocked ones atomically; V1 shopping projects every component.
+4. T19 authority is consumed, never re-derived: components, picker items and
+   Auto candidates must be in the request's `RecipeAuthoritySnapshot`; role rows
+   are read only for `d1` authority and fenced to its universe; authority change
+   is the existing `CATALOG_AUTHORITY_CHANGED` revalidation.
+5. Shopping: all components of all meals are evaluated by T02 against one running
+   T04 projection (exact consumption witness), then T05 aggregates unchanged —
+   inventory is subtracted once; no parallel shortage arithmetic.
+6. Roles are deterministic rules (versioned) plus persisted reviewed/imported/AI
+   rows; no runtime AI; human review outranks inference; AI rows below 0.8
+   confidence are never effective.
+7. Assisted/Auto share one bounded beam search (explicit anchor, per-role, beam,
+   partial and scoring budgets; hard compatibility pruning; decomposed score;
+   deterministic with a bounded `variant`). Suggestions never write; apply
+   recomputes and requires the same option ID. Locked components are immutable
+   to generation (domain-enforced and re-verified).
+8. Flags `MEAL_COMPOSITION_V2_ENABLED` (server) / `VITE_MEAL_COMPOSITION_V2_ENABLED`
+   (UI), independent of T19 flags. Flag off = exact pre-T20 behaviour.
+
+**Consequences:** Deploying T20 code requires applying 0039 first (the D1
+schema gate fails closed on a 0038 ledger). Composed slots describe themselves
+through components; the V1 generation record remains for audit/rollback.
+Leftovers, per-component servings, curated role review tooling and whole-week
+Auto are deferred.
+
+**Amendment 2026-09-26 (PR #7 review P1 remediation):**
+- One hard-restriction definition: T03 `evaluateHardRestrictions` (extracted from
+  `evaluateRankingEligibility`, behaviour unchanged) judges Auto/Assisted (via
+  ranking) and every component a Manual mutation adds (via
+  `composition/restrictions.ts`, same T02 candidate and evidence). No manual
+  override model exists.
+- V1 family-variant meals stay V1-edited (swap) and are refused by composition
+  routes; they are projected as `legacy_family` so composed shopping keeps them.
+- Composition shopping requires the planner's substitution policy
+  (`evaluationScope(context)`); it cannot be constructed without one.
+- Flags ship through `deploy.yml` from one normalized release output with a
+  post-build guard; defaults are false everywhere.
+
 ## ADR-030 — One recipe authority for the Meal Planner, stored-plan authority identity, reviewed full-D1 release state and protected release evidence (T19 V2)
 
 **Status:** Accepted 2026-09-22. The immutable original branch is published at
