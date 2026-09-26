@@ -141,4 +141,29 @@ describe('T20 torn-read revision classification', () => {
     expect(slot.json.code).toBe('SLOT_NOT_FOUND');
     expect((await composition(created.id, slotId)).planRevision).toBe(created.revision);
   }, TIMEOUT);
+
+  it('a nonexistent slot wins over stale revision without weakening existing-slot revision checks', async () => {
+    const created = await plan();
+    const slotId = created.result.meals[0].slotId;
+    const current = await addRice(created.id, slotId, created.revision);
+    const missingPath = slotPath(created.id, '2030-02-01:dinner:0');
+    const manual = await h.call(HOUSE, 'PATCH', `${missingPath}/components/not-a-component`,
+      { revision: created.revision, locked: true });
+    expect(manual.status).toBe(404);
+    expect(manual.json.code).toBe('SLOT_NOT_FOUND');
+    const auto = await h.call(HOUSE, 'POST', `${missingPath}/auto`, { revision: created.revision });
+    expect(auto.status).toBe(404);
+    expect(auto.json.code).toBe('SLOT_NOT_FOUND');
+    const stale = await h.call(HOUSE, 'PATCH', `${slotPath(created.id, slotId)}/components/not-a-component`,
+      { revision: created.revision, locked: true });
+    expect(stale.status).toBe(409);
+    expect(stale.json.code).toBe('PLAN_REVISION_CONFLICT');
+    const missing = await h.call(HOUSE, 'PATCH', `${slotPath(created.id, slotId)}/components/not-a-component`,
+      { revision: current.planRevision, locked: true });
+    expect(missing.status).toBe(404);
+    expect(missing.json.code).toBe('COMPONENT_NOT_FOUND');
+    expect(await composition(created.id, slotId)).toEqual(current);
+    const persisted = MealPlanDtoSchema.parse((await h.call(HOUSE, 'GET', `/meal-planning/plans/${created.id}`)).json);
+    expect(persisted.revision).toBe(current.planRevision);
+  }, TIMEOUT);
 });
