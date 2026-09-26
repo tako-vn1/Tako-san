@@ -30,8 +30,8 @@ let h: T20Harness;
 let events: Array<Record<string, unknown>>;
 
 const slotPath = (planId: string, slotId: string) => `/meal-planning/plans/${planId}/slots/${encodeURIComponent(slotId)}`;
-async function generate() {
-  const response = await h.call(HOUSE, 'POST', '/meal-planning/plans', T20_INTENT);
+async function generate(intent: typeof T20_INTENT = T20_INTENT) {
+  const response = await h.call(HOUSE, 'POST', '/meal-planning/plans', intent);
   expect(response.status, JSON.stringify(response.json)).toBe(200);
   return MealPlanDtoSchema.parse(response.json);
 }
@@ -205,6 +205,33 @@ describe('T20 Manual enforces the same T03 hard contract as Auto', () => {
     expect(laterAfter.composition.components).toEqual(laterBefore.composition.components);
   }, CASE_TIMEOUT);
 
+  it('does not rejudge a later dish for stock quantity changes that leave its safety facts unchanged', async () => {
+    const { plan, first, downstreamId, path } = await forbiddenSubstitutionFixture();
+    h.db.seed(`UPDATE inventory_items SET quantity = 20 WHERE household_id = '${HOUSE}' AND ingredient_id = 'TOFU'`);
+    const neutral = await h.call(HOUSE, 'PUT', `${path}/composition`, { revision: plan.revision, components: [
+      { id: `v1.${first.slotId}`, target: riceTarget, role: 'staple', locked: false },
+    ] });
+    expect(neutral.status, JSON.stringify(neutral.json)).toBe(200);
+    const nextPath = slotPath(plan.id, plan.result.meals[1].slotId);
+    const later = await h.call(HOUSE, 'PUT', `${nextPath}/composition`, {
+      revision: SlotCompositionDtoSchema.parse(neutral.json).planRevision, components: [
+        { target: recipeTarget(downstreamId), role: 'vegetable', locked: false },
+      ],
+    });
+    expect(later.status, JSON.stringify(later.json)).toBe(200);
+    const before = await readComposition(path);
+    h.db.seed(`UPDATE household_ranking_preferences
+      SET values_json = '${JSON.stringify({ version: 1, values: { neverRecommendRecipeIds: [downstreamId] } })}'
+      WHERE household_id = '${HOUSE}'`);
+    const swap = await h.call(HOUSE, 'POST', `${path}/components/${encodeURIComponent(before.composition.components[0].id)}/swap`,
+      { revision: before.planRevision, target: recipeTarget(first.source.id), role: 'main' });
+    expect(swap.status, JSON.stringify(swap.json)).toBe(200);
+    const after = await readComposition(nextPath);
+    expect(after.planRevision).toBe(before.planRevision + 1);
+    expect(after.composition.components[0].recipeId).toBe(downstreamId);
+    expect(after.composition.components[0].projection?.status).toBe('covered');
+  }, CASE_TIMEOUT);
+
   it.each(['PATCH reorder', 'PUT replace'] as const)('%s rejects an unsafe inventory-prefix change', async (method) => {
     const { plan, first, downstreamId, path } = await forbiddenSubstitutionFixture();
     const start = await h.call(HOUSE, 'PUT', `${path}/composition`, { revision: plan.revision, components: [
@@ -278,21 +305,70 @@ describe('T20 Manual enforces the same T03 hard contract as Auto', () => {
 });
 
 describe('T20 V1 family-variant meals', () => {
-  function seedFamily() {
+  function seedFamily(ingredientId = 'CHICKEN_BREAST', quantity = 300, unit = 'g') {
     h.db.seed(`INSERT INTO recipe_families (id, slug, name, base_servings, source_type, source_reference)
         VALUES ('${FAMILY_ID}', '${FAMILY_ID}', 'Gà xào', 2, 'curated', 'test:t20-family');
       INSERT INTO recipe_family_slots VALUES ('${FAMILY_ID}', 'protein', 1, 1);
-      INSERT INTO recipe_family_options VALUES ('${FAMILY_ID}', 'protein', 'CHICKEN_BREAST', 300, 'g');
+      INSERT INTO recipe_family_options VALUES ('${FAMILY_ID}', 'protein', '${ingredientId}', ${quantity}, '${unit}');
       UPDATE recipes SET family_id = '${FAMILY_ID}' WHERE id = '${FAMILY_HOST}';`);
   }
-  function variantId() {
+  function variantId(ingredientId = 'CHICKEN_BREAST', quantity = 300, unit = 'g') {
     const family = RecipeFamilySchema.parse({ id: FAMILY_ID, slug: FAMILY_ID, name: 'Gà xào', baseServings: 2,
       provenance: { sourceType: 'curated', version: 1, sourceReference: 'test:t20-family' },
-      slots: [{ key: 'protein', minSelections: 1, maxSelections: 1, options: [{ ingredientId: 'CHICKEN_BREAST', quantity: 300, unit: 'g' }] }] });
-    const catalog = createRecipeCatalog({ source: 'provided', ingredientIds: ['CHICKEN_BREAST'], recipes: [], families: [family] });
+      slots: [{ key: 'protein', minSelections: 1, maxSelections: 1, options: [{ ingredientId, quantity, unit }] }] });
+    const catalog = createRecipeCatalog({ source: 'provided', ingredientIds: [ingredientId], recipes: [], families: [family] });
     return generateRecipeCandidates({ catalog, inventory: [], asOfDate: '2030-01-02', requestedServings: 2, mode: 'shopping_allowed' })
       .candidates[0].variant!.id;
   }
+
+  it('refuses a Manual swap that makes a later legacy-family variant substitute forbidden shrimp', async () => {
+    seedFamily('TOFU', 10, 'piece');
+    const plan = await generate({ ...T20_INTENT, slots: T20_INTENT.slots.slice(0, 2) });
+    const replacement = plan.result.meals.find((meal) => meal.source.kind === 'recipe');
+    expect(replacement).toBeDefined();
+    const anchor = await h.call(HOUSE, 'POST', `/meal-planning/plans/${plan.id}/swap`, {
+      revision: plan.revision, slotId: plan.result.meals[0].slotId,
+      replacement: { kind: 'recipe', id: replacement!.source.id },
+    });
+    expect(anchor.status, JSON.stringify(anchor.json)).toBe(200);
+    const anchored = MealPlanDtoSchema.parse(anchor.json);
+    const [first, second] = anchored.result.meals;
+    expect(first.source.kind).toBe('recipe');
+    const path = slotPath(plan.id, first.slotId);
+    const neutral = await h.call(HOUSE, 'PUT', `${path}/composition`, { revision: anchored.revision, components: [
+      { id: `v1.${first.slotId}`, target: riceTarget, role: 'staple', locked: false },
+    ] });
+    expect(neutral.status, JSON.stringify(neutral.json)).toBe(200);
+    const family = await h.call(HOUSE, 'POST', `/meal-planning/plans/${plan.id}/swap`, {
+      revision: SlotCompositionDtoSchema.parse(neutral.json).planRevision, slotId: second.slotId,
+      replacement: { kind: 'family', id: FAMILY_ID, variantId: variantId('TOFU', 10, 'piece') },
+    });
+    expect(family.status, JSON.stringify(family.json)).toBe(200);
+    preferences({ forbiddenIngredientIds: ['SHRIMP'] });
+    const substitution = SubstitutionRuleSchema.parse({
+      id: 't20-family-tofu-for-shrimp', scopeType: 'family', scopeId: FAMILY_ID, scopeVersion: 1,
+      fromIngredientId: 'TOFU', toIngredientId: 'SHRIMP', fromUnit: 'piece', toUnit: 'g', quantityRatio: 1,
+      reason: 'Reviewed test adaptation', sourceReference: 'test:t20-family-prefix', verificationState: 'reviewed', compatibleWith: [],
+    });
+    vi.spyOn(MealPlanningApplicationService.prototype, 'planningContext').mockImplementation((snapshot, referenceInstant) =>
+      createPlanningContext(() => ({
+        snapshotId: crypto.randomUUID(), referenceInstant, inventory: snapshot.inventory,
+        catalog: { ...snapshot.catalog, recipes: snapshot.catalog.recipes.map((recipe) =>
+          recipe.id === first.source.id
+            ? { ...recipe, servings: first.servings, ingredients: [{ ingredientId: 'TOFU', name: 'Tofu',
+              requiredQuantity: 10, unit: 'piece', isOptional: false }] }
+            : recipe) },
+        rankingContext: snapshot.rankingContext, evidenceProvider: snapshot.evidenceProvider,
+        substitutions: [substitution], approvedSubstitutionIds: [substitution.id],
+      })));
+    const before = await readComposition(path);
+    const familyBefore = await readComposition(slotPath(plan.id, second.slotId));
+    expect(familyBefore.composition.warnings).toContain('LEGACY_FAMILY_MEAL');
+    const swap = await h.call(HOUSE, 'POST', `${path}/components/${encodeURIComponent(before.composition.components[0].id)}/swap`,
+      { revision: before.planRevision, target: recipeTarget(first.source.id), role: 'main' });
+    await assertRejectedUnchanged(plan.id, path, before, swap);
+    expect(await readComposition(slotPath(plan.id, second.slotId))).toEqual(familyBefore);
+  }, CASE_TIMEOUT);
 
   it('keeps V1 swap, refuses composition, and stays in composed-plan shopping (single projection)', async () => {
     seedFamily();
