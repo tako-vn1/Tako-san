@@ -26,8 +26,9 @@ See ADR-031 and current HANDOFF for blockers.
   ordering and pre-pagination filtering were checked with combined queries;
   the isolated paired-flag preview was inspected at 390/768/1280px.
 - Local `pnpm check` at `869f035`: 202 files / 4,574 tests, migration smoke and
-  build PASS; PR #9 exact-head hosted CI is not yet available until PR #8 is
-  merged and #9 is retargeted to main. Staging identity/ledger cannot be
+  build PASS. PR #8 has since merged; post-sync PR #9 C8 head `8814701`
+  passed the same local and hosted gates. Final docs-head CI remains pending.
+  Staging identity/ledger cannot be
   verified here without staging credentials; no staging or production mutation
   occurred. Never infer 0039's remote status from local migration smoke.
 
