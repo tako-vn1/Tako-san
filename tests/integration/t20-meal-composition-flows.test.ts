@@ -204,23 +204,21 @@ describe('T20 optimistic concurrency and idempotency', () => {
   it('competing lock/regenerate on a composed slot: the loser is a typed conflict and is not applied', async () => {
     const plan = await generate();
     const slotId = plan.result.meals[0].slotId;
-    const legacyId = `v1.${slotId}`;
     expect((await addRice(plan.id, slotId, plan.revision)).status).toBe(200);
     const latest = await composition(plan.id, slotId);
-    const before = latest.composition.components.find((item) => item.id === legacyId)!;
-    expect(before).toBeDefined();
+    // Race on the locked component: regenerate preserves it by ID, so it exists whichever request wins
+    // (an unlocked target may be replaced by a winning regenerate before the PATCH resolves it).
+    const rice = latest.composition.components.find((item) => item.simpleFoodId === 'sf-steamed-rice')!;
+    expect(rice).toMatchObject({ locked: true });
     const winner = winnerOf(await Promise.all([
-      h.call(HOUSE, 'PATCH', `${slotPath(plan.id, slotId)}/components/${encodeURIComponent(legacyId)}`, { revision: latest.planRevision, locked: false }),
+      h.call(HOUSE, 'PATCH', `${slotPath(plan.id, slotId)}/components/${encodeURIComponent(rice.id)}`, { revision: latest.planRevision, locked: false }),
       h.call(HOUSE, 'POST', `/meal-planning/plans/${plan.id}/regenerate`, { revision: latest.planRevision }),
     ]));
     const now = await composition(plan.id, slotId);
     expect(now.planRevision).toBe(latest.planRevision + 1);
-    const after = now.composition.components.find((item) => item.id === legacyId);
-    if (winner === 0) {
-      expect(after).toMatchObject({ locked: false });
-    } else if (after) {
-      expect(after.locked).toBe(before.locked);
-    }
+    // PATCH winning unlocks it; regenerate winning keeps it locked and unchanged (the unlock is not applied).
+    expect(now.composition.components.find((item) => item.id === rice.id))
+      .toMatchObject({ simpleFoodId: 'sf-steamed-rice', locked: winner !== 0 });
   }, CASE_TIMEOUT);
 
   it('competing manual-save/auto-apply: the final composition is exactly the winner\'s', async () => {
