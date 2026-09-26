@@ -1,8 +1,8 @@
 # Handoff — T20 release gate
 
 **Latest (2026-09-26):** PR #8 MERGED, exact-main CI green; PR #9 C8 `8814701`
-is synced/retargeted to `main`. The next handoff is current; older entries
-are history.
+is synced/retargeted to `main`, and docs head `cffd959` passed hosted CI. The
+next handoff is current; older entries are history.
 
 ## T20 C8 sync and C10 certification handoff — 2026-09-26 UTC
 
@@ -30,12 +30,24 @@ of merge readiness until it and review clearance are confirmed. The
 post-sync diff has only PR #9 runtime changes/tests/docs, not migration 0039,
 workflow, secrets, production configuration, recipe authority or recipe count.
 
+Docs head `cffd959` exact-head hosted run `36239282586`, validate job
+`108396637996` SUCCESS (ESLint, typecheck, full Vitest, local SQLite migration
+smoke, web/Worker build). Re-executed `pnpm exec vitest run
+tests/integration/t20-meal-composition-stale-read.test.ts
+tests/integration/t20-legacy-family-and-safety.test.ts` at `cffd959`: 2 files /
+24 tests PASS. `git fetch origin main fix/t20-postmerge-ci-picker-cuisine--hardening`
+and `git merge-base --is-ancestor origin/main HEAD` confirmed remote/base
+ancestry; the hosted run, local HEAD and remote PR head matched. `gh pr view 9`
+and GraphQL review-thread query showed OPEN, MERGEABLE/CLEAN and zero unresolved
+threads. The new documentation receipt is itself a new head, requiring fresh
+exact-head CI; no failures remain in the completed checks listed here.
+
 ### Next action / release boundary
 
-Obtain exact-final-head hosted PR #9 CI SUCCESS
-(lint/typecheck/Vitest/migration smoke/build), zero
-unresolved review threads and MERGEABLE/CLEAN before offering PR #9 for
-maintainer merge. Stop before merging PR #9. Staging identity/ledger and a
+Obtain exact-final-head hosted PR #9 CI SUCCESS on this docs-only receipt
+(lint/typecheck/Vitest/migration smoke/build), zero unresolved review threads
+and MERGEABLE/CLEAN before offering PR #9 for maintainer merge. Stop before
+merging PR #9. Staging identity/ledger and a
 reviewed T20 staging migration/deploy remain a separate later gate; keep
 both T20 flags OFF. `staging_migration=NO`, `staging_deploy=NO` for this task;
 `production_migration=NO`, `production_deploy=NO`,

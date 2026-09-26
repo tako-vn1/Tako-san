@@ -1,7 +1,7 @@
 # Task board — T20 release gate
 
 **Latest (2026-09-26):** PR #8 merged at `662a065`, exact-main CI green;
-PR #9 is synced with `main` at C8 `8814701` and post-sync focused tests green.
+PR #9 is synced with `main` and docs head `cffd959` passed hosted CI.
 The next section is the live board; older entries are historical.
 
 ## T20 PR #9 C8–C10 certification — live gate, 2026-09-26 UTC
@@ -19,10 +19,13 @@ The next section is the live board; older entries are historical.
 - [x] C10 post-sync `pnpm check` PASS: 202 files / 4,574 tests, typecheck,
   lint, migration smoke and build. Hosted C8 head `8814701` CI run
   `36238249061` / job `108393884945` SUCCESS (same 202 / 4,574).
-- [ ] Docs checkpoint exact-head hosted CI SUCCESS after this receipt is
-  pushed; do not use the earlier C8 run as final-head evidence.
-- [ ] PR #9 exact-head hosted CI SUCCESS, zero unresolved review threads,
-  MERGEABLE/CLEAN, PR body updated. Do not merge PR #9 in this task.
+- [x] Docs checkpoint `cffd959`: exact-head hosted run `36239282586` /
+  validate job `108396637996` SUCCESS (lint, typecheck, Vitest, migration
+  smoke, build). Focused C5/C6 suites on this head: 2 files / 24 tests PASS.
+  PR #9 OPEN, MERGEABLE/CLEAN, zero unresolved review threads at this check.
+- [ ] Maintainer merge of PR #9 only after this further docs-only receipt
+  passes its own exact-head hosted CI and live review/mergeability check;
+  update PR body with final evidence. Do not merge PR #9 in this task.
 - [ ] T20 staging certification still pending; keep paired T20 flags OFF.
   No staging D1 migration or production mutation in this task.
 
