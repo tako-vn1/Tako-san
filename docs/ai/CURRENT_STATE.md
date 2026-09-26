@@ -1,9 +1,30 @@
 # Current state — T20 release gate
 
-**Latest (2026-09-26):** PR #9 code freeze C7 at `869f035` passed locally;
-PR #8 is still OPEN, so neither `main`, PR #9 hosted CI nor staging is
-certified. The next section is the current checkpoint; older entries below
-are historical, not release receipts.
+**Latest (2026-09-26):** PR #8 merged into `main` at `662a065` with exact-main
+CI green; PR #9 is synced/retargeted to `main` at C8 `8814701`. The next
+section is the current checkpoint; older entries below are historical.
+
+## T20 PR #9 post-merge sync — 2026-09-26 UTC
+
+PR #8 MERGED at `662a065` (hosted CI `36237334354`, `validate` SUCCESS).
+Deploy run `36237637195`: release and staging SUCCESS, production SKIPPED.
+This is a flag-OFF staging deployment, **not** T20 staging certification;
+no staging D1 migration was performed here. PR #9 remains OPEN, now targeting
+`main` after merging `origin/main` at C8 `8814701`; merge-base is `662a065`.
+The post-sync diff consists solely of PR #9 hardening, related regressions
+and documentation: no PR #8 duplicate runtime code, migration, deploy/CI
+workflow, config, T19 authority or payment/auth change. `git diff --check
+origin/main...HEAD` PASS. Post-sync focused `pnpm exec vitest run` of the five
+T20 integration, two T19 authority integration and three T20 unit suites:
+10 files / 112 tests PASS. `pnpm typecheck`, `pnpm lint` and post-sync
+`pnpm check` PASS (202 files / 4,574 tests, migration smoke and build).
+Hosted PR #9 CI on C8 head `8814701`, run `36238249061` / validate job
+`108393884945`, SUCCESS (202 files / 4,574 tests, migration smoke and build).
+This docs-only checkpoint needs its own exact-head hosted CI before declaring
+PR #9 ready; do not infer readiness from an older head. No migration,
+deployment, flag enablement or production operation was performed for this
+PR #9 sync. Next: require exact-head PR #9 hosted green CI and review clearance,
+then offer PR #9 for maintainer merge (do not merge in this task).
 
 ## T20 PR #9 C5–C7 checkpoint — 2026-09-26 UTC
 

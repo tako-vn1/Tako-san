@@ -1,8 +1,45 @@
 # Handoff — T20 release gate
 
-**Latest (2026-09-26):** PR #9 C7 code freeze `869f035` passes local checks;
-PR #8 remains open and exact-main/hosted PR #9/staging certification is still
-blocked. This next handoff is current; older entries are history.
+**Latest (2026-09-26):** PR #8 MERGED, exact-main CI green; PR #9 C8 `8814701`
+is synced/retargeted to `main`. The next handoff is current; older entries
+are history.
+
+## T20 C8 sync and C10 certification handoff — 2026-09-26 UTC
+
+### State and checkpoints
+
+`origin/main` `662a065` is PR #8's merge commit; hosted CI `36237334354`
+validate SUCCESS. Deploy `36237637195`: release/staging SUCCESS and
+production SKIPPED, not T20 flag-on staging certification. PR #9 is OPEN,
+head C8 `8814701` (main merged into branch without rewrite), base `main`,
+merge-base `662a065`. Earlier C5 `ab83d35`/`5c6835e`/`6c68d8d`, C6
+`092d67b`/`869f035`, C7 `869f035` and docs `24437e0` remain intact.
+No C9 fix was needed; final docs-only checkpoint follows full C10 local gate.
+
+### Verification and limits
+
+`git diff --check origin/main...HEAD` PASS. Post-sync focused `pnpm exec
+vitest run` over the five T20 integration files, two T19 authority files
+and three T20 unit files listed in the previous handoff: 10 files / 112
+tests PASS. Explicit `pnpm typecheck`, `pnpm lint` and post-sync `pnpm check`
+PASS: 202 files / 4,574 tests, migration smoke and web/Worker build. Hosted
+PR #9 C8 head `8814701` CI run `36238249061`, validate job `108393884945`
+SUCCESS: lint, typecheck, 202 files / 4,574 tests, migration smoke and build.
+The later docs-only checkpoint requires its own exact-head hosted CI; no claim
+of merge readiness until it and review clearance are confirmed. The
+post-sync diff has only PR #9 runtime changes/tests/docs, not migration 0039,
+workflow, secrets, production configuration, recipe authority or recipe count.
+
+### Next action / release boundary
+
+Obtain exact-final-head hosted PR #9 CI SUCCESS
+(lint/typecheck/Vitest/migration smoke/build), zero
+unresolved review threads and MERGEABLE/CLEAN before offering PR #9 for
+maintainer merge. Stop before merging PR #9. Staging identity/ledger and a
+reviewed T20 staging migration/deploy remain a separate later gate; keep
+both T20 flags OFF. `staging_migration=NO`, `staging_deploy=NO` for this task;
+`production_migration=NO`, `production_deploy=NO`,
+`production_enablement=NO`.
 
 ## T20 C5–C7 hardening handoff — 2026-09-26 UTC
 

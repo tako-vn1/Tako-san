@@ -1,8 +1,30 @@
 # Task board — T20 release gate
 
-**Latest (2026-09-26):** PR #9 C5/C6/C7 code head `869f035` is locally green,
-but PR #8 is still open; exact-main, PR #9 hosted CI and staging are blocked.
+**Latest (2026-09-26):** PR #8 merged at `662a065`, exact-main CI green;
+PR #9 is synced with `main` at C8 `8814701` and post-sync focused tests green.
 The next section is the live board; older entries are historical.
+
+## T20 PR #9 C8–C10 certification — live gate, 2026-09-26 UTC
+
+- [x] PR #8 merged at `662a065`; exact-main hosted CI run `36237334354`
+  validate SUCCESS. Deploy run `36237637195` release/staging SUCCESS,
+  production SKIPPED; this is not T20 staging certification.
+- [x] C8 `8814701`: merge `origin/main` into PR #9 preserving C5/C6/C7;
+  retarget PR #9 to `main`; `merge-base HEAD origin/main = 662a065`.
+  Diff contains only T20 hardening/tests/docs, with no migration, deploy
+  config, auth/payment, T19 authority or PR #8 duplicate runtime changes.
+- [x] Post-sync C9 focused: T20/T19 10 files / 112 tests PASS; no regression
+  fix required. `git diff --check origin/main...HEAD`, `pnpm typecheck`,
+  `pnpm lint` PASS.
+- [x] C10 post-sync `pnpm check` PASS: 202 files / 4,574 tests, typecheck,
+  lint, migration smoke and build. Hosted C8 head `8814701` CI run
+  `36238249061` / job `108393884945` SUCCESS (same 202 / 4,574).
+- [ ] Docs checkpoint exact-head hosted CI SUCCESS after this receipt is
+  pushed; do not use the earlier C8 run as final-head evidence.
+- [ ] PR #9 exact-head hosted CI SUCCESS, zero unresolved review threads,
+  MERGEABLE/CLEAN, PR body updated. Do not merge PR #9 in this task.
+- [ ] T20 staging certification still pending; keep paired T20 flags OFF.
+  No staging D1 migration or production mutation in this task.
 
 ## T20 PR #8 → #9 chain — live gate, 2026-09-26 UTC
 

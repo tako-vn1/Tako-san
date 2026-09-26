@@ -1,8 +1,11 @@
 # T20 — Meal Composition V2
 
-Status: branch-local code gate green at `869f035` (PR #9 stacked on open PR #8);
-not exact-main or staging certified. Default OFF. No production deployment or
-production D1 migration. See ADR-031 and the current HANDOFF for blockers.
+Status: PR #8 merged into `main` at `662a065` (exact-main CI green);
+PR #9 synced/retargeted to `main` at C8 `8814701`, post-sync full local and
+hosted C8 CI green; final docs-head CI/review pending. T20 staging is not
+certified. Default OFF;
+no production deployment or production D1 migration for this task.
+See ADR-031 and current HANDOFF for blockers.
 
 ## Hardening certification boundary (2026-09-26)
 
