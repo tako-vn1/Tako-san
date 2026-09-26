@@ -1,0 +1,6 @@
+{
+  "canonicalArtifactSha256": "fc7eefe6573ee9de1083728db1f34b058954fa60ff478f7c5e41dce9e4570dbe",
+  "expectedRuntimeFingerprint": "6d0e3eb85696bb7c31bc54ac62783bc94432aaf008028eca79b17041f3eaed87",
+  "inputSha256": "ebc18f06ee7fb4498f8cd2a7886f333a85b385f32af4407ae1b44b4ec3cc06fe",
+  "recipeCount": 500
+}

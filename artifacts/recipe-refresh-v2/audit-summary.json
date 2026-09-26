@@ -1,0 +1,45 @@
+{
+  "recipes": 500,
+  "steps": 4938,
+  "ingredients": 6766,
+  "quantifiedIngredients": 6743,
+  "qualitativeIngredients": 23,
+  "processOnlyIngredients": 166,
+  "mixedProcessIngredients": 7,
+  "unresolvedIngredients": 0,
+  "runtimeProjectedIngredients": 3770,
+  "runtimeExcludedIngredients": 2996,
+  "ingredientConcepts": 1438,
+  "sourceExceptions": 1,
+  "recipesWithTwoRelevantSources": 499,
+  "nutritionPublishable": 1,
+  "nutritionBlocked": 288,
+  "nutritionNull": 211,
+  "nutritionOriginalProfiles": 289,
+  "nutritionRecomputedCandidates": 353,
+  "schemaRepairs": 64,
+  "encodingRepairs": 0,
+  "ingredientReconciliationRows": 2515,
+  "ingredientReconciliation": {
+    "existing_canonical_id": 505,
+    "new_reviewed_canonical_id": 1642,
+    "duplicate_alias": 368,
+    "ambiguous": 0,
+    "invalid": 0
+  },
+  "rawQuantityShapes": {
+    "numeric": 6714,
+    "quantityText": 30,
+    "nullWithUnit": 16,
+    "whollyQualitative": 6
+  },
+  "rawStepShapes": {
+    "objects": 4904,
+    "strings": 34,
+    "titleDescription": 27,
+    "titleDescriptionRecipes": 3
+  },
+  "sourceReferences": 1102,
+  "uniqueSourceUrls": 1072,
+  "schemaVariants": 15
+}
