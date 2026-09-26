@@ -1,5 +1,45 @@
 # Task board — T20 release gate
 
+**Latest (2026-09-26):** PR #9 merged at `cb22cfb`; exact-main CI green.
+Local Cloudflare login and read-only staging D1 name/ID match are now verified;
+staging 0039 still awaits the reviewed workflow and its remote gates. The
+section below is the live board; older entries are history.
+
+## T20 staging identity and 0039 workflow — live gate, 2026-09-26 UTC
+
+- [x] Main `cb22cfb` exact-head CI `36240577660` validate SUCCESS (202 files /
+  4,574 tests, lint, typecheck, migration smoke, build). Automatic deploy
+  `36240842196` release/staging SUCCESS, production SKIPPED; flag-OFF/static
+  staging deploy is not T20 certification.
+- [x] `git fetch --all --prune`, `git diff --check`, `pnpm check:migrations`
+  PASS. Staging migration tooling contract suites: 3 files / 63 tests PASS;
+  targeted ESLint PASS. Initial test parser/JSONC failures corrected.
+  `pnpm check` PASS (203 files / 4,580 tests, lint, typecheck, migration smoke,
+  build) on `9635ad6`; hosted PR #10 `36241921150` validate SUCCESS.
+- [x] Independent review P2 gaps in staging workflow FK cascade check and
+  preflight SQL allowlist fixed; 3 files / 63 tests plus targeted ESLint PASS
+  after fix. Require exact-head hosted CI on follow-up docs/review-fix commit.
+- [x] Owner-approved device OAuth (`pnpm dlx wrangler@4.119.0 login --device
+  --browser=false --scopes account:read user:read d1:write`) succeeded without
+  changing repo dependencies. `CI=true pnpm exec wrangler whoami` authenticated;
+  read-only `wrangler d1 list --json` and `d1 info frigo-db-staging-v3
+  --config wrangler.staging.jsonc --json` match the unique live staging name/ID
+  to config and packet Phase B; packet Section 0 ID is different and must not
+  be used. No ledger/schema read or remote writes were performed.
+- [ ] Confirm the staging Environment credential and identity independently
+  within PR #10's reviewed, exact-main read-only preflight. Local OAuth does
+  not prove GitHub staging Environment access or authorize production changes.
+- [ ] Review PR #10 staging-only workflow, merge via maintainer on `main`,
+  rerun exact-main CI;
+  only then dispatch from main using the staging Environment and exact SHA.
+  Do not use the production D1 workflow for staging.
+- [ ] Certify live D1 identity, ledger, bookmark, FK/quick checks, catalog and
+  0039; then D1 500/T20-OFF deploy + smoke, V2-ON deploy + full staging E2E.
+  No remote staging D1 read/write or T20 enablement was done in this task.
+- [ ] T20 production release requires a separately authorized task;
+  `production_migration=NO`, `production_deploy=NO`,
+  `production_enablement=NO` here.
+
 **Latest (2026-09-26):** PR #8 merged at `662a065`, exact-main CI green;
 PR #9 is synced with `main` and docs head `cffd959` passed hosted CI.
 The next section is the live board; older entries are historical.

@@ -1,5 +1,87 @@
 # Handoff — T20 release gate
 
+**Latest (2026-09-26):** PR #9 MERGED at `cb22cfb`, exact-main CI green;
+local OAuth and read-only live staging D1 identity now match reviewed config,
+not the operator packet's Section 0 ID. The next handoff is current; later
+entries are historical.
+
+## T20 staging D1 migration preflight handoff — 2026-09-26 UTC
+
+### Owner-approved Cloudflare login and read-only identity receipt
+
+`pnpm dlx wrangler@4.119.0 login --device --browser=false --scopes
+account:read user:read d1:write` succeeded after owner approval (Wrangler
+4.119.0 was disposable, not added to repository dependencies). Both this
+version and the repository Wrangler 3.114.17 report authenticated via
+`CI=true pnpm exec wrangler whoami`; before login, the repository command
+exited 0 but actually printed "You are not authenticated". Read-only
+`CI=true pnpm exec wrangler d1 list --json` and `CI=true pnpm exec wrangler
+d1 info frigo-db-staging-v3 --config wrangler.staging.jsonc --json` PASS:
+one matching staging name, with remote ID equal to `wrangler.staging.jsonc`
+and packet Phase B, but unequal to packet Section 0. The identity discrepancy
+is resolved for local read-only staging identification, not by guessing from
+the packet. No staging ledger/schema/bookmark/row query, migration, deploy or
+flag enablement occurred; production was untouched. Next: review PR #10 and
+its exact-head CI, then verify the GitHub staging Environment credential and
+run reviewed read-only gates on merged exact-main before applying 0039.
+Local OAuth does not certify GitHub staging Environment access.
+
+### State and checkpoints
+
+`origin/main` `cb22cfb` contains PR #9. Exact-main hosted CI `36240577660`
+validate job `108400172569` SUCCESS (202 files / 4,574 tests, lint,
+typecheck, migration smoke and build). Automatic Deploy `36240842196`:
+release and staging SUCCESS, production SKIPPED. This is flag-OFF/static
+staging and not T20 staging certification. Local Wrangler 3.114.17 is not
+authenticated; `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` were
+absent. The operator packet Section 0 D1 ID conflicts with its Phase B
+expected ID; `wrangler.staging.jsonc` matches Phase B. Do not infer which
+remote D1 is safe: no remote identity, ledger, bookmark, FK, data or schema
+query was made. No staging migration, staging D1-mode/T20-ON deploy, or
+staging E2E occurred.
+
+### Verification and failures
+
+`git fetch --all --prune`, `git diff --check`, `pnpm check:migrations`
+(`migration-smoke=ok`) PASS. Added a staging-only, manual-dispatch 0039
+migration workflow and checker that fail closed on exact current main/hosted
+CI, reviewed config identity, production ID exclusion, ledger and plan,
+Time Travel bookmark, 500-recipe baseline, pre/post FK/quick checks,
+0039 constraints and repository schema gate. The workflow shares staging's
+deploy concurrency group; production migration/deploy files are untouched.
+Executed `pnpm exec vitest run
+tests/unit/staging-d1-migration-check.test.mjs
+tests/unit/production-certify-workflow.test.mjs
+tests/integration/d1-schema-gate.test.ts`: 3 files / 63 tests PASS;
+`pnpm exec eslint scripts/staging-d1-migration-check.mjs
+tests/unit/staging-d1-migration-check.test.mjs` PASS. The first targeted run
+failed parsing a typo in the new test; the next failed because a test parsed
+JSONC as JSON. Both issues were corrected and the final focused rerun passed. On initial
+workflow checkpoint `9635ad6`, local `pnpm check` PASS (203 files / 4,580
+tests, lint, typecheck, migration smoke, build); hosted PR #10 CI run
+`36241921150` validate SUCCESS. Independent review found two P2 gaps in
+this new workflow: schema checks did not require FK cascades, and the tests
+did not lock preflight D1 commands to read-only SQL. The follow-up now checks
+exact FK targets/cascades and unique index columns; tests fail on removed
+cascades/changed index and constrain pre-apply SQL. Re-executed the same 3
+files / 63 tests PASS and targeted ESLint PASS. This later review-fix/docs
+checkpoint needs its own hosted CI. All checks above are local/hosted tests,
+not remote staging D1 evidence.
+
+### Next action / release boundary
+
+Have a reviewer reconcile the staging D1 ID against the real staging account,
+review and merge PR #10 only after its exact-head CI; verify exact-main CI on the merged
+workflow SHA. Dispatch the workflow only on current main with staged credentials
+and confirmation; it must certify identity and 0039 before any T20 deploy.
+If auth/identity/ledger fails, stop without ad-hoc SQL. Subsequently run the
+staging-only D1-500/T20-OFF deploy and baseline, then same-SHA V2-ON deploy,
+full E2E and rollback proof. This task stopped safe before remote D1 mutation;
+`staging_migration=NO`, `staging_v2_enablement=NO`,
+`production_migration=NO`, `production_deploy=NO`,
+`production_recipe_authority_change=NO`, `production_enablement=NO`,
+`production_mutation=NO`.
+
 **Latest (2026-09-26):** PR #8 MERGED, exact-main CI green; PR #9 C8 `8814701`
 is synced/retargeted to `main`, and docs head `cffd959` passed hosted CI. The
 next handoff is current; older entries are history.
