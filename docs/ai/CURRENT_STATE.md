@@ -1,9 +1,45 @@
 # Current state — T20 release gate
 
-**Latest (2026-09-26):** branch-local C4 green at `fb4416e`, but `main` is
-still red until PR #8 merges; PR #9 and staging are not certified. See the
-T20 hardening checkpoint at the end of this document for checks and next
-action. Earlier entries below are historical, not release receipts.
+**Latest (2026-09-26):** PR #9 code freeze C7 at `869f035` passed locally;
+PR #8 is still OPEN, so neither `main`, PR #9 hosted CI nor staging is
+certified. The next section is the current checkpoint; older entries below
+are historical, not release receipts.
+
+## T20 PR #9 C5–C7 checkpoint — 2026-09-26 UTC
+
+`origin/main` remains `bf57451` (CI `36221190222` FAILED). PR #8 is open at
+`16c5aae`, MERGEABLE/CLEAN, zero unresolved review threads; hosted `validate`
+run `36233377483` SUCCESS. PR #9 remains stacked on its branch, now at
+`869f035`; its pull_request CI does not run until its base is `main`. No PR
+was merged or closed by this agent.
+
+The independent P1 inventory-prefix bypass is fixed in PR #9: C5 `ab83d35`
+rechecks the edited slot from its first changed component, `5c6835e` checks
+later meals affected by the same running T02 projection, and `6c68d8d`
+includes V1 family variants through the shared T03 restriction evaluator while
+avoiding unrelated quantity-only rechecks. The P2 slot error precedence is
+fixed by C6 `092d67b` and `869f035`: nonexistent slot 404, existing slot with
+stale revision 409, including slots created during a torn read. Deterministic
+reviewed substitutions were injected **only in tests**; no claim is made that
+production currently configures them. Rejected writes keep the composition
+and revision unchanged; unaffected prefix, safe reorders, V1 family shopping,
+T19 authority and the D1 write fence remain covered.
+
+At C7 code head `869f035`, `pnpm check` PASS: typecheck, lint, 202 Vitest
+files / 4,574 tests, `migration-smoke=ok`, build. Focused `pnpm exec vitest run`
+for the five T20 integration files (stale-read, legacy-family-and-safety,
+HTTP, flows, picker/shopping), two T19 integration files (authority-split,
+planner-authority-persistence), and three T20 unit files (composer UI,
+shopping, safety) PASS: 10 files / 112 tests. `git diff --check
+origin/main...HEAD` PASS. The deliberately failing regressions before the
+follow-up fixes and two superseded full runs interrupted after new findings
+are not final validation. This is branch-local, not hosted/exact-main evidence.
+
+Next: maintainer merges PR #8 through its normal PR flow, verifies exact-main
+CI, then syncs/retargets PR #9 to `main` and requires exact-head hosted CI,
+review clearance and mergeability before its merge and a new exact-main CI.
+Staging identity/ledger remain unverified; no remote 0039 migration, staging
+deploy, production migration/deploy or flag enablement was performed.
 
 ## T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
 

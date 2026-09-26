@@ -1,8 +1,31 @@
 # Task board — T20 release gate
 
-**Latest (2026-09-26):** C2/C3/P2/C4 branch checks complete, but exact-main
-CI and staging remain blocked. See the T20 production-readiness track at the
-end of this document for live items; earlier entries are historical.
+**Latest (2026-09-26):** PR #9 C5/C6/C7 code head `869f035` is locally green,
+but PR #8 is still open; exact-main, PR #9 hosted CI and staging are blocked.
+The next section is the live board; older entries are historical.
+
+## T20 PR #8 → #9 chain — live gate, 2026-09-26 UTC
+
+- [x] C5 P1 same-slot prefix safety `ab83d35`; affected later meals `5c6835e`;
+  V1 family/reviewed-evidence precision `6c68d8d`. Injected reviewed
+  substitution tests cover ADD, SWAP, PATCH reorder, PUT save, cross-slot and
+  V1 family; rejected writes keep revision and state, safe/unaffected edits pass.
+- [x] C6 P2 404/409 precedence `092d67b`, concurrent slot-add race
+  `869f035`; stale PATCH and Auto, true missing slot/component, and existing
+  torn-read winner/fence cases pass.
+- [x] C7 code freeze `869f035`: `pnpm check` PASS (202 files / 4,574 tests,
+  typecheck, lint, migration smoke, build); focused T20/T19 10 files / 112
+  tests PASS; `git diff --check origin/main...HEAD` PASS. Expected-red
+  regressions and two interrupted superseded full runs are not release gates.
+- [ ] C1 PR #8 normal merge and exact-main CI: #8 OPEN at `16c5aae`,
+  MERGEABLE/CLEAN, zero unresolved threads, hosted `validate` `36233377483`
+  SUCCESS. `main` `bf57451` last CI `36221190222` FAILED. No agent merge.
+- [ ] PR #9 sync to merged `main`, retarget from #8 branch, then require
+  exact-head hosted CI SUCCESS, zero unresolved reviews, mergeable, normal
+  maintainer merge and exact-main CI SUCCESS. Stacked PR #9 has no hosted CI.
+- [ ] Staging identity/ledger and 0039 migration/deploy certification require
+  separately verified authorized staging access. No staging or production
+  migration/deploy/enablement occurred; both T20 flags remain OFF.
 
 ## T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
 

@@ -1,8 +1,52 @@
 # Handoff — T20 release gate
 
-**Latest (2026-09-26):** code freeze `fb4416e` passes local C4, not main or
-staging certification. See the T20 hardening handoff at the end of this
-document for exact checks, blockers and next action. Older entries are history.
+**Latest (2026-09-26):** PR #9 C7 code freeze `869f035` passes local checks;
+PR #8 remains open and exact-main/hosted PR #9/staging certification is still
+blocked. This next handoff is current; older entries are history.
+
+## T20 C5–C7 hardening handoff — 2026-09-26 UTC
+
+### State and checkpoints
+
+`origin/main` `bf57451` is unchanged, last CI `36221190222` FAILED. PR #8
+OPEN at `16c5aae`, MERGEABLE/CLEAN, no unresolved review threads, hosted
+`validate` `36233377483` SUCCESS. PR #9 remains stacked on #8 at `869f035`;
+the branch does not contain #8's final docs-only head yet. No PR merged or
+closed. Current C5 checkpoints: `ab83d35` (edited-slot affected suffix),
+`5c6835e` (later slots sharing the projection), `6c68d8d` (V1 family and
+evidence-sensitive safety key). C6: `092d67b` (missing-slot precedence),
+`869f035` (concurrent slot creation). C7 code-freeze SHA is `869f035`;
+the documentation checkpoint follows separately. No known unfixed P0/P1/P2
+from the focused audit; production substitution policy was not inferred from
+injected test fixtures.
+
+### Verification and failures
+
+On `869f035`, `pnpm check` PASS: typecheck, lint, 202 files / 4,574 Vitest
+tests, `migration-smoke=ok`, build. `pnpm exec vitest run` of
+`tests/integration/t20-{meal-composition-stale-read,legacy-family-and-safety,meal-composition-http,meal-composition-flows,roles-picker-shopping}.test.ts`,
+`tests/integration/t19-{recipe-authority-split,planner-authority-persistence}.test.ts`,
+and `tests/unit/t20-{meal-composer-ui.test.tsx,composition-shopping.test.ts,composition-safety.test.ts}`:
+10 files / 112 tests PASS. `pnpm typecheck`, `pnpm lint`, and `git diff
+--check origin/main...HEAD` independently PASS. New deterministic tests
+confirmed the cross-slot, V1 family and slot-creation bugs as expected-red
+before their fixes; all are now green. Two earlier `pnpm check` runs were
+interrupted (exit 130) when further findings required changes; neither is
+counted as final evidence. Hosted PR #9 checks remain absent while stacked
+under non-main #8; staging/production were not exercised.
+
+### Release blockers and next action
+
+Maintainer: merge PR #8 through the protected PR flow and confirm exact-main
+SHA/CI. Then fetch and merge the updated main into PR #9 (avoid dropping its
+checkpoints; resolve documentation overlap), retarget #9 to `main`, and require
+exact-head hosted lint/typecheck/Vitest/migration-smoke/build SUCCESS, zero
+unresolved threads and mergeability. Only then may a maintainer merge #9 and
+verify exact-main CI. Staging D1 identity, ledger and rollback bookmark still
+need authorized verification before any staging migration/deploy. Keep both
+T20 flags OFF. `staging_migration=NO`, `staging_deploy=NO`,
+`production_migration=NO`, `production_deploy=NO`,
+`production_enablement=NO`. Do not claim T20 production completion.
 
 ## T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
 
