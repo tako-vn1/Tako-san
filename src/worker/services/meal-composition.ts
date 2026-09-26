@@ -309,7 +309,8 @@ export class MealCompositionService {
     event: string, operation: (composition: MealComposition, context: CompositionContext, loaded: Loaded) => MealComponent[]) {
     const started = Date.now();
     const loaded = await this.load(scope, planId);
-    this.planner.assertRevision(loaded.row, revision);
+    // load reads the plan and its components separately; reject a revision that moved between those reads.
+    this.planner.assertRevision(await getGeneratedMealPlan(this.db, scope, planId), revision);
     const slot = this.slotInfo(loaded, slotId);
     this.assertEditable(loaded, slot);
     const current = this.compositionFor(loaded, slotId);
@@ -438,7 +439,7 @@ export class MealCompositionService {
 
   private async prepareGeneration(scope: Scope, planId: string, slotId: string, revision: number) {
     const loaded = await this.load(scope, planId);
-    this.planner.assertRevision(loaded.row, revision);
+    this.planner.assertRevision(await getGeneratedMealPlan(this.db, scope, planId), revision);
     const slot = this.slotInfo(loaded, slotId);
     this.assertEditable(loaded, slot);
     this.assertComposable(loaded, slotId, this.compositionFor(loaded, slotId));
@@ -484,6 +485,7 @@ export class MealCompositionService {
     // The option is recomputed from current trusted inputs; the client only names which one it accepted.
     const { loaded, slot } = await this.prepareGeneration(scope, planId, slotId, revision);
     const generated = await this.generate(loaded, slot, kind, action, variant);
+    this.planner.assertRevision(await getGeneratedMealPlan(this.db, scope, planId), revision);
     const chosen = generated.options.find((entry) => entry.optionId === optionId);
     if (!chosen) throw new MealPlanningError('PROPOSAL_STALE', 409, 'The suggestion is no longer current; request a new one');
     return this.mutate(scope, planId, slotId, revision, mode, kind === 'auto' ? 'composition_auto_generated' : 'composition_assisted_update',
