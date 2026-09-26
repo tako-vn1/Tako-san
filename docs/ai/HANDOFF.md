@@ -1,7 +1,8 @@
 # Tako-san T20 PR #7 review remediation (4 × P1 + candidate-cap P2) - 2026-09-26 UTC
 
 **Status: `T20_REVIEW_P1_REMEDIATED` — local `pnpm check` PASS (200 files /
-4,541 tests); hosted CI for the new PR head pending. Production untouched: no
+4,541 tests); PR #7 hosted `validate` run `36210020774` SUCCESS on head
+`424be56` (MERGEABLE, CLEAN; this docs-only commit gets its own run). Production untouched: no
 deploy, no D1 migration, T19 authority unchanged (d1/0/cutover=true, 500).**
 
 `branch=feat/t20-meal-composition-v2` (PR #7), review base head `febeb1f`; implementation commit `2e4f878`.
@@ -58,8 +59,11 @@ Remaining debt (not blocking): picker still lists recipes with
 `constraintState: unknown` when safety is requested (server rejects on save);
 role heuristics (staple 0 / dessert 0 in catalog); per-component servings.
 
-Next: push, require exact-head hosted `validate` on PR #7, re-review. Rollout
-unchanged: apply 0039 to staging then production, then dispatch Deploy with
+Next: operator merge decision on PR #7 (not merged by the agent). After merge,
+production Deploy fails closed until 0039 is applied through *Production D1
+migration* (`expected_pre_tip=0038_auth_onboarding_completion.sql`,
+`migration=0039_meal_composition_v2.sql`); staging D1 needs 0039 before its flag
+is enabled. Automatic staging deploys ship the flag off. Then dispatch Deploy with
 `meal_composition_v2_enabled=true` (see `DEPLOYMENT.md`).
 
 ---
