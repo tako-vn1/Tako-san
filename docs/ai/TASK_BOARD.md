@@ -1,4 +1,10 @@
-# T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
+# Task board — T20 release gate
+
+**Latest (2026-09-26):** C2/C3/P2/C4 branch checks complete, but exact-main
+CI and staging remain blocked. See the T20 production-readiness track at the
+end of this document for live items; earlier entries are historical.
+
+## T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
 
 PR #8 hosted `validate` run `36225377465` failed 1/4554:
 `competing lock/regenerate` got `[200, 404]`. Regenerate won; the losing PATCH
@@ -2280,3 +2286,29 @@ rolling `qwen3.7-flash` alias is canary-only.
 - [in progress] Direct board comparison and source-led presentation findings;
   full T17 regressions, final fixes/evidence/gates/PR remain pending.
 - **T18C_PARTIAL**; no merge/deploy/T18D. VoiceOver/NVDA NOT PERFORMED.
+
+---
+
+# T20 production-readiness track — 2026-09-26 UTC
+
+- [ ] C1 exact-main green baseline: blocked until open, green PR #8 at
+  `5b0a6b9` is merged by a maintainer; `main` is `bf57451`, CI `36221190222`
+  failed in Vitest. PR #8 local `pnpm check` PASS; not exact-main evidence.
+- [x] C2 concurrency semantics: `762015f` pushed; six deterministic stale-read
+  tests cover PATCH/regenerate, DELETE, swap, save, Auto apply, valid 404,
+  winner state and exactly one revision bump (focused 22/22 PASS).
+- [x] C3 cuisine picker runtime: `bc92346` and `c555443` pushed; picker filters,
+  stale-page guard and 390/768/1280 browser smoke PASS (focused 19/19 PASS).
+- [x] Deep audit P2: `fb4416e` pushed; same-slot substitution safety uses the
+  T02 chronological inventory prefix; regression rejects forbidden substitute
+  without changing revision (focused 33/33 PASS).
+- [x] C4 branch-local code gate: `fb4416e` `pnpm check` PASS (202 files, 4,562
+  tests, migrations, build); T19/T20 focused 80/80 PASS. Documentation receipt
+  follows in a separate checkpoint. No known unfixed in-scope P0/P1/P2.
+- [ ] PR #9 exact-head hosted CI and merge, exact-main CI: PR #9 is stacked on
+  PR #8 and CI's pull_request filter is main/master only. Retarget after #8
+  merges, then certify; do not bypass or direct-push main.
+- [ ] Staging migration 0039 / flag-off deploy / flag-on smoke: STOP SAFE until
+  authorized staging access proves target identity and ledger. Local Cloudflare
+  credentials absent; GitHub staging secrets cannot be listed (403). No remote
+  migration/deploy/enablement occurred. Production mutation not authorized.

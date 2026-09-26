@@ -1,7 +1,44 @@
 # T20 — Meal Composition V2
 
-Status: code-complete candidate on `feat/t20-meal-composition-v2`, gated off by
-default. No production deployment, no production D1 migration. See ADR-031.
+Status: branch-local code gate green at `fb4416e` (PR #9 stacked on open PR #8);
+not exact-main or staging certified. Default OFF. No production deployment or
+production D1 migration. See ADR-031 and the current HANDOFF for blockers.
+
+## Hardening certification boundary (2026-09-26)
+
+- Torn plan/composition reads are revision-checked before component mutations,
+  and Auto/Assisted apply rechecks before resolving an option; true current-
+  revision component misses still return 404. One fenced D1 batch remains the
+  sole write. Deterministic Worker/SQLite race tests cover the stale cases.
+- Manual newly added components use the same T02 projection inventory as
+  shopping **at each component's position**, so an earlier dish consuming
+  direct stock cannot hide a forbidden approved substitute in a later dish.
+  T03 hard restrictions and the T19 authority are unchanged.
+- Cuisine picker drops stale responses/pages when filters change, keeping only
+  rows tied to the active filter tuple. API strict cuisine validation, stable
+  ordering and pre-pagination filtering were checked with combined queries;
+  the isolated paired-flag preview was inspected at 390/768/1280px.
+- Local `pnpm check` at `fb4416e`: 202 files / 4,562 tests, migration smoke and
+  build PASS; PR #9 exact-head hosted CI is not yet available until PR #8 is
+  merged and #9 is retargeted to main. Staging identity/ledger cannot be
+  verified here without staging credentials; no staging or production mutation
+  occurred. Never infer 0039's remote status from local migration smoke.
+
+Pending production packet (do not dispatch until staging and exact-main are
+certified): pin the merged main SHA; an authorized operator must read the
+actual production ledger and confirm its expected pre-tip before applying
+`0039_meal_composition_v2.sql` via the reviewed
+`production-d1-migrate.yml` workflow (`ref`, `expected_pre_tip`, `migration`,
+`confirm_production_migration`) with required production Environment approval
+and Cloudflare secrets. Record the workflow's Time Travel bookmark, aggregate
+baseline, FK/quick check and catalog identity receipt. For deploy use
+`deploy.yml` with `environment=production`, exact `ref`/`hardened_sha`,
+`confirm_production=true`, existing T19 catalog inputs and
+`meal_composition_v2_enabled=false`; smoke V1/auth/recipe detail/cooking/
+shopping/500 catalog before a separately approved dispatch with that one
+flag `true`. Rollback enablement by redeploying the same certified code with
+flag false; D1 restoration, if required, is an operator-approved Time Travel
+decision. No production inputs are currently authorized for this task.
 
 ## Architecture map (audited current state → T20)
 

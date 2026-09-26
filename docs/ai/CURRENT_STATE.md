@@ -1,4 +1,11 @@
-# T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
+# Current state — T20 release gate
+
+**Latest (2026-09-26):** branch-local C4 green at `fb4416e`, but `main` is
+still red until PR #8 merges; PR #9 and staging are not certified. See the
+T20 hardening checkpoint at the end of this document for checks and next
+action. Earlier entries below are historical, not release receipts.
+
+## T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
 
 PR #8 hosted `validate` run `36225377465` failed 1/4554:
 `competing lock/regenerate` got `[200, 404]`. Regenerate won; the losing PATCH
@@ -3605,3 +3612,43 @@ Direct comparison is underway; desktop composition/breakpoint and keyboard
 findings are being classified. Status: **T18C_PARTIAL**. Full T17 regression
 and final gates remain pending. VoiceOver/NVDA NOT PERFORMED. No merge,
 deployment, remote migration, or T18D work.
+
+---
+
+# T20 hardening — branch-local code freeze, 2026-09-26 UTC
+
+**Not `T20_PRODUCTION_READY`.** `origin/main` is still PR #7 merge `bf57451`
+(`bf57451e4a1a047eeff7a0938b903d1a37b6f8c9`); its last CI `36221190222` failed on the T20 add/remove race
+test. PR #8 remains open at reviewed head `5b0a6b9` (`5b0a6b995786b338999286023eb2e46de4bc45a7`),
+MERGEABLE/CLEAN, no unresolved threads, hosted `validate` `36226026618`
+SUCCESS. Agents cannot merge PRs in this workspace. `pnpm check` on the exact
+PR #8 head passed locally (201 files / 4,554 tests, migration smoke, build),
+but **main has not gained that fix or an exact-main green CI run**.
+
+The follow-up branch `fix/t20-postmerge-ci-picker-cuisine--hardening` / PR #9 is
+stacked on PR #8. Checkpoints pushed: C2 `762015f` (revision recheck after the
+torn plan/composition read and before Auto/Assisted apply option lookup; six
+deterministic integration tests); C3 `bc92346` (invalidate picker results on
+filter change), `c555443` (four-way filter/pagination assertions); additional
+P2 fix `fb4416e` (Manual safety now uses T02 inventory before each added
+component, including consumption by earlier components in the slot). No known
+unfixed T20 P0/P1/P2 from this audit. Ownership, D1 revision fence, recipe
+authority, V1/family shopping and composer budgets were not weakened.
+
+At `fb4416e`, `pnpm check` PASS: typecheck, lint, 202 Vitest files / 4,562
+tests, `migration-smoke=ok`, build. Focused T19/T20 authority, 500 catalog,
+D1-only detail/cooking/shopping, and authority-change suites: 6 files / 80
+tests PASS. The isolated T20-enabled preview was checked at 390×844, 768×1024,
+1280×800 (Vietnamese/Korean/Japanese, combined filters, empty/clear, 20→40
+load-more, keyboard focus/Escape, no horizontal overflow); production flags
+remain off. PR #9 has no hosted checks while its base is PR #8's branch: CI
+only triggers for pull requests targeting `main`/`master`.
+
+Staging configuration exists, but local staging Cloudflare credentials are
+absent and the GitHub App cannot read staging secret names (403). Target D1
+identity, ledger and rollback bookmark have **not** been verified; 0039 has
+not been remotely applied, and neither staging nor production was deployed.
+Next: maintainer merges PR #8 normally, confirms exact-main CI, retargets
+PR #9 to main, certifies its exact-head CI/review and merges normally. Then
+verify staging identity/ledger with authorized credentials before a reviewed
+migration and paired flag-off/flag-on deploy sequence. Do not touch production.

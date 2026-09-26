@@ -1,4 +1,10 @@
-# T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
+# Handoff — T20 release gate
+
+**Latest (2026-09-26):** code freeze `fb4416e` passes local C4, not main or
+staging certification. See the T20 hardening handoff at the end of this
+document for exact checks, blockers and next action. Older entries are history.
+
+## T20 PR #8 CI fix — lock/regenerate race, 2026-09-26 UTC
 
 PR #8 hosted `validate` run `36225377465` failed 1/4554:
 `competing lock/regenerate` got `[200, 404]`. Regenerate won; the losing PATCH
@@ -3570,3 +3576,49 @@ was changed.
   gaps, run T17 and final gates, then produce separate final evidence.
   Do not reuse pause-tree results for subsequent edits. No human screen-reader
   test, merge, deploy, remote migration or T18D.
+
+---
+
+# T20 hardening handoff — 2026-09-26 UTC
+
+## State and checkpoints
+
+Not production-ready: `main` is PR #7 merge `bf57451` (`bf57451e4a1a047eeff7a0938b903d1a37b6f8c9`), last
+main CI `36221190222` FAIL in the T20 add/remove race test. PR #8 remains
+OPEN, head `5b0a6b9` (`5b0a6b995786b338999286023eb2e46de4bc45a7`), MERGEABLE/CLEAN, no unresolved review
+threads, full hosted `validate` `36226026618` SUCCESS. Local `pnpm check` on
+that exact head passed (201 files / 4,554 tests, migrations, build). Agent
+merge is disallowed; no C1 exact-main green SHA or merge SHA yet.
+
+Follow-up branch `fix/t20-postmerge-ci-picker-cuisine--hardening`, PR #9 base
+PR #8: C2 `762015f` (torn-read 409 semantics); C3 `bc92346` (picker stale-page
+guard) + `c555443` (combined-filter regression); P2 `fb4416e` (same-slot
+T02 prefix inventory for Manual hard restrictions). All pushed. The C4
+application code freeze is `fb4416e`; this documentation receipt follows it.
+No known outstanding in-scope P0/P1/P2; no T19 authority or 500-catalog change.
+
+## Executed checks
+
+- C2: `pnpm exec vitest run tests/integration/t20-meal-composition-stale-read.test.ts tests/integration/t20-meal-composition-flows.test.ts` — 22/22 PASS; `pnpm typecheck`, `pnpm lint`, `git diff --check` PASS. Initial fixture used an invalid slot ID and failed one assertion; corrected to a valid absent ID, then reran green. No sleeps/retries.
+- C3: `pnpm exec vitest run tests/unit/t20-meal-composer-ui.test.tsx tests/integration/t20-roles-picker-shopping.test.ts` — 19/19 PASS; four-way filter/pagination extension rerun 7/7 PASS. A new focus assertion initially clicked an unfocused opener in jsdom; focused it like keyboard use, then reran green. `pnpm typecheck`, `pnpm lint`, `git diff --check` PASS.
+- P2: `pnpm exec vitest run tests/integration/t20-legacy-family-and-safety.test.ts tests/unit/t20-composition-safety.test.ts tests/unit/t20-composition-shopping.test.ts tests/integration/t20-meal-composition-stale-read.test.ts` — 33/33 PASS; `pnpm typecheck`, `git diff --check` PASS.
+- C4 at `fb4416e`: `pnpm check` PASS: typecheck, lint, 202 Vitest files / 4,562 tests, migration smoke (`migration-smoke=ok`), build. `pnpm exec vitest run tests/integration/t19-recipe-authority-split.test.ts tests/integration/t19-recipe-authority-observability.test.ts tests/integration/t19-planner-authority-persistence.test.ts tests/integration/recipe-catalog-growth-authority.test.ts tests/integration/t20-meal-composition-flows.test.ts tests/integration/t20-roles-picker-shopping.test.ts` — 6 files / 80 tests PASS. Remote D1/Week gates skipped by `pnpm check` (no credentials).
+- Real isolated preview with `PREVIEW_MEAL_COMPOSITION_V2=true` (paired Worker/UI, no external fetch): mobile 390×844, tablet 768×1024, desktop 1280×800. Picker Vietnamese/Korean/Japanese, role+cuisine+search, filtered empty/clear, load more 20→40 unique, focus trap, Escape restores opener, no horizontal overflow or browser errors. Screenshots inspected locally. This is NOT staging smoke.
+
+## Release blockers and next action
+
+PR #9 has no hosted CI while based on PR #8's branch; `ci.yml` only triggers PRs
+targeting main/master. Merge PR #8 via normal PR flow, wait for its exact-main
+CI, retarget PR #9 to main, verify exact-head hosted CI, zero unresolved review
+threads and mergeability, then merge PR #9 normally and verify exact-main CI.
+No direct push/force push to main. Staging config exists, but Cloudflare
+credentials are absent here and GitHub environment secrets are unreadable
+(403), so the target identity, pre-ledger, bookmark and aggregate baseline
+cannot be checked. 0039 ledger before/after unknown; staging migration/deploy/
+flag-on smoke NOT performed. After authorized staging access, follow
+`DEPLOYMENT.md`: verify staging target and ledger, use reviewed migration
+mechanism, inspect FK/quick check and 500 catalog, deploy certified main with
+both flags OFF first, then explicitly opt in and run Manual/Assisted/Auto,
+safety, shopping, legacy, T19 and UX smokes. Production authorization was not
+given: `production_migration=NO`, `production_deploy=NO`,
+`production_enablement=NO`.
