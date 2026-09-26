@@ -257,6 +257,20 @@ export class MealCompositionService {
     return slot;
   }
 
+  private async checkedSlot(loaded: Loaded, scope: Scope, planId: string, slotId: string, revision: number): Promise<SlotInfo> {
+    const current = await getGeneratedMealPlan(this.db, scope, planId);
+    const slot = loaded.slots.find((entry) => entry.slotId === slotId);
+    if (!slot) {
+      // A slot added between the two plan reads is a stale request, not a permanently missing slot.
+      if (this.slots(this.planner.decode(current)).some((entry) => entry.slotId === slotId)) {
+        this.planner.assertRevision(current, revision);
+      }
+      return this.slotInfo(loaded, slotId);
+    }
+    this.planner.assertRevision(current, revision);
+    return slot;
+  }
+
   private assertEditable(loaded: Loaded, slot: SlotInfo) {
     if (this.planner.authorityChanged(loaded.stored, loaded.snapshot)) {
       throw new MealPlanningError('CATALOG_AUTHORITY_CHANGED', 409,
@@ -318,9 +332,7 @@ export class MealCompositionService {
     event: string, operation: (composition: MealComposition, context: CompositionContext, loaded: Loaded) => MealComponent[]) {
     const started = Date.now();
     const loaded = await this.load(scope, planId);
-    const slot = this.slotInfo(loaded, slotId);
-    // load reads the plan and its components separately; reject a revision that moved between those reads.
-    this.planner.assertRevision(await getGeneratedMealPlan(this.db, scope, planId), revision);
+    const slot = await this.checkedSlot(loaded, scope, planId, slotId, revision);
     this.assertEditable(loaded, slot);
     const current = this.compositionFor(loaded, slotId);
     this.assertComposable(loaded, slotId, current);
@@ -490,8 +502,7 @@ export class MealCompositionService {
 
   private async prepareGeneration(scope: Scope, planId: string, slotId: string, revision: number) {
     const loaded = await this.load(scope, planId);
-    const slot = this.slotInfo(loaded, slotId);
-    this.planner.assertRevision(await getGeneratedMealPlan(this.db, scope, planId), revision);
+    const slot = await this.checkedSlot(loaded, scope, planId, slotId, revision);
     this.assertEditable(loaded, slot);
     this.assertComposable(loaded, slotId, this.compositionFor(loaded, slotId));
     return { loaded, slot };

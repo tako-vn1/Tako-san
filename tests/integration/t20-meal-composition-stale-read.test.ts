@@ -3,7 +3,7 @@ import { MealPlanDtoSchema } from '../../packages/domain/src/meal-planning-api';
 import { AutoOptionsDtoSchema, SlotCompositionDtoSchema } from '../../packages/domain/src/meal-composition-api';
 import { resetRoleIndexMemoForTests } from '../../src/worker/services/meal-composition';
 import { resetRecipeAuthorityCacheForTests } from '../../src/worker/services/recipe-authority';
-import { T20Harness, T20_INTENT } from '../helpers/t20-composition-harness';
+import { T20Harness, T20_DATES, T20_INTENT } from '../helpers/t20-composition-harness';
 
 vi.mock('../../src/worker/services/email', () => ({ sendEmail: vi.fn(), buildOtpEmail: vi.fn() }));
 
@@ -74,6 +74,18 @@ beforeEach(async () => {
 afterEach(() => { h.close(); vi.restoreAllMocks(); });
 
 describe('T20 torn-read revision classification', () => {
+  it.each(['PATCH', 'AUTO'] as const)('stale %s on a concurrently added slot is a revision conflict', async (kind) => {
+    const created = await plan();
+    const slotId = `${T20_DATES[3]}:dinner:0`;
+    const intent = { ...T20_INTENT, slots: [...T20_INTENT.slots, { date: T20_DATES[3], mealType: 'dinner' }] };
+    await raceAfterPlanRead(created.id, slotId, created.revision,
+      () => kind === 'PATCH'
+        ? h.call(HOUSE, 'PATCH', `${slotPath(created.id, slotId)}/components/not-a-component`,
+          { revision: created.revision, locked: true })
+        : h.call(HOUSE, 'POST', `${slotPath(created.id, slotId)}/auto`, { revision: created.revision }),
+      () => h.call(HOUSE, 'POST', `/meal-planning/plans/${created.id}/regenerate`, { revision: created.revision, intent }));
+  }, TIMEOUT);
+
   it('stale PATCH after regenerate returns 409 even when the edited component was replaced', async () => {
     const created = await plan();
     const slotId = created.result.meals[0].slotId;
